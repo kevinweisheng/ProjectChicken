@@ -95,10 +95,43 @@ namespace ProjectChicken.UI
                 iconImage.sprite = targetSkill.Icon;
             }
 
-            // 设置价格文本
+            // 更新价格和状态文本（使用当前等级信息）
+            UpdateCostAndStatusText();
+        }
+
+        /// <summary>
+        /// 更新价格和状态文本（显示当前等级和下一级消耗）
+        /// </summary>
+        private void UpdateCostAndStatusText()
+        {
+            if (targetSkill == null || UpgradeManager.Instance == null)
+            {
+                return;
+            }
+
+            // 获取当前等级
+            int currentLevel = UpgradeManager.Instance.GetSkillLevel(targetSkill);
+            bool isMaxLevel = UpgradeManager.Instance.IsMaxLevel(targetSkill);
+
+            // 更新状态文本：显示等级信息
+            if (statusText != null)
+            {
+                statusText.text = $"Lv. {currentLevel} / {targetSkill.MaxLevel}";
+            }
+
+            // 更新价格文本
             if (costText != null)
             {
-                costText.text = targetSkill.Cost.ToString();
+                if (isMaxLevel)
+                {
+                    costText.text = "MAX";
+                }
+                else
+                {
+                    // 显示下一级的消耗
+                    int nextLevelCost = targetSkill.GetCost(currentLevel);
+                    costText.text = nextLevelCost.ToString();
+                }
             }
         }
 
@@ -112,21 +145,39 @@ namespace ProjectChicken.UI
                 return;
             }
 
-            bool isUnlocked = UpgradeManager.Instance.IsNodeUnlocked(targetSkill);
+            // 获取当前等级和最大等级状态
+            int currentLevel = UpgradeManager.Instance.GetSkillLevel(targetSkill);
+            bool isMaxLevel = UpgradeManager.Instance.IsMaxLevel(targetSkill);
+            bool isUnlocked = currentLevel > 0;
             bool canUnlock = CanUnlockSkill();
             bool hasEnoughMoney = HasEnoughMoney();
 
-            // 状态1：已解锁
-            if (isUnlocked)
+            // 更新价格和状态文本
+            UpdateCostAndStatusText();
+
+            // 状态1：已达到最大等级
+            if (isMaxLevel)
             {
-                SetUnlockedState();
+                SetMaxLevelState();
             }
-            // 状态2：可解锁（钱够 + 前置已解锁）
+            // 状态2：已解锁但未满级
+            else if (isUnlocked)
+            {
+                if (hasEnoughMoney)
+                {
+                    SetAvailableState(); // 可以继续升级
+                }
+                else
+                {
+                    SetLockedState(); // 钱不够
+                }
+            }
+            // 状态3：可解锁（钱够 + 前置已解锁）
             else if (canUnlock && hasEnoughMoney)
             {
                 SetAvailableState();
             }
-            // 状态3：不可解锁（钱不够 或 前置未解锁）
+            // 状态4：不可解锁（钱不够 或 前置未解锁）
             else
             {
                 SetLockedState();
@@ -155,12 +206,22 @@ namespace ProjectChicken.UI
         /// <returns>是否有足够的钱</returns>
         private bool HasEnoughMoney()
         {
-            if (ResourceManager.Instance == null)
+            if (ResourceManager.Instance == null || UpgradeManager.Instance == null)
             {
                 return false;
             }
 
-            return ResourceManager.Instance.TotalGlobalEggs >= targetSkill.Cost;
+            // 获取当前等级和下一级的消耗
+            int currentLevel = UpgradeManager.Instance.GetSkillLevel(targetSkill);
+            bool isMaxLevel = UpgradeManager.Instance.IsMaxLevel(targetSkill);
+
+            if (isMaxLevel)
+            {
+                return false; // 已满级，不需要钱
+            }
+
+            int nextLevelCost = targetSkill.GetCost(currentLevel);
+            return ResourceManager.Instance.TotalGlobalEggs >= nextLevelCost;
         }
 
         /// <summary>
@@ -174,19 +235,19 @@ namespace ProjectChicken.UI
         }
 
         /// <summary>
-        /// 设置已解锁状态
+        /// 设置最大等级状态（已满级）
         /// </summary>
-        private void SetUnlockedState()
+        private void SetMaxLevelState()
         {
             if (buttonComp != null)
             {
                 buttonComp.interactable = false; // 按钮不可交互
             }
 
-            // 显示"已拥有"状态
+            // 显示"MAX"状态
             if (statusText != null)
             {
-                statusText.text = "已拥有"; // 如果字体不支持中文，使用英文
+                statusText.text = "MAX";
                 statusText.gameObject.SetActive(true);
             }
 
@@ -196,7 +257,7 @@ namespace ProjectChicken.UI
                 lockCover.SetActive(false);
             }
 
-            // 设置颜色为已解锁颜色
+            // 设置颜色为已解锁颜色（满级状态）
             if (iconImage != null)
             {
                 iconImage.color = unlockedColor;
@@ -271,29 +332,40 @@ namespace ProjectChicken.UI
                 return;
             }
 
+            // 检查是否已达到最大等级
+            if (UpgradeManager.Instance.IsMaxLevel(targetSkill))
+            {
+                Debug.Log($"SkillSlotUI: 技能 {targetSkill.DisplayName} 已达到最大等级！", this);
+                return;
+            }
+
+            // 获取当前等级和下一级的消耗
+            int currentLevel = UpgradeManager.Instance.GetSkillLevel(targetSkill);
+            int nextLevelCost = targetSkill.GetCost(currentLevel);
+
             // 先检查是否有足够的全局货币
             if (!HasEnoughMoney())
             {
-                Debug.LogWarning($"SkillSlotUI: 全局货币不足！需要 {targetSkill.Cost}，当前只有 {ResourceManager.Instance?.TotalGlobalEggs ?? 0}。", this);
+                Debug.LogWarning($"SkillSlotUI: 全局货币不足！需要 {nextLevelCost}，当前只有 {ResourceManager.Instance?.TotalGlobalEggs ?? 0}。", this);
                 // 可以在这里播放错误音效
                 // AudioManager.Instance?.PlayErrorSound();
                 return;
             }
 
-            // 尝试解锁技能（内部会调用 ResourceManager.SpendGlobalEggs）
-            bool success = UpgradeManager.Instance.TryUnlockNode(targetSkill);
+            // 尝试升级技能（内部会调用 ResourceManager.SpendGlobalEggs）
+            bool success = UpgradeManager.Instance.TryUpgradeSkill(targetSkill);
 
             if (success)
             {
-                // 解锁成功，立即刷新UI状态
+                // 升级成功，立即刷新UI状态
                 UpdateUIState();
                 
                 // 可以在这里添加音效、特效等反馈
-                Debug.Log($"SkillSlotUI: 成功解锁技能 {targetSkill.DisplayName}！");
+                Debug.Log($"SkillSlotUI: 成功升级技能 {targetSkill.DisplayName} 到等级 {currentLevel + 1}！");
             }
             else
             {
-                // 解锁失败，刷新UI状态（可能货币不足或其他原因）
+                // 升级失败，刷新UI状态（可能货币不足或其他原因）
                 UpdateUIState();
             }
         }

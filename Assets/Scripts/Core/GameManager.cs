@@ -136,10 +136,23 @@ namespace ProjectChicken.Core
             // 将UI的世界坐标转换为场景世界坐标
             Vector3 uiWorldPosition = ConvertUIToWorldPosition(uiTarget);
 
+            // 查找生成位置附近的鸡，判断是否为金鸡
+            bool isGoldenEgg = false;
+            Collider2D[] colliders = Physics2D.OverlapCircleAll(spawnPosition, 0.5f);
+            foreach (Collider2D col in colliders)
+            {
+                ChickenUnit chicken = col.GetComponent<ChickenUnit>();
+                if (chicken != null && chicken.IsGolden)
+                {
+                    isGoldenEgg = true;
+                    break;
+                }
+            }
+
             // 生成蛋
             EggProjectile newEgg = Instantiate(eggPrefab, spawnPosition, Quaternion.identity);
-            // 告诉蛋往哪里飞（使用转换后的世界坐标）
-            newEgg.Initialize(uiWorldPosition);
+            // 告诉蛋往哪里飞（使用转换后的世界坐标），并传递是否为金蛋的信息
+            newEgg.Initialize(uiWorldPosition, isGoldenEgg);
         }
 
         /// <summary>

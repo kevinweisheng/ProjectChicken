@@ -48,6 +48,7 @@ namespace ProjectChicken.Core
 
         private void Awake()
         {
+            Debug.Log($"存档路径: {Application.persistentDataPath}");
             // 单例模式：防止重复创建
             if (Instance != null && Instance != this)
             {
@@ -172,15 +173,15 @@ namespace ProjectChicken.Core
             // 设置全局货币
             data.totalGlobalEggs = TotalGlobalEggs;
             
-            // 设置已解锁技能ID列表
+            // 设置技能记录列表
             if (UpgradeManager.Instance != null)
             {
-                data.unlockedSkillIDs = UpgradeManager.Instance.GetUnlockedSkillIDs();
+                data.skillRecords = UpgradeManager.Instance.GetSkillSaveData();
             }
             else
             {
                 Debug.LogWarning("ResourceManager: UpgradeManager.Instance 为空，无法保存技能数据！", this);
-                data.unlockedSkillIDs = new System.Collections.Generic.List<string>();
+                data.skillRecords = new System.Collections.Generic.List<GameSaveData.SkillSaveRecord>();
             }
             
             // 保存到文件
@@ -200,10 +201,10 @@ namespace ProjectChicken.Core
             // 恢复全局货币
             TotalGlobalEggs = data.totalGlobalEggs;
             
-            // 恢复已解锁技能
+            // 恢复技能等级数据
             if (UpgradeManager.Instance != null)
             {
-                UpgradeManager.Instance.LoadSkills(data.unlockedSkillIDs);
+                UpgradeManager.Instance.LoadSkills(data.skillRecords);
             }
             else
             {
@@ -214,6 +215,39 @@ namespace ProjectChicken.Core
             UpdateUI();
             
             Debug.Log("ResourceManager: Game Loaded", this);
+        }
+
+        /// <summary>
+        /// 清除存档数据（用于测试，重置所有游戏进度）
+        /// </summary>
+        public void ClearSaveData()
+        {
+            // 删除存档文件
+            SaveSystem.DeleteSaveFile();
+
+            // 重置全局货币
+            TotalGlobalEggs = 0;
+
+            // 重置单局分数
+            CurrentSessionEggs = 0;
+
+            // 重置技能解锁状态
+            if (UpgradeManager.Instance != null)
+            {
+                UpgradeManager.Instance.ResetSkills();
+            }
+            else
+            {
+                Debug.LogWarning("ResourceManager: UpgradeManager.Instance 为空，无法重置技能数据！", this);
+            }
+
+            // 更新UI显示
+            UpdateUI();
+
+            // 触发全局货币变化事件
+            OnGlobalEggsChanged?.Invoke(TotalGlobalEggs);
+
+            Debug.Log("ResourceManager: 存档数据已清除，游戏已重置为初始状态", this);
         }
 
         /// <summary>

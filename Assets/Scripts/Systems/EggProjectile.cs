@@ -13,15 +13,25 @@ namespace ProjectChicken.Systems
 
         private Vector3 targetPosition; // 目标位置
         private bool isInitialized = false; // 是否已初始化
+        private bool isGoldenEgg = false; // 是否为金蛋
 
         /// <summary>
         /// 初始化投射物
         /// </summary>
         /// <param name="targetPos">目标位置</param>
-        public void Initialize(Vector3 targetPos)
+        /// <param name="golden">是否为金蛋</param>
+        public void Initialize(Vector3 targetPos, bool golden = false)
         {
             targetPosition = targetPos;
+            isGoldenEgg = golden;
             isInitialized = true;
+
+            // 如果是金蛋，可以改变视觉外观（例如改变颜色为金色）
+            SpriteRenderer spriteRenderer = GetComponent<SpriteRenderer>();
+            if (spriteRenderer != null && golden)
+            {
+                spriteRenderer.color = Color.yellow; // 金色
+            }
         }
 
         private void Update()
@@ -48,10 +58,19 @@ namespace ProjectChicken.Systems
         /// </summary>
         private void OnArrived()
         {
+            // 计算鸡蛋价值
+            int eggValue = 1; // 默认普通蛋价值为1
+            if (isGoldenEgg && UpgradeManager.Instance != null)
+            {
+                eggValue = UpgradeManager.Instance.GoldenEggMultiplier;
+            }
+
             // 调用资源管理器增加鸡蛋（制造"飞到了才算数"的延迟满足感）
             if (ResourceManager.Instance != null)
             {
-                ResourceManager.Instance.AddEgg(1);
+                ResourceManager.Instance.AddEgg(eggValue);
+                string eggType = isGoldenEgg ? "金蛋" : "普通蛋";
+                Debug.Log($"EggProjectile: {eggType}到达，获得 {eggValue} 个鸡蛋", this);
             }
             else
             {

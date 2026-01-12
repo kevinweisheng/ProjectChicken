@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections.Generic;
 
 namespace ProjectChicken.Systems.SkillTree
 {
@@ -11,7 +12,13 @@ namespace ProjectChicken.Systems.SkillTree
         AttackRadius,    // 攻击范围提升
         AttackSpeed,     // 攻击速度提升（减少攻击间隔）
         SessionDuration, // 回合时间提升（增加游戏时长）
-        MoveSpeed        // 移动速度提升（预留）
+        MoveSpeed,       // 移动速度提升（预留）
+        RecoveryChance,  // 恢复几率提升（增加从瘦鸡变回肥鸡的成功率）
+        UnlockMitosis,   // 解锁分裂能力
+        MitosisChance,   // 分裂几率提升（增加分裂的概率）
+        MaxChickenCount, // 最大鸡数量提升（增加人口上限）
+        GoldenChickenSpawnRate, // 金鸡生成率提升
+        GoldenEggMultiplier     // 金蛋价值倍率提升
     }
 
     /// <summary>
@@ -20,6 +27,16 @@ namespace ProjectChicken.Systems.SkillTree
     [CreateAssetMenu(fileName = "New Skill Node", menuName = "Project Chicken/Skill Node", order = 1)]
     public class SkillNodeData : ScriptableObject
     {
+        /// <summary>
+        /// 技能等级信息：包含每级的消耗和效果值
+        /// </summary>
+        [System.Serializable]
+        public struct SkillLevelInfo
+        {
+            public int cost; // 升级到此等级所需的消耗
+            public float effectValue; // 此等级增加的效果值（增量）
+        }
+
         [Header("基础信息")]
         [SerializeField] private string id; // 唯一标识符
         [SerializeField] private Sprite icon; // UI图标
@@ -28,22 +45,54 @@ namespace ProjectChicken.Systems.SkillTree
         [SerializeField] private string description; // 描述
 
         [Header("购买条件")]
-        [SerializeField] private int cost; // 购买所需鸡蛋数
         [SerializeField] private SkillNodeData prerequisite; // 前置技能节点（可为空）
 
         [Header("效果")]
         [SerializeField] private SkillEffectType effectType; // 效果类型
-        [SerializeField] private float effectValue; // 提升的数值
+
+        [Header("等级配置")]
+        [SerializeField] private List<SkillLevelInfo> levels; // 技能等级列表（索引0为第1级，索引1为第2级，以此类推）
 
         // 公共属性（只读）
         public string ID => id;
         public Sprite Icon => icon;
         public string DisplayName => displayName;
         public string Description => description;
-        public int Cost => cost;
         public SkillNodeData Prerequisite => prerequisite;
         public SkillEffectType EffectType => effectType;
-        public float EffectValue => effectValue;
+
+        /// <summary>
+        /// 最大等级数
+        /// </summary>
+        public int MaxLevel => levels != null ? levels.Count : 0;
+
+        /// <summary>
+        /// 获取指定等级的消耗
+        /// </summary>
+        /// <param name="currentLevel">当前等级（0-based，0表示第1级）</param>
+        /// <returns>升级到该等级所需的消耗，如果索引超出范围则返回0</returns>
+        public int GetCost(int currentLevel)
+        {
+            if (levels == null || currentLevel < 0 || currentLevel >= levels.Count)
+            {
+                return 0;
+            }
+            return levels[currentLevel].cost;
+        }
+
+        /// <summary>
+        /// 获取指定等级的效果值
+        /// </summary>
+        /// <param name="currentLevel">当前等级（0-based，0表示第1级）</param>
+        /// <returns>该等级增加的效果值，如果索引超出范围则返回0</returns>
+        public float GetEffectValue(int currentLevel)
+        {
+            if (levels == null || currentLevel < 0 || currentLevel >= levels.Count)
+            {
+                return 0f;
+            }
+            return levels[currentLevel].effectValue;
+        }
     }
 }
 

@@ -1726,6 +1726,7 @@ MonoBehaviour:
   totalEggsText: {fileID: 81758580}
   startBattleButton: {fileID: 259369370}
   openSkillTreeButton: {fileID: 1388567654}
+  clearSaveButton: {fileID: 0}
   spawner: {fileID: 0}
   skillTreePanel: {fileID: 365006042}
 --- !u!114 &598380255
@@ -2047,6 +2048,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 2a49aad19844112429328b81f4a7832f, type: 2}
   - {fileID: 11400000, guid: 137bbf2cd6d37d649a83c594fed0fe6c, type: 2}
   - {fileID: 11400000, guid: 1be75d5990b71a7498fa9c82d8c67fce, type: 2}
+  - {fileID: 11400000, guid: afe453d7334c66d41bddf0e2adb0a79f, type: 2}
   initialDamage: 90
   initialRadius: 0.5
   initialAttackInterval: 0.5
@@ -4171,7 +4173,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ProjectChicken.Systems.ChickenSpawner
   chickenPrefab: {fileID: 1425459822695963046, guid: 5bd1c4f8fc50b214595fa12028ef17ce, type: 3}
   spawnInterval: 3
-  maxChickens: 10
+  baseMaxChickens: 10
   spawnPadding: 1
 --- !u!1 &1998042418
 GameObject:

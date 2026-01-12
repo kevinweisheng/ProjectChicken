@@ -16,7 +16,16 @@ MonoBehaviour:
   icon: {fileID: 0}
   displayName: "\u66F4\u5927\u7684\u629A\u6478\u8303\u56F4"
   description: 
-  cost: 10
   prerequisite: {fileID: 11400000, guid: 137bbf2cd6d37d649a83c594fed0fe6c, type: 2}
   effectType: 0
-  effectValue: 1
+  levels:
+  - cost: 1
+    effectValue: 1
+  - cost: 1
+    effectValue: 1
+  - cost: 1
+    effectValue: 1
+  - cost: 1
+    effectValue: 1
+  - cost: 1
+    effectValue: 1

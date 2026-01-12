@@ -10,10 +10,12 @@ namespace ProjectChicken.Systems
     /// </summary>
     public class ChickenSpawner : MonoBehaviour
     {
+        public static ChickenSpawner Instance { get; private set; }
+
         [Header("生成配置")]
         [SerializeField] private ChickenUnit chickenPrefab; // 鸡的预制体
         [SerializeField] private float spawnInterval = 3f; // 生成间隔（秒）
-        [SerializeField] private int maxChickens = 10; // 屏幕上最大允许存在的鸡的数量
+        [SerializeField] private int baseMaxChickens = 10; // 基础最大鸡数量（可通过技能提升）
 
         [Header("生成范围")]
         [SerializeField] private float spawnPadding = 1f; // 生成边界内边距（避免在屏幕边缘生成）
@@ -24,6 +26,18 @@ namespace ProjectChicken.Systems
         
         // 跟踪所有生成的鸡（用于清理）
         private List<ChickenUnit> spawnedChickens = new List<ChickenUnit>();
+
+        private void Awake()
+        {
+            // 单例模式：防止重复创建
+            if (Instance != null && Instance != this)
+            {
+                Destroy(gameObject);
+                return;
+            }
+
+            Instance = this;
+        }
 
         private void Start()
         {
@@ -116,10 +130,62 @@ namespace ProjectChicken.Systems
             // 检查当前场景中 "Fat" 状态的鸡的数量
             int currentFatChickens = CountFatChickens();
 
+            // 计算动态上限：基础值 + 技能加成
+            int maxChickens = baseMaxChickens;
+            if (UpgradeManager.Instance != null)
+            {
+                maxChickens += UpgradeManager.Instance.ExtraMaxChickens;
+            }
+
             // 如果数量 < maxChickens，则生成一只新鸡
             if (currentFatChickens < maxChickens)
             {
                 SpawnChicken();
+            }
+        }
+
+        /// <summary>
+        /// 检查是否可以生成更多鸡（用于分裂功能）
+        /// </summary>
+        /// <returns>是否可以生成更多鸡</returns>
+        public bool CanSpawnMore()
+        {
+            int currentFatChickens = CountFatChickens();
+            int maxChickens = baseMaxChickens;
+            if (UpgradeManager.Instance != null)
+            {
+                maxChickens += UpgradeManager.Instance.ExtraMaxChickens;
+            }
+            return currentFatChickens < maxChickens;
+        }
+
+        /// <summary>
+        /// 在指定位置生成一只新鸡（用于分裂功能）
+        /// </summary>
+        /// <param name="position">生成位置</param>
+        public void SpawnChickenAt(Vector3 position)
+        {
+            if (chickenPrefab == null)
+            {
+                Debug.LogWarning("ChickenSpawner: chickenPrefab 为空，无法生成鸡！", this);
+                return;
+            }
+
+            // 添加小随机偏移，避免重叠
+            Vector2 randomOffset = Random.insideUnitCircle * 0.5f;
+            Vector3 spawnPosition = position + new Vector3(randomOffset.x, randomOffset.y, 0f);
+
+            // 实例化鸡
+            ChickenUnit newChicken = Instantiate(chickenPrefab, spawnPosition, Quaternion.identity);
+            
+            // 添加到生成列表中（用于后续清理）
+            if (newChicken != null)
+            {
+                // 分裂生成的鸡继承原鸡的类型（普通鸡）
+                newChicken.SetGolden(false);
+                
+                spawnedChickens.Add(newChicken);
+                Debug.Log($"ChickenSpawner: 在位置 {spawnPosition} 通过分裂生成了一只鸡", this);
             }
         }
 
@@ -159,11 +225,31 @@ namespace ProjectChicken.Systems
             // 添加到生成列表中（用于后续清理）
             if (newChicken != null)
             {
+                // 根据金鸡生成率决定是否生成金鸡
+                bool isGolden = ShouldSpawnGoldenChicken();
+                newChicken.SetGolden(isGolden);
+                
                 spawnedChickens.Add(newChicken);
+                
+                // 调试信息
+                string chickenType = isGolden ? "金鸡" : "普通鸡";
+                Debug.Log($"ChickenSpawner: 在位置 {spawnPosition} 生成了一只{chickenType}", this);
             }
-            
-            // 调试信息（可选，可以在 Inspector 中关闭）
-            Debug.Log($"ChickenSpawner: 在位置 {spawnPosition} 生成了一只鸡", this);
+        }
+
+        /// <summary>
+        /// 判断是否应该生成金鸡
+        /// </summary>
+        /// <returns>是否生成金鸡</returns>
+        private bool ShouldSpawnGoldenChicken()
+        {
+            if (UpgradeManager.Instance == null)
+            {
+                return false;
+            }
+
+            float spawnRate = UpgradeManager.Instance.GoldenChickenSpawnRate;
+            return UnityEngine.Random.value < spawnRate;
         }
 
         /// <summary>

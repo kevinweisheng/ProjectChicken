@@ -10,14 +10,30 @@ namespace ProjectChicken.Systems.Save
     public class GameSaveData
     {
         /// <summary>
+        /// 技能保存记录：存储技能的ID和等级
+        /// </summary>
+        [System.Serializable]
+        public class SkillSaveRecord
+        {
+            public string id;
+            public int level;
+
+            public SkillSaveRecord(string i, int l)
+            {
+                id = i;
+                level = l;
+            }
+        }
+
+        /// <summary>
         /// 全局永久货币（跨局保存）
         /// </summary>
         public int totalGlobalEggs;
 
         /// <summary>
-        /// 已解锁的技能ID列表
+        /// 技能记录列表：存储每个技能的ID和当前等级
         /// </summary>
-        public List<string> unlockedSkillIDs;
+        public List<SkillSaveRecord> skillRecords;
 
         /// <summary>
         /// 最后保存时间（ISO 8601 格式字符串）
@@ -30,7 +46,7 @@ namespace ProjectChicken.Systems.Save
         public GameSaveData()
         {
             totalGlobalEggs = 0;
-            unlockedSkillIDs = new List<string>();
+            skillRecords = new List<SkillSaveRecord>();
             lastSaveTime = DateTime.Now.ToString("o"); // ISO 8601 格式
         }
     }

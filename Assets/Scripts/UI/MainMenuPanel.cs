@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.InputSystem;
 using TMPro;
 using ProjectChicken.Core;
 using ProjectChicken.Systems;
@@ -18,6 +19,7 @@ namespace ProjectChicken.UI
         [SerializeField] private TMP_Text totalEggsText; // 显示全局货币数量的文本
         [SerializeField] private Button startBattleButton; // 开始战斗按钮
         [SerializeField] private Button openSkillTreeButton; // 打开技能树按钮
+        [SerializeField] private Button clearSaveButton; // 清除存档按钮（可选，用于测试）
 
         [Header("系统引用")]
         [SerializeField] private ChickenSpawner spawner; // 鸡生成器（用于清理）
@@ -70,8 +72,25 @@ namespace ProjectChicken.UI
                 Debug.LogWarning("MainMenuPanel: openSkillTreeButton 未配置！", this);
             }
 
+            // 绑定清除存档按钮的点击事件
+            if (clearSaveButton != null)
+            {
+                clearSaveButton.onClick.AddListener(OnClearSaveClicked);
+            }
+            // 注意：清除存档按钮是可选的，不配置也不会报错（用于测试功能）
+
             // 初始状态：根据当前游戏状态决定是否显示
             UpdatePanelVisibility();
+        }
+
+        private void Update()
+        {
+            // 快捷键：按 Delete 键清除存档（用于测试）
+            // 使用新的 Input System
+            if (Keyboard.current != null && Keyboard.current.deleteKey.wasPressedThisFrame)
+            {
+                OnClearSaveClicked();
+            }
         }
 
         private void OnEnable()
@@ -246,6 +265,23 @@ namespace ProjectChicken.UI
             else
             {
                 Debug.LogWarning("MainMenuPanel: skillTreePanel 为空，无法打开技能树！", this);
+            }
+        }
+
+        /// <summary>
+        /// 清除存档按钮点击事件
+        /// </summary>
+        private void OnClearSaveClicked()
+        {
+            if (ResourceManager.Instance != null)
+            {
+                ResourceManager.Instance.ClearSaveData();
+                UpdateTotalEggsDisplay(); // 更新显示
+                Debug.Log("MainMenuPanel: 存档已清除", this);
+            }
+            else
+            {
+                Debug.LogError("MainMenuPanel: ResourceManager.Instance 为空，无法清除存档！", this);
             }
         }
 

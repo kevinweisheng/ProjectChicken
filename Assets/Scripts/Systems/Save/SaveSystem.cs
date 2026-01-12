@@ -80,9 +80,9 @@ namespace ProjectChicken.Systems.Save
                 }
 
                 // 确保列表已初始化（兼容旧版本保存文件）
-                if (data.unlockedSkillIDs == null)
+                if (data.skillRecords == null)
                 {
-                    data.unlockedSkillIDs = new List<string>();
+                    data.skillRecords = new List<GameSaveData.SkillSaveRecord>();
                 }
 
                 Debug.Log($"SaveSystem: 游戏数据已从 {SaveFilePath} 加载");

@@ -1,6 +1,7 @@
 using UnityEngine;
 using System;
 using ProjectChicken.Core;
+using ProjectChicken.Systems;
 
 namespace ProjectChicken.Units
 {
@@ -19,16 +20,47 @@ namespace ProjectChicken.Units
 
         private float currentHP; // 当前血量
         private bool isFat = true; // 是否为肥鸡状态（默认为 true）
+        private bool isGolden = false; // 是否为金鸡（默认为 false）
         private float wanderTimer = 0f; // 游荡计时器
         private Camera mainCamera; // 主摄像机（用于边界检测）
+
+        // 恢复相关计时器
+        private float recoveryInterval = 1f; // 固定恢复间隔（1秒）
+        private float recoveryTimer = 0f; // 恢复计时器
 
         /// <summary>
         /// 是否为肥鸡状态（只读属性，供外部查询）
         /// </summary>
         public bool IsFat => isFat;
+
+        /// <summary>
+        /// 是否为金鸡（只读属性，供外部查询）
+        /// </summary>
+        public bool IsGolden => isGolden;
+
+        /// <summary>
+        /// 设置是否为金鸡（供生成器调用）
+        /// </summary>
+        /// <param name="golden">是否为金鸡</param>
+        public void SetGolden(bool golden)
+        {
+            isGolden = golden;
+            // 如果是金鸡，改变视觉外观（例如改变颜色为金色）
+            if (spriteRenderer != null)
+            {
+                if (golden)
+                {
+                    // 保存原始颜色，然后设置为金色
+                    originalColor = Color.yellow; // 金鸡使用金色作为"原始"颜色
+                    spriteRenderer.color = Color.yellow;
+                }
+                // 如果不是金鸡，保持原始颜色（在 Start 中已设置）
+            }
+        }
         private Rigidbody2D rb; // 刚体组件
         private SpriteRenderer spriteRenderer; // 精灵渲染器
         private Color originalColor; // 原始颜色（用于受击反馈）
+        private Vector3 originalScale; // 原始大小（用于恢复）
         private float hitFlashTimer = 0f; // 受击闪烁计时器
 
         // 静态事件：当鸡产出时触发（传递位置信息）
@@ -46,11 +78,12 @@ namespace ProjectChicken.Units
                 mainCamera = Camera.main;
             }
             
-            // 保存原始颜色
+            // 保存原始颜色和大小
             if (spriteRenderer != null)
             {
                 originalColor = spriteRenderer.color;
             }
+            originalScale = transform.localScale;
 
             // 初始化血量
             currentHP = maxHP;
@@ -58,9 +91,17 @@ namespace ProjectChicken.Units
 
         private void Update()
         {
-            // 如果已经产出（不再是肥鸡），停止所有行为
+            // 如果已经产出（不再是肥鸡），尝试恢复
             if (!isFat)
             {
+                // 恢复计时器：每1秒尝试一次恢复
+                recoveryTimer += Time.deltaTime;
+                if (recoveryTimer >= recoveryInterval)
+                {
+                    recoveryTimer = 0f;
+                    TryRecover();
+                }
+                // 瘦鸡状态下不执行其他行为
                 return;
             }
 
@@ -234,8 +275,64 @@ namespace ProjectChicken.Units
                 rb.linearVelocity = Vector2.zero;
             }
 
+            // 重置恢复计时器
+            recoveryTimer = 0f;
+
             // 停止受击判定（通过移除 Collider 或改变 Layer 实现）
             // 这里我们通过 isFat 标志来控制，TakeDamage 中已经检查了
+        }
+
+        /// <summary>
+        /// 尝试恢复：从瘦鸡状态恢复为肥鸡状态
+        /// </summary>
+        private void TryRecover()
+        {
+            // 获取恢复几率
+            float chance = 0.5f; // 默认50%
+            if (UpgradeManager.Instance != null)
+            {
+                chance = UpgradeManager.Instance.RecoveryChance;
+            }
+
+            // 随机判定是否恢复成功
+            if (UnityEngine.Random.value < chance)
+            {
+                // 恢复成功：变回肥鸡状态
+                isFat = true;
+
+                // 恢复视觉（颜色和大小）
+                if (spriteRenderer != null)
+                {
+                    spriteRenderer.color = originalColor;
+                }
+                transform.localScale = originalScale; // 恢复原始大小
+
+                // 恢复血量
+                currentHP = maxHP;
+
+                // 重置游荡计时器
+                wanderTimer = 0f;
+
+                Debug.Log($"ChickenUnit: 鸡在位置 {transform.position} 恢复为肥鸡状态", this);
+
+                // 分裂检查：如果解锁了分裂能力且可以生成更多鸡
+                if (UpgradeManager.Instance != null && UpgradeManager.Instance.IsMitosisUnlocked)
+                {
+                    if (ChickenSpawner.Instance != null && ChickenSpawner.Instance.CanSpawnMore())
+                    {
+                        // 获取分裂几率
+                        float mitosisChance = UpgradeManager.Instance.MitosisChance;
+
+                        // 随机判定是否分裂
+                        if (UnityEngine.Random.value < mitosisChance)
+                        {
+                            // 分裂成功：在当前位置生成一只新鸡
+                            ChickenSpawner.Instance.SpawnChickenAt(transform.position);
+                            Debug.Log($"ChickenUnit: 鸡在位置 {transform.position} 发生分裂！", this);
+                        }
+                    }
+                }
+            }
         }
     }
 }
