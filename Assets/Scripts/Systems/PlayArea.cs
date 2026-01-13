@@ -194,10 +194,38 @@ namespace ProjectChicken.Systems
                 }
             }
 
+            // 如果还是没有找到 SpriteRenderer，创建一个（用于显示场地）
+            if (areaSpriteRenderer == null)
+            {
+                // 创建一个子对象用于显示场地
+                GameObject spriteObj = new GameObject("AreaVisual");
+                spriteObj.transform.SetParent(transform);
+                spriteObj.transform.localPosition = Vector3.zero;
+                spriteObj.transform.localRotation = Quaternion.identity;
+                spriteObj.transform.localScale = Vector3.one;
+                
+                areaSpriteRenderer = spriteObj.AddComponent<SpriteRenderer>();
+                
+                Debug.Log("PlayArea: 自动创建了 SpriteRenderer 用于显示场地", this);
+            }
+
+            // 确保 SpriteRenderer 已启用
+            if (areaSpriteRenderer != null)
+            {
+                areaSpriteRenderer.enabled = true;
+            }
+
             // 如果设置了 Sprite，应用到 SpriteRenderer
             if (areaSprite != null && areaSpriteRenderer != null)
             {
                 areaSpriteRenderer.sprite = areaSprite;
+                Debug.Log($"PlayArea: 已设置场地 Sprite: {areaSprite.name}", this);
+            }
+            else if (areaSpriteRenderer != null && areaSpriteRenderer.sprite == null)
+            {
+                // 如果没有设置 Sprite，创建一个简单的白色占位符 Sprite
+                areaSpriteRenderer.sprite = CreatePlaceholderSprite();
+                Debug.LogWarning("PlayArea: 未设置场地 Sprite，已创建白色占位符。请在 Inspector 中设置 'Area Sprite' 以显示场地背景。", this);
             }
 
             // 设置 SpriteRenderer 的排序，确保在最底层
@@ -212,11 +240,45 @@ namespace ProjectChicken.Systems
         }
 
         /// <summary>
+        /// 创建一个简单的白色占位符 Sprite（当没有设置场地 Sprite 时使用）
+        /// </summary>
+        private Sprite CreatePlaceholderSprite()
+        {
+            // 创建一个 1x1 的白色纹理
+            int size = 1;
+            Texture2D texture = new Texture2D(size, size, TextureFormat.RGBA32, false);
+            Color[] pixels = new Color[size * size];
+            for (int i = 0; i < pixels.Length; i++)
+            {
+                pixels[i] = new Color(1f, 1f, 1f, 0.3f); // 白色，30% 透明度
+            }
+            texture.SetPixels(pixels);
+            texture.Apply();
+
+            // 创建 Sprite（使用 100 pixels per unit，所以 1x1 纹理 = 0.01 世界单位）
+            Sprite sprite = Sprite.Create(texture, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), 100f);
+            sprite.name = "PlaceholderAreaSprite";
+
+            return sprite;
+        }
+
+        /// <summary>
         /// 更新场地 Sprite 显示
         /// </summary>
         private void UpdateAreaSprite()
         {
-            if (areaSpriteRenderer == null) return;
+            if (areaSpriteRenderer == null)
+            {
+                Debug.LogWarning("PlayArea: areaSpriteRenderer 为空，无法更新场地显示。请确保已配置场地 Sprite Renderer。", this);
+                return;
+            }
+
+            // 确保 SpriteRenderer 已启用
+            if (!areaSpriteRenderer.enabled)
+            {
+                areaSpriteRenderer.enabled = true;
+                Debug.Log("PlayArea: 已启用 SpriteRenderer", this);
+            }
 
             // 确保 SpriteRenderer 在最底层
             areaSpriteRenderer.sortingOrder = sortingOrder;
@@ -230,6 +292,7 @@ namespace ProjectChicken.Systems
                 areaSize = sprite.bounds.size;
                 // 保持原始缩放
                 areaSpriteRenderer.transform.localScale = Vector3.one;
+                Debug.Log($"PlayArea: 根据 Sprite 自动设置场地大小为 {areaSize}", this);
             }
             // 如果禁用了自动大小，根据场地大小调整 Sprite 缩放
             else if (!autoSizeFromSprite && areaSpriteRenderer.sprite != null)
@@ -246,12 +309,97 @@ namespace ProjectChicken.Systems
                         1f
                     );
                     areaSpriteRenderer.transform.localScale = scale;
+                    Debug.Log($"PlayArea: 缩放 Sprite 以匹配场地大小 {areaSize}，缩放比例: {scale}", this);
                 }
+            }
+            else if (areaSpriteRenderer.sprite == null)
+            {
+                Debug.LogWarning("PlayArea: SpriteRenderer 没有 Sprite，无法显示场地。请设置 'Area Sprite' 或确保 SpriteRenderer 有 Sprite。", this);
             }
 
             // 设置 Sprite 位置为场地中心
             Vector2 center = useWorldBounds ? areaCenter : (Vector2)transform.position + areaCenter;
             areaSpriteRenderer.transform.position = new Vector3(center.x, center.y, transform.position.z);
+        }
+
+        /// <summary>
+        /// 强制刷新场地显示（公共方法，可在 Inspector 中调用或通过代码调用）
+        /// </summary>
+        [ContextMenu("刷新场地显示")]
+        public void RefreshAreaDisplay()
+        {
+            Debug.Log("PlayArea: 手动刷新场地显示", this);
+            InitializeAreaSprite();
+            UpdateAreaSprite();
+        }
+
+        /// <summary>
+        /// 诊断场地配置（公共方法，可在 Inspector 中调用或通过代码调用）
+        /// </summary>
+        [ContextMenu("诊断场地配置")]
+        public void DiagnoseAreaConfiguration()
+        {
+            Debug.Log("=== PlayArea 诊断信息 ===", this);
+            Debug.Log($"场地大小: {areaSize} (世界单位)", this);
+            Debug.Log($"场地中心: {areaCenter}", this);
+            Debug.Log($"使用世界坐标: {useWorldBounds}", this);
+            Debug.Log($"使用像素单位: {usePixelUnits}", this);
+            Debug.Log($"自动大小从 Sprite: {autoSizeFromSprite}", this);
+            Debug.Log($"排序顺序: {sortingOrder}", this);
+            Debug.Log($"排序图层: {sortingLayerName}", this);
+            
+            if (areaSpriteRenderer == null)
+            {
+                Debug.LogError("❌ SpriteRenderer 为空！场地无法显示。", this);
+            }
+            else
+            {
+                Debug.Log($"✅ SpriteRenderer 已找到: {areaSpriteRenderer.name}", this);
+                Debug.Log($"   - 已启用: {areaSpriteRenderer.enabled}", this);
+                Debug.Log($"   - 排序顺序: {areaSpriteRenderer.sortingOrder}", this);
+                Debug.Log($"   - 排序图层: {areaSpriteRenderer.sortingLayerName}", this);
+                
+                if (areaSpriteRenderer.sprite == null)
+                {
+                    Debug.LogWarning("⚠️ SpriteRenderer 没有 Sprite！场地将显示为白色占位符。", this);
+                }
+                else
+                {
+                    Debug.Log($"✅ Sprite 已设置: {areaSpriteRenderer.sprite.name}", this);
+                    Debug.Log($"   - Sprite 大小: {areaSpriteRenderer.sprite.bounds.size} (世界单位)", this);
+                }
+                
+                Debug.Log($"   - 位置: {areaSpriteRenderer.transform.position}", this);
+                Debug.Log($"   - 缩放: {areaSpriteRenderer.transform.localScale}", this);
+            }
+            
+            if (areaSprite == null)
+            {
+                Debug.LogWarning("⚠️ Area Sprite 未设置（Inspector 中的 'Area Sprite' 字段为空）", this);
+            }
+            else
+            {
+                Debug.Log($"✅ Area Sprite 已设置: {areaSprite.name}", this);
+            }
+            
+            Bounds bounds = AreaBounds;
+            Debug.Log($"场地边界: min({bounds.min.x}, {bounds.min.y}) 到 max({bounds.max.x}, {bounds.max.y})", this);
+            
+            if (mainCamera == null)
+            {
+                Debug.LogWarning("⚠️ 主摄像机未设置，像素单位转换可能不准确", this);
+            }
+            else
+            {
+                Debug.Log($"✅ 主摄像机已设置: {mainCamera.name}", this);
+                Debug.Log($"   - 正交模式: {mainCamera.orthographic}", this);
+                if (mainCamera.orthographic)
+                {
+                    Debug.Log($"   - 正交大小: {mainCamera.orthographicSize}", this);
+                }
+            }
+            
+            Debug.Log("=== 诊断完成 ===", this);
         }
 
         /// <summary>

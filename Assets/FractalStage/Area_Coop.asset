@@ -17,7 +17,7 @@ MonoBehaviour:
   areaCenter: {x: 0, y: 0}
   backgroundSprite: {fileID: 2077535852642280381, guid: 51837253cc9122d4d92aa5a72027fcb7, type: 3}
   upgradeType: 0
-  chickenCountThreshold: 50
+  chickenCountThreshold: 10
   minCamSize: 5
   maxCamSize: 15
   movementBounds: {x: 0, y: 0}
