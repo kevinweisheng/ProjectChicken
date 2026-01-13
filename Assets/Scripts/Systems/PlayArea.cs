@@ -343,6 +343,44 @@ namespace ProjectChicken.Systems
         }
 
         /// <summary>
+        /// 动态更新场地设置（由 AreaUpgradeManager 调用）
+        /// </summary>
+        /// <param name="newSize">新的场地大小（世界单位）</param>
+        /// <param name="newCenter">新的场地中心位置（世界坐标）</param>
+        /// <param name="newSprite">新的场地 Sprite（可选）</param>
+        public void UpdateAreaSettings(Vector2 newSize, Vector2 newCenter, Sprite newSprite = null)
+        {
+            // 更新场地大小
+            if (newSize != Vector2.zero)
+            {
+                areaSize = newSize;
+            }
+
+            // 更新场地中心
+            areaCenter = newCenter;
+
+            // 更新 Sprite（如果提供且不为空）
+            if (newSprite != null)
+            {
+                areaSprite = newSprite;
+                if (areaSpriteRenderer != null)
+                {
+                    areaSpriteRenderer.sprite = areaSprite;
+                }
+            }
+            else if (newSprite == null && areaSpriteRenderer != null)
+            {
+                // 如果传入 null，保持当前 Sprite 不变
+                // 不执行任何操作
+            }
+
+            // 更新显示
+            UpdateAreaSprite();
+
+            Debug.Log($"PlayArea: 已更新场地设置 - 大小: {areaSize}, 中心: {areaCenter}, Sprite: {(newSprite != null ? newSprite.name : "null")}", this);
+        }
+
+        /// <summary>
         /// 在 Inspector 中修改值时调用（仅在编辑器中）
         /// </summary>
         private void OnValidate()

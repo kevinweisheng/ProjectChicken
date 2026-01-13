@@ -36,6 +36,11 @@ namespace ProjectChicken.Systems.Save
         public List<SkillSaveRecord> skillRecords;
 
         /// <summary>
+        /// 当前场地等级（永久保存）
+        /// </summary>
+        public int currentAreaLevel;
+
+        /// <summary>
         /// 最后保存时间（ISO 8601 格式字符串）
         /// </summary>
         public string lastSaveTime;
@@ -47,6 +52,7 @@ namespace ProjectChicken.Systems.Save
         {
             totalGlobalEggs = 0;
             skillRecords = new List<SkillSaveRecord>();
+            currentAreaLevel = 0;
             lastSaveTime = DateTime.Now.ToString("o"); // ISO 8601 格式
         }
     }

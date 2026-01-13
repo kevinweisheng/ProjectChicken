@@ -29,6 +29,12 @@ namespace ProjectChicken.Units
         private float attackTimer = 0f; // 攻击计时器
         private float lastRange = -1f; // 上次的攻击范围（用于检测是否需要更新圆圈大小）
 
+        [Header("分形系统约束（由 FractalManager 动态设置）")]
+        // 分形系统约束变量
+        private Vector2 _panLimit = Vector2.zero; // 平移限制（X 和 Y 的最大偏移）
+        private float _minZoom = 1f; // 最小缩放值
+        private float _maxZoom = 20f; // 最大缩放值
+
         private void Start()
         {
             // 如果没有指定摄像机，尝试获取主摄像机
@@ -78,6 +84,9 @@ namespace ProjectChicken.Units
             // 视觉跟随：让物体跟随鼠标位置
             FollowMousePosition();
 
+            // 处理摄像机缩放（如果摄像机存在且是正交摄像机）
+            HandleCameraZoom();
+
             // 更新攻击范围指示器（如果范围发生变化）
             UpdateRangeIndicator();
 
@@ -88,6 +97,39 @@ namespace ProjectChicken.Units
             {
                 attackTimer = 0f;
                 PerformAttack();
+            }
+        }
+
+        /// <summary>
+        /// 处理摄像机缩放输入
+        /// </summary>
+        private void HandleCameraZoom()
+        {
+            if (mainCamera == null || !mainCamera.orthographic) return;
+
+            // 检查是否有缩放约束
+            if (_minZoom <= 0f && _maxZoom <= 0f)
+            {
+                return; // 如果没有设置约束，不处理缩放
+            }
+
+            // 获取鼠标滚轮输入（使用新的 Input System）
+            if (Mouse.current != null)
+            {
+                float scrollDelta = Mouse.current.scroll.ReadValue().y;
+                
+                if (scrollDelta != 0f)
+                {
+                    // 调整摄像机缩放
+                    float currentSize = mainCamera.orthographicSize;
+                    float zoomSpeed = 0.5f; // 缩放速度
+                    float newSize = currentSize - scrollDelta * zoomSpeed;
+                    
+                    // 应用缩放限制
+                    newSize = Mathf.Clamp(newSize, _minZoom, _maxZoom);
+                    
+                    mainCamera.orthographicSize = newSize;
+                }
             }
         }
 
@@ -104,6 +146,13 @@ namespace ProjectChicken.Units
             Vector3 mouseScreenPos = new Vector3(mouseScreenPos2D.x, mouseScreenPos2D.y, mainCamera.nearClipPlane + 1f);
             Vector3 mouseWorldPos = mainCamera.ScreenToWorldPoint(mouseScreenPos);
             mouseWorldPos.z = transform.position.z; // 保持原有的 Z 坐标（2D 游戏）
+            
+            // 应用平移限制（如果设置了约束）
+            if (_panLimit != Vector2.zero)
+            {
+                mouseWorldPos.x = Mathf.Clamp(mouseWorldPos.x, -_panLimit.x, _panLimit.x);
+                mouseWorldPos.y = Mathf.Clamp(mouseWorldPos.y, -_panLimit.y, _panLimit.y);
+            }
             
             transform.position = mouseWorldPos;
         }
@@ -305,6 +354,57 @@ namespace ProjectChicken.Units
             
             // 确保显示
             rangeIndicator.enabled = true;
+        }
+
+        /// <summary>
+        /// 更新约束：由 FractalManager 调用以动态更新摄像机约束
+        /// </summary>
+        /// <param name="panLimit">平移限制（X 和 Y 的最大偏移）</param>
+        /// <param name="minZoom">最小缩放值</param>
+        /// <param name="maxZoom">最大缩放值</param>
+        public void UpdateConstraints(Vector2 panLimit, float minZoom, float maxZoom)
+        {
+            _panLimit = panLimit;
+            _minZoom = minZoom;
+            _maxZoom = maxZoom;
+
+            // 立即应用缩放限制到当前摄像机
+            if (mainCamera != null && mainCamera.orthographic)
+            {
+                mainCamera.orthographicSize = Mathf.Clamp(mainCamera.orthographicSize, _minZoom, _maxZoom);
+            }
+        }
+
+        /// <summary>
+        /// 获取当前缩放值（摄像机正交尺寸）
+        /// </summary>
+        /// <returns>当前缩放值</returns>
+        public float GetCurrentZoom()
+        {
+            if (mainCamera != null && mainCamera.orthographic)
+            {
+                return mainCamera.orthographicSize;
+            }
+            return 5f; // 默认值
+        }
+
+        /// <summary>
+        /// 重置摄像机：设置位置为 (0,0,0) 并设置正交尺寸
+        /// </summary>
+        /// <param name="size">目标正交尺寸</param>
+        public void ResetCamera(float size)
+        {
+            if (mainCamera != null)
+            {
+                // 重置摄像机位置
+                mainCamera.transform.position = new Vector3(0f, 0f, mainCamera.transform.position.z);
+                
+                // 设置正交尺寸
+                if (mainCamera.orthographic)
+                {
+                    mainCamera.orthographicSize = size;
+                }
+            }
         }
 
         /// <summary>

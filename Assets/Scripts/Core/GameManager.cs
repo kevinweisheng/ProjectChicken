@@ -1,7 +1,7 @@
 using UnityEngine;
 using System;
 using ProjectChicken.Units; // 引用鸡的命名空间
-using ProjectChicken.Systems; // 引用蛋的命名空间
+using ProjectChicken.Systems; // 引用蛋和分形系统的命名空间
 
 namespace ProjectChicken.Core
 {
@@ -34,6 +34,10 @@ namespace ProjectChicken.Core
         [SerializeField] private EggProjectile eggPrefab; // 拖入蛋的Prefab
         [SerializeField] private RectTransform uiTarget;  // 拖入UI上的目标位置(比如右上角的金币图标)
         [SerializeField] private Camera mainCamera;      // 主摄像机（用于坐标转换）
+        
+        [Header("分形系统")]
+        [Tooltip("分形宇宙管理器（用于阶段进度系统）")]
+        [SerializeField] public FractalUniverseManager fractalManager;
 
         // 游戏状态
         private GameState currentState = GameState.Preparation;
@@ -64,6 +68,16 @@ namespace ProjectChicken.Core
             if (mainCamera == null)
             {
                 mainCamera = Camera.main;
+            }
+            
+            // 如果没有指定分形管理器，尝试自动查找
+            if (fractalManager == null)
+            {
+                fractalManager = FindFirstObjectByType<FractalUniverseManager>();
+                if (fractalManager != null)
+                {
+                    Debug.Log("GameManager: 自动找到 FractalUniverseManager", this);
+                }
             }
             
             // 如果需要跨场景保持，取消下面这行的注释
@@ -256,6 +270,25 @@ namespace ProjectChicken.Core
 
             // 如果 UpgradeManager 未初始化，返回初始值
             return sessionDuration;
+        }
+
+        /// <summary>
+        /// 应用分形阶段生产倍率（当分形管理器升级阶段时调用）
+        /// 可选功能：如果 ResourceManager 有生产倍率系统，可以在这里应用
+        /// </summary>
+        /// <param name="multiplier">倍率值（例如：1.5 表示增加 50%）</param>
+        public void ApplyFractalProductionMultiplier(float multiplier)
+        {
+            // 这里可以添加生产倍率逻辑
+            // 例如：如果 ResourceManager 有生产倍率字段，可以在这里更新它
+            
+            // 示例实现（如果需要在 ResourceManager 中添加生产倍率）：
+            // if (ResourceManager.Instance != null)
+            // {
+            //     ResourceManager.Instance.SetProductionMultiplier(multiplier);
+            // }
+            
+            Debug.Log($"GameManager: 应用分形阶段生产倍率 {multiplier}x", this);
         }
     }
 }

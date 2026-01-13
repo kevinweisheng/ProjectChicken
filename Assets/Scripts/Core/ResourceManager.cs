@@ -2,6 +2,7 @@ using UnityEngine;
 using TMPro;
 using System;
 using ProjectChicken.Systems.Save;
+using ProjectChicken.Systems;
 
 namespace ProjectChicken.Core
 {
@@ -183,6 +184,16 @@ namespace ProjectChicken.Core
                 Debug.LogWarning("ResourceManager: UpgradeManager.Instance 为空，无法保存技能数据！", this);
                 data.skillRecords = new System.Collections.Generic.List<GameSaveData.SkillSaveRecord>();
             }
+
+            // 设置场地等级
+            if (AreaUpgradeManager.Instance != null)
+            {
+                data.currentAreaLevel = AreaUpgradeManager.Instance.CurrentAreaLevel;
+            }
+            else
+            {
+                data.currentAreaLevel = 0;
+            }
             
             // 保存到文件
             SaveSystem.Save(data);
@@ -209,6 +220,12 @@ namespace ProjectChicken.Core
             else
             {
                 Debug.LogWarning("ResourceManager: UpgradeManager.Instance 为空，无法加载技能数据！", this);
+            }
+
+            // 恢复场地等级数据
+            if (AreaUpgradeManager.Instance != null)
+            {
+                AreaUpgradeManager.Instance.LoadAreaLevel(data.currentAreaLevel);
             }
             
             // 更新UI显示
@@ -239,6 +256,12 @@ namespace ProjectChicken.Core
             else
             {
                 Debug.LogWarning("ResourceManager: UpgradeManager.Instance 为空，无法重置技能数据！", this);
+            }
+
+            // 重置场地等级
+            if (AreaUpgradeManager.Instance != null)
+            {
+                AreaUpgradeManager.Instance.ResetAreaLevel();
             }
 
             // 更新UI显示
