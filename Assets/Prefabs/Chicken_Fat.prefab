@@ -84,7 +84,7 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_MaskInteraction: 0
-  m_Sprite: {fileID: -2413806693520163455, guid: a86470a33a6bf42c4b3595704624658b, type: 3}
+  m_Sprite: {fileID: -3133975744299127114, guid: 156bc5a6048f1e044b6616be2f8fdbd5, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -120,7 +120,7 @@ Rigidbody2D:
   m_Interpolate: 0
   m_SleepingMode: 1
   m_CollisionDetection: 0
-  m_Constraints: 0
+  m_Constraints: 4
 --- !u!114 &1425459822695963046
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -137,6 +137,9 @@ MonoBehaviour:
   wanderInterval: 2
   wanderSpeed: 2
   hitFlashDuration: 0.1
+  boundaryPadding: 0.5
+  thinChickenPrefab: {fileID: 2804361130355396527, guid: d08c35a069bcab749a06f1ef05a1fd33, type: 3}
+  useThinChickenPrefab: 1
 --- !u!58 &954115228423850123
 CircleCollider2D:
   m_ObjectHideFlags: 0
@@ -172,4 +175,4 @@ CircleCollider2D:
   m_CompositeOperation: 0
   m_CompositeOrder: 0
   m_Offset: {x: 0, y: 0}
-  m_Radius: 0.5
+  m_Radius: 0.3

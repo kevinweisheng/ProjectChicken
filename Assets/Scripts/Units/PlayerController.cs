@@ -13,6 +13,10 @@ namespace ProjectChicken.Units
         [SerializeField] private LayerMask enemyLayer; // 敌人所在的 Layer
         [SerializeField] private Camera mainCamera; // 主摄像机（用于屏幕坐标转世界坐标）
 
+        [Header("鼠标光标")]
+        [SerializeField] private Texture2D customCursor; // 自定义鼠标光标图片
+        [SerializeField] private Vector2 cursorHotspot = Vector2.zero; // 光标热点位置（通常是图片中心或点击点）
+
         [Header("攻击范围显示")]
         [SerializeField] private SpriteRenderer rangeIndicator; // 攻击范围指示器（SpriteRenderer）
         [SerializeField] private float borderWidth = 3f; // 边框粗细（像素）
@@ -33,8 +37,34 @@ namespace ProjectChicken.Units
                 mainCamera = Camera.main;
             }
 
+            // 初始化自定义鼠标光标
+            InitializeCustomCursor();
+
             // 初始化攻击范围指示器
             InitializeRangeIndicator();
+        }
+
+        /// <summary>
+        /// 初始化自定义鼠标光标
+        /// </summary>
+        private void InitializeCustomCursor()
+        {
+            if (customCursor != null)
+            {
+                // 设置自定义光标
+                Cursor.SetCursor(customCursor, cursorHotspot, CursorMode.Auto);
+            }
+            else
+            {
+                // 如果没有设置自定义光标，使用默认光标
+                Cursor.SetCursor(null, Vector2.zero, CursorMode.Auto);
+            }
+        }
+
+        private void OnDestroy()
+        {
+            // 游戏对象销毁时恢复默认光标（可选）
+            // Cursor.SetCursor(null, Vector2.zero, CursorMode.Auto);
         }
 
         private void Update()

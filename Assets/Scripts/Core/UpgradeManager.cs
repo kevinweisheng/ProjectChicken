@@ -35,6 +35,7 @@ namespace ProjectChicken.Core
         private bool isMitosisUnlocked = false; // 是否解锁分裂能力
         private float mitosisChance = 0f; // 分裂几率
         private int extraMaxChickens = 0; // 额外最大鸡数量
+        private int extraInitialChickens = 0; // 额外初始鸡数量（回合开始时生成的额外数量）
 
         // 金鸡相关属性
         private float goldenChickenSpawnRate = 0.05f; // 金鸡生成率（基础5%）
@@ -79,6 +80,11 @@ namespace ProjectChicken.Core
         /// 额外最大鸡数量（只读属性）
         /// </summary>
         public int ExtraMaxChickens => extraMaxChickens;
+
+        /// <summary>
+        /// 额外初始鸡数量（只读属性）
+        /// </summary>
+        public int ExtraInitialChickens => extraInitialChickens;
 
         /// <summary>
         /// 金鸡生成率（只读属性，0-1之间）
@@ -301,6 +307,11 @@ namespace ProjectChicken.Core
                 case SkillEffectType.MaxChickenCount:
                     extraMaxChickens += Mathf.RoundToInt(value);
                     Debug.Log($"UpgradeManager: 最大鸡数量提升 {value}，当前额外上限：{extraMaxChickens}", this);
+                    break;
+
+                case SkillEffectType.InitialChickenCount:
+                    extraInitialChickens += Mathf.RoundToInt(value);
+                    Debug.Log($"UpgradeManager: 初始鸡数量提升 {value}，当前额外初始数量：{extraInitialChickens}", this);
                     break;
 
                 case SkillEffectType.GoldenChickenSpawnRate:

@@ -1,5 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.EventSystems;
+using UnityEngine.Events;
 using TMPro;
 using System;
 using ProjectChicken.Systems.SkillTree;
@@ -11,7 +13,7 @@ namespace ProjectChicken.UI
     /// 技能按钮UI：处理单个技能按钮的状态显示和交互
     /// </summary>
     [RequireComponent(typeof(Button))]
-    public class SkillSlotUI : MonoBehaviour
+    public class SkillSlotUI : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
     {
         [Header("技能数据")]
         [SerializeField] private SkillNodeData targetSkill; // 该按钮对应的技能数据
@@ -27,6 +29,10 @@ namespace ProjectChicken.UI
         [SerializeField] private Color normalColor = Color.white; // 正常颜色
         [SerializeField] private Color disabledColor = Color.gray; // 禁用颜色
         [SerializeField] private Color unlockedColor = Color.green; // 已解锁颜色
+
+        [Header("悬停事件")]
+        [SerializeField] private UnityEvent<SkillNodeData> OnHoverEnter; // 鼠标进入事件
+        [SerializeField] private UnityEvent<SkillNodeData> OnHoverExit; // 鼠标离开事件
 
         private void Start()
         {
@@ -93,6 +99,16 @@ namespace ProjectChicken.UI
             if (iconImage != null && targetSkill.Icon != null)
             {
                 iconImage.sprite = targetSkill.Icon;
+            }
+
+            // 确保只有图标可见，禁用名称和成本文本
+            if (costText != null)
+            {
+                costText.gameObject.SetActive(false);
+            }
+            if (statusText != null)
+            {
+                statusText.gameObject.SetActive(false);
             }
 
             // 更新价格和状态文本（使用当前等级信息）
@@ -376,6 +392,35 @@ namespace ProjectChicken.UI
         public void RefreshUI()
         {
             UpdateUIState();
+        }
+
+        /// <summary>
+        /// 获取当前槽位对应的技能数据（供外部访问）
+        /// </summary>
+        public SkillNodeData TargetSkill => targetSkill;
+
+        /// <summary>
+        /// 鼠标进入事件处理
+        /// </summary>
+        /// <param name="eventData">事件数据</param>
+        public void OnPointerEnter(PointerEventData eventData)
+        {
+            if (targetSkill != null && OnHoverEnter != null)
+            {
+                OnHoverEnter.Invoke(targetSkill);
+            }
+        }
+
+        /// <summary>
+        /// 鼠标离开事件处理
+        /// </summary>
+        /// <param name="eventData">事件数据</param>
+        public void OnPointerExit(PointerEventData eventData)
+        {
+            if (targetSkill != null && OnHoverExit != null)
+            {
+                OnHoverExit.Invoke(targetSkill);
+            }
         }
     }
 }

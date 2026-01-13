@@ -2,7 +2,10 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.InputSystem;
 using System;
+using System.Collections.Generic;
+using TMPro;
 using ProjectChicken.Core;
+using ProjectChicken.Systems.SkillTree;
 
 namespace ProjectChicken.UI
 {
@@ -26,7 +29,22 @@ namespace ProjectChicken.UI
         [Header("系统引用")]
         [SerializeField] private MainMenuPanel mainMenuPanel; // 主菜单面板引用（如果为空则自动查找）
 
+        [Header("Tooltip 系统")]
+        [SerializeField] private GameObject tooltipPanel; // Tooltip 面板
+        [SerializeField] private Image tooltipIcon; // Tooltip 技能图标
+        [SerializeField] private TMP_Text tooltipTitle; // Tooltip 标题文本（技能名称）
+        [SerializeField] private TMP_Text tooltipDesc; // Tooltip 描述文本
+        [SerializeField] private TMP_Text tooltipCost; // Tooltip 成本文本（等级和消耗）
+        [SerializeField] private Vector2 tooltipOffset = new Vector2(10f, 10f); // Tooltip 偏移量
+
+        [Header("连线系统")]
+        [SerializeField] private GameObject linePrefab; // 连线预制体（包含 Image 组件）
+        [SerializeField] private Transform lineContainer; // 连线容器（用于存放所有连线）
+        [SerializeField] private float lineWidth = 3f; // 连线宽度
+
         private bool isVisible = false; // 当前是否可见
+        private Dictionary<SkillNodeData, SkillSlotUI> skillSlotMap; // 技能数据到槽位的映射
+        private Canvas canvas; // Canvas 引用（用于计算缩放）
 
         private void Awake()
         {
@@ -68,6 +86,16 @@ namespace ProjectChicken.UI
             {
                 Debug.LogWarning("SkillTreePanel: closeButton 未配置！", this);
             }
+
+            // 获取 Canvas 引用
+            canvas = GetComponentInParent<Canvas>();
+            if (canvas == null)
+            {
+                canvas = FindFirstObjectByType<Canvas>();
+            }
+
+            // 初始化技能槽位映射和订阅事件
+            InitializeSkillSlots();
 
             // 记录初始状态
             Debug.Log($"SkillTreePanel: 初始化完成。初始状态: 隐藏", this);
@@ -120,6 +148,9 @@ namespace ProjectChicken.UI
                 Debug.Log($"SkillTreePanel: 检测到按键按下，切换面板显示状态。当前状态：{(isVisible ? "显示" : "隐藏")}", this);
                 TogglePanel();
             }
+
+            // Tooltip 位置在显示时已确定，不需要每帧更新
+            // （如果需要跟随技能节点移动，可以在这里更新）
         }
 
         /// <summary>
@@ -304,6 +335,340 @@ namespace ProjectChicken.UI
         {
             // 当全局货币变化时，刷新所有技能按钮的UI
             RefreshUI();
+        }
+
+        /// <summary>
+        /// 初始化技能槽位：建立映射并订阅悬停事件
+        /// </summary>
+        private void InitializeSkillSlots()
+        {
+            skillSlotMap = new Dictionary<SkillNodeData, SkillSlotUI>();
+            SkillSlotUI[] skillSlots = GetComponentsInChildren<SkillSlotUI>(true);
+
+            foreach (SkillSlotUI slot in skillSlots)
+            {
+                if (slot != null)
+                {
+                    SkillNodeData skillData = slot.TargetSkill;
+                    if (skillData != null)
+                    {
+                        skillSlotMap[skillData] = slot;
+
+                        // 订阅悬停事件
+                        SubscribeToHoverEvents(slot);
+                    }
+                }
+            }
+
+            // 绘制连线
+            DrawConnections();
+        }
+
+        /// <summary>
+        /// 订阅技能槽位的悬停事件
+        /// </summary>
+        /// <param name="slot">技能槽位</param>
+        private void SubscribeToHoverEvents(SkillSlotUI slot)
+        {
+            // 通过反射获取 OnHoverEnter 和 OnHoverExit 事件
+            var hoverEnterField = typeof(SkillSlotUI).GetField("OnHoverEnter", 
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            var hoverExitField = typeof(SkillSlotUI).GetField("OnHoverExit", 
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+
+            if (hoverEnterField != null)
+            {
+                var hoverEnterEvent = hoverEnterField.GetValue(slot) as UnityEngine.Events.UnityEvent<SkillNodeData>;
+                if (hoverEnterEvent != null)
+                {
+                    hoverEnterEvent.AddListener(ShowTooltip);
+                }
+            }
+
+            if (hoverExitField != null)
+            {
+                var hoverExitEvent = hoverExitField.GetValue(slot) as UnityEngine.Events.UnityEvent<SkillNodeData>;
+                if (hoverExitEvent != null)
+                {
+                    hoverExitEvent.AddListener(HideTooltip);
+                }
+            }
+        }
+
+        /// <summary>
+        /// 显示 Tooltip
+        /// </summary>
+        /// <param name="data">技能节点数据</param>
+        private void ShowTooltip(SkillNodeData data)
+        {
+            if (tooltipPanel == null || data == null)
+            {
+                return;
+            }
+
+            // 设置技能图标
+            if (tooltipIcon != null)
+            {
+                if (data.Icon != null)
+                {
+                    tooltipIcon.sprite = data.Icon;
+                    tooltipIcon.gameObject.SetActive(true);
+                }
+                else
+                {
+                    tooltipIcon.gameObject.SetActive(false);
+                }
+            }
+
+            // 设置技能名称（标题）
+            if (tooltipTitle != null)
+            {
+                tooltipTitle.text = data.DisplayName;
+            }
+
+            // 设置技能描述
+            if (tooltipDesc != null)
+            {
+                tooltipDesc.text = data.Description;
+            }
+
+            // 设置等级和消耗信息
+            if (tooltipCost != null && UpgradeManager.Instance != null)
+            {
+                int currentLevel = UpgradeManager.Instance.GetSkillLevel(data);
+                int maxLevel = data.MaxLevel;
+                bool isMaxLevel = UpgradeManager.Instance.IsMaxLevel(data);
+                
+                if (isMaxLevel)
+                {
+                    // 已满级：显示 "等级: 最大等级/最大等级"
+                    tooltipCost.text = $"等级: {maxLevel}/{maxLevel} (已满级)";
+                }
+                else
+                {
+                    // 未满级：显示 "等级: 当前等级/最大等级 | 升级消耗: X 鸡蛋"
+                    int nextLevelCost = data.GetCost(currentLevel);
+                    int nextLevel = currentLevel + 1;
+                    tooltipCost.text = $"等级: {currentLevel}/{maxLevel} → {nextLevel}/{maxLevel} | 消耗: {nextLevelCost} 鸡蛋";
+                }
+            }
+            else if (tooltipCost != null)
+            {
+                // 如果 UpgradeManager 不可用，至少显示最大等级
+                tooltipCost.text = $"最大等级: {data.MaxLevel}";
+            }
+
+            // 定位 Tooltip（显示在技能节点上方，保持在屏幕内）
+            PositionTooltipAboveSkill(data);
+
+            // 激活面板
+            tooltipPanel.SetActive(true);
+        }
+
+        /// <summary>
+        /// 隐藏 Tooltip
+        /// </summary>
+        private void HideTooltip(SkillNodeData data)
+        {
+            if (tooltipPanel != null)
+            {
+                tooltipPanel.SetActive(false);
+            }
+        }
+
+        /// <summary>
+        /// 定位 Tooltip 面板（显示在技能节点上方，保持在屏幕内）
+        /// </summary>
+        /// <param name="skillData">技能节点数据</param>
+        private void PositionTooltipAboveSkill(SkillNodeData skillData)
+        {
+            if (tooltipPanel == null || canvas == null || skillData == null)
+            {
+                return;
+            }
+
+            RectTransform tooltipRect = tooltipPanel.GetComponent<RectTransform>();
+            if (tooltipRect == null)
+            {
+                return;
+            }
+
+            // 查找对应的技能槽位
+            if (skillSlotMap == null || !skillSlotMap.ContainsKey(skillData))
+            {
+                Debug.LogWarning($"SkillTreePanel: 未找到技能 {skillData.DisplayName} 对应的槽位", this);
+                return;
+            }
+
+            SkillSlotUI skillSlot = skillSlotMap[skillData];
+            if (skillSlot == null)
+            {
+                return;
+            }
+
+            RectTransform skillSlotRect = skillSlot.GetComponent<RectTransform>();
+            if (skillSlotRect == null)
+            {
+                return;
+            }
+
+            // 获取技能槽位在 Canvas 中的位置
+            Vector3[] skillSlotCorners = new Vector3[4];
+            skillSlotRect.GetWorldCorners(skillSlotCorners);
+            
+            // 获取技能槽位的顶部中心位置（世界坐标）
+            Vector3 skillSlotTopCenter = (skillSlotCorners[1] + skillSlotCorners[2]) / 2f; // 顶部两个角的中心
+
+            // 转换为 Canvas 本地坐标
+            RectTransformUtility.ScreenPointToLocalPointInRectangle(
+                canvas.transform as RectTransform,
+                RectTransformUtility.WorldToScreenPoint(canvas.worldCamera ?? Camera.main, skillSlotTopCenter),
+                canvas.worldCamera ?? Camera.main,
+                out Vector2 localPoint);
+
+            // 获取 Tooltip 的尺寸（需要先激活才能获取正确尺寸）
+            bool wasActive = tooltipPanel.activeSelf;
+            if (!wasActive)
+            {
+                tooltipPanel.SetActive(true);
+            }
+            
+            // 强制布局更新
+            Canvas.ForceUpdateCanvases();
+            
+            Vector2 tooltipSize = tooltipRect.sizeDelta;
+            if (canvas.scaleFactor != 0)
+            {
+                tooltipSize *= canvas.scaleFactor;
+            }
+
+            // 计算 Tooltip 位置：技能槽位上方，居中对齐
+            // localPoint 已经是技能槽位顶部中心的位置
+            // 需要向上偏移 Tooltip 的高度 + 一些间距
+            float spacing = 10f; // Tooltip 和技能槽位之间的间距
+            localPoint.y += tooltipSize.y / 2f + spacing;
+
+            // 水平居中：Tooltip 的中心对齐技能槽位的中心
+            // localPoint.x 已经是中心位置，不需要额外调整
+
+            // 获取 Canvas 的边界
+            RectTransform canvasRect = canvas.transform as RectTransform;
+            Rect canvasRectBounds = canvasRect.rect;
+
+            // 确保 Tooltip 在屏幕内
+            float minX = canvasRectBounds.xMin + tooltipSize.x / 2f;
+            float maxX = canvasRectBounds.xMax - tooltipSize.x / 2f;
+            float minY = canvasRectBounds.yMin + tooltipSize.y / 2f;
+            float maxY = canvasRectBounds.yMax - tooltipSize.y / 2f;
+
+            localPoint.x = Mathf.Clamp(localPoint.x, minX, maxX);
+            localPoint.y = Mathf.Clamp(localPoint.y, minY, maxY);
+
+            // 设置位置
+            tooltipRect.localPosition = localPoint;
+
+            // 如果之前是非激活状态，恢复状态（但这里应该保持激活，因为 ShowTooltip 会激活它）
+        }
+
+        /// <summary>
+        /// 绘制连接线（根据 prerequisites）
+        /// </summary>
+        private void DrawConnections()
+        {
+            if (linePrefab == null || lineContainer == null || skillSlotMap == null)
+            {
+                Debug.LogWarning("SkillTreePanel: 连线系统配置不完整，无法绘制连线", this);
+                return;
+            }
+
+            // 清除现有连线
+            foreach (Transform child in lineContainer)
+            {
+                if (Application.isPlaying)
+                {
+                    Destroy(child.gameObject);
+                }
+                else
+                {
+                    DestroyImmediate(child.gameObject);
+                }
+            }
+
+            // 为每个槽位绘制到其前置技能的连线
+            foreach (var kvp in skillSlotMap)
+            {
+                SkillNodeData childData = kvp.Key;
+                SkillSlotUI childSlot = kvp.Value;
+
+                if (childData.Prerequisites != null && childData.Prerequisites.Count > 0)
+                {
+                    foreach (SkillNodeData prerequisiteData in childData.Prerequisites)
+                    {
+                        if (prerequisiteData != null && skillSlotMap.ContainsKey(prerequisiteData))
+                        {
+                            SkillSlotUI parentSlot = skillSlotMap[prerequisiteData];
+                            CreateLine(parentSlot.GetComponent<RectTransform>(), 
+                                      childSlot.GetComponent<RectTransform>(), 
+                                      linePrefab, 
+                                      lineContainer);
+                        }
+                    }
+                }
+                // 兼容旧的单前置技能系统
+                else if (childData.Prerequisite != null && skillSlotMap.ContainsKey(childData.Prerequisite))
+                {
+                    SkillSlotUI parentSlot = skillSlotMap[childData.Prerequisite];
+                    CreateLine(parentSlot.GetComponent<RectTransform>(), 
+                              childSlot.GetComponent<RectTransform>(), 
+                              linePrefab, 
+                              lineContainer);
+                }
+            }
+        }
+
+        /// <summary>
+        /// 创建连接线
+        /// </summary>
+        /// <param name="start">起始 RectTransform</param>
+        /// <param name="end">结束 RectTransform</param>
+        /// <param name="linePrefab">连线预制体</param>
+        /// <param name="container">容器 Transform</param>
+        private void CreateLine(RectTransform start, RectTransform end, GameObject linePrefab, Transform container)
+        {
+            if (start == null || end == null || linePrefab == null || container == null)
+            {
+                return;
+            }
+
+            GameObject line = Instantiate(linePrefab, container);
+            RectTransform lineRect = line.GetComponent<RectTransform>();
+            
+            if (lineRect == null)
+            {
+                Debug.LogWarning("SkillTreePanel: 连线预制体缺少 RectTransform 组件", this);
+                Destroy(line);
+                return;
+            }
+
+            // 设置锚点为左中，方便旋转和拉伸
+            lineRect.pivot = new Vector2(0, 0.5f);
+            lineRect.position = start.position;
+            
+            Vector3 diff = end.position - start.position;
+            float distance = diff.magnitude;
+            
+            // 画布缩放校正（如果 Canvas Scaler 生效，需除以 scaleFactor）
+            if (canvas != null && canvas.scaleFactor != 0)
+            {
+                distance = distance / canvas.scaleFactor;
+            }
+            
+            lineRect.sizeDelta = new Vector2(distance, lineWidth);
+            float angle = Mathf.Atan2(diff.y, diff.x) * Mathf.Rad2Deg;
+            lineRect.rotation = Quaternion.Euler(0, 0, angle);
+            
+            // 将线放到底层，避免挡住图标
+            lineRect.SetAsFirstSibling();
         }
     }
 }

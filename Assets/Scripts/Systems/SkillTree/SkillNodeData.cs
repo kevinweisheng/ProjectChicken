@@ -17,6 +17,7 @@ namespace ProjectChicken.Systems.SkillTree
         UnlockMitosis,   // 解锁分裂能力
         MitosisChance,   // 分裂几率提升（增加分裂的概率）
         MaxChickenCount, // 最大鸡数量提升（增加人口上限）
+        InitialChickenCount, // 初始鸡数量提升（回合开始时生成的鸡数量）
         GoldenChickenSpawnRate, // 金鸡生成率提升
         GoldenEggMultiplier     // 金蛋价值倍率提升
     }
@@ -46,6 +47,7 @@ namespace ProjectChicken.Systems.SkillTree
 
         [Header("购买条件")]
         [SerializeField] private SkillNodeData prerequisite; // 前置技能节点（可为空）
+        [SerializeField] private List<SkillNodeData> prerequisites; // 前置技能节点列表（依赖连接）
 
         [Header("效果")]
         [SerializeField] private SkillEffectType effectType; // 效果类型
@@ -59,6 +61,7 @@ namespace ProjectChicken.Systems.SkillTree
         public string DisplayName => displayName;
         public string Description => description;
         public SkillNodeData Prerequisite => prerequisite;
+        public List<SkillNodeData> Prerequisites => prerequisites;
         public SkillEffectType EffectType => effectType;
 
         /// <summary>

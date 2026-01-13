@@ -1,5 +1,6 @@
 using UnityEngine;
 using System;
+using System.Collections;
 using ProjectChicken.Core;
 using ProjectChicken.Systems;
 
@@ -17,6 +18,12 @@ namespace ProjectChicken.Units
         [SerializeField] private float wanderSpeed = 2f; // 游荡速度
         [SerializeField] private float hitFlashDuration = 0.1f; // 受击闪烁持续时间
         [SerializeField] private float boundaryPadding = 0.5f; // 边界内边距（避免鸡紧贴屏幕边缘）
+
+        [Header("瘦鸡预制体（可选）")]
+        [SerializeField] private GameObject thinChickenPrefab; // 瘦鸡预制体（如果设置，产出时会替换为这个预制体）
+        [SerializeField] private bool useThinChickenPrefab = false; // 是否使用瘦鸡预制体（如果为 false，则使用代码方式改变外观）
+        
+        private bool wasReplacedByPrefab = false; // 标记当前对象是否是通过预制体替换生成的瘦鸡
 
         private float currentHP; // 当前血量
         private bool isFat = true; // 是否为肥鸡状态（默认为 true）
@@ -87,6 +94,14 @@ namespace ProjectChicken.Units
 
             // 初始化血量
             currentHP = maxHP;
+
+            // 立即开始移动（不等待第一个 wanderInterval）
+            if (isFat && rb != null)
+            {
+                ChangeWanderDirection();
+                // 随机化每只鸡的游荡计时器，让它们不会同时改变方向
+                wanderTimer = UnityEngine.Random.Range(0f, wanderInterval);
+            }
         }
 
         private void Update()
@@ -138,21 +153,37 @@ namespace ProjectChicken.Units
         }
 
         /// <summary>
-        /// 检查并调整边界：如果鸡超出屏幕范围，改变移动方向使其回到屏幕内
+        /// 检查并调整边界：如果鸡超出场地范围，改变移动方向使其回到场地内
         /// </summary>
         private void CheckAndAdjustBoundary()
         {
-            if (mainCamera == null || rb == null) return;
+            if (rb == null) return;
 
-            // 获取屏幕边界（世界坐标）
-            Vector3 bottomLeft = mainCamera.ViewportToWorldPoint(new Vector3(0f, 0f, mainCamera.nearClipPlane + 10f));
-            Vector3 topRight = mainCamera.ViewportToWorldPoint(new Vector3(1f, 1f, mainCamera.nearClipPlane + 10f));
+            // 优先使用场地边界，如果没有场地则使用屏幕边界（向后兼容）
+            float minX, maxX, minY, maxY;
 
-            // 计算有效活动范围（减去内边距）
-            float minX = bottomLeft.x + boundaryPadding;
-            float maxX = topRight.x - boundaryPadding;
-            float minY = bottomLeft.y + boundaryPadding;
-            float maxY = topRight.y - boundaryPadding;
+            if (PlayArea.Instance != null)
+            {
+                // 使用场地边界
+                minX = PlayArea.Instance.MinX + boundaryPadding;
+                maxX = PlayArea.Instance.MaxX - boundaryPadding;
+                minY = PlayArea.Instance.MinY + boundaryPadding;
+                maxY = PlayArea.Instance.MaxY - boundaryPadding;
+            }
+            else if (mainCamera != null)
+            {
+                // 回退到屏幕边界（向后兼容）
+                Vector3 bottomLeft = mainCamera.ViewportToWorldPoint(new Vector3(0f, 0f, mainCamera.nearClipPlane + 10f));
+                Vector3 topRight = mainCamera.ViewportToWorldPoint(new Vector3(1f, 1f, mainCamera.nearClipPlane + 10f));
+                minX = bottomLeft.x + boundaryPadding;
+                maxX = topRight.x - boundaryPadding;
+                minY = bottomLeft.y + boundaryPadding;
+                maxY = topRight.y - boundaryPadding;
+            }
+            else
+            {
+                return; // 没有可用的边界
+            }
 
             Vector3 currentPos = transform.position;
             Vector2 currentVelocity = rb.linearVelocity;
@@ -262,17 +293,39 @@ namespace ProjectChicken.Units
             // 切换状态为已产出
             isFat = false;
 
-            // 视觉变化：变为灰色并缩小
-            if (spriteRenderer != null)
-            {
-                spriteRenderer.color = Color.gray;
-            }
-            transform.localScale = transform.localScale * 0.5f; // 缩小到一半
-
-            // 停止移动
+            // 保存当前速度（用于瘦鸡继承移动行为）
+            Vector2 currentVelocity = Vector2.zero;
             if (rb != null)
             {
-                rb.linearVelocity = Vector2.zero;
+                currentVelocity = rb.linearVelocity;
+            }
+
+            // 视觉变化：根据配置选择使用预制体或代码方式
+            if (useThinChickenPrefab && thinChickenPrefab != null)
+            {
+                // 使用瘦鸡预制体替换当前对象（传递当前速度）
+                ReplaceWithThinChicken(currentVelocity);
+            }
+            else
+            {
+                // 使用代码方式改变外观（原有逻辑）
+                if (spriteRenderer != null)
+                {
+                    spriteRenderer.color = Color.gray;
+                }
+                transform.localScale = transform.localScale * 0.5f; // 缩小到一半
+                
+                // 继承速度，但稍微减慢，然后逐渐停止
+                if (rb != null && currentVelocity != Vector2.zero)
+                {
+                    rb.linearVelocity = currentVelocity * 0.7f;
+                    StartCoroutine(GraduallyStopMovement(rb));
+                }
+                else if (rb != null)
+                {
+                    // 如果没有速度，直接停止
+                    rb.linearVelocity = Vector2.zero;
+                }
             }
 
             // 重置恢复计时器
@@ -280,6 +333,189 @@ namespace ProjectChicken.Units
 
             // 停止受击判定（通过移除 Collider 或改变 Layer 实现）
             // 这里我们通过 isFat 标志来控制，TakeDamage 中已经检查了
+        }
+
+        /// <summary>
+        /// 使用瘦鸡预制体替换当前鸡对象
+        /// </summary>
+        /// <param name="parentVelocity">父对象（胖鸡）的速度</param>
+        private void ReplaceWithThinChicken(Vector2 parentVelocity)
+        {
+            if (thinChickenPrefab == null)
+            {
+                Debug.LogWarning("ChickenUnit: thinChickenPrefab 为空，无法替换！使用代码方式改变外观。", this);
+                // 回退到代码方式
+                if (spriteRenderer != null)
+                {
+                    spriteRenderer.color = Color.gray;
+                }
+                transform.localScale = transform.localScale * 0.5f;
+                
+                // 继承速度并逐渐停止
+                if (rb != null)
+                {
+                    if (parentVelocity != Vector2.zero)
+                    {
+                        rb.linearVelocity = parentVelocity * 0.7f;
+                        StartCoroutine(GraduallyStopMovement(rb));
+                    }
+                    else
+                    {
+                        rb.linearVelocity = Vector2.zero;
+                    }
+                }
+                return;
+            }
+
+            // 保存当前状态
+            Vector3 currentPosition = transform.position;
+            bool wasGolden = isGolden;
+
+            // 实例化瘦鸡预制体
+            GameObject thinChicken = Instantiate(thinChickenPrefab, currentPosition, transform.rotation);
+            
+            if (thinChicken == null)
+            {
+                Debug.LogError("ChickenUnit: 瘦鸡预制体实例化失败！回退到代码方式。", this);
+                // 回退到代码方式
+                if (spriteRenderer != null)
+                {
+                    spriteRenderer.color = Color.gray;
+                }
+                transform.localScale = transform.localScale * 0.5f;
+                if (rb != null)
+                {
+                    if (parentVelocity != Vector2.zero)
+                    {
+                        rb.linearVelocity = parentVelocity * 0.7f;
+                        StartCoroutine(GraduallyStopMovement(rb));
+                    }
+                    else
+                    {
+                        rb.linearVelocity = Vector2.zero;
+                    }
+                }
+                return;
+            }
+
+            // 如果瘦鸡预制体有 ChickenUnit 组件，需要同步状态
+            ChickenUnit thinChickenUnit = thinChicken.GetComponent<ChickenUnit>();
+            if (thinChickenUnit != null)
+            {
+                // 确保瘦鸡状态正确（通过反射设置 isFat 为 false）
+                var isFatField = typeof(ChickenUnit).GetField("isFat", 
+                    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                if (isFatField != null)
+                {
+                    isFatField.SetValue(thinChickenUnit, false);
+                }
+                
+                // 标记瘦鸡是通过预制体替换生成的（用于恢复时替换回肥鸡）
+                var wasReplacedField = typeof(ChickenUnit).GetField("wasReplacedByPrefab", 
+                    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                if (wasReplacedField != null)
+                {
+                    wasReplacedField.SetValue(thinChickenUnit, true);
+                }
+                
+                // 同步金鸡状态
+                thinChickenUnit.SetGolden(wasGolden);
+                
+                // 继承胖鸡的移动速度，让瘦鸡延续移动行为
+                Rigidbody2D thinRb = thinChicken.GetComponent<Rigidbody2D>();
+                if (thinRb != null && parentVelocity != Vector2.zero)
+                {
+                    // 继承速度，但稍微减慢（例如减少到原来的 70%）
+                    thinRb.linearVelocity = parentVelocity * 0.7f;
+                    
+                    // 在瘦鸡对象上启动协程，让瘦鸡逐渐减速并停止
+                    thinChickenUnit.StartCoroutine(thinChickenUnit.GraduallyStopMovement(thinRb));
+                }
+                else if (thinRb != null)
+                {
+                    // 如果没有速度，直接停止
+                    thinRb.linearVelocity = Vector2.zero;
+                }
+                
+                // 将瘦鸡添加到生成器列表中，以便清理时能够找到它
+                if (ChickenSpawner.Instance != null)
+                {
+                    // 使用反射访问私有字段 spawnedChickens
+                    var spawnerType = typeof(ChickenSpawner);
+                    var spawnedChickensField = spawnerType.GetField("spawnedChickens", 
+                        System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                    
+                    if (spawnedChickensField != null)
+                    {
+                        var spawnedChickensList = spawnedChickensField.GetValue(ChickenSpawner.Instance) as System.Collections.Generic.List<ChickenUnit>;
+                        if (spawnedChickensList != null && !spawnedChickensList.Contains(thinChickenUnit))
+                        {
+                            spawnedChickensList.Add(thinChickenUnit);
+                        }
+                    }
+                }
+                
+                Debug.Log($"ChickenUnit: 成功替换为瘦鸡预制体，位置：{currentPosition}", this);
+            }
+            else
+            {
+                Debug.LogWarning("ChickenUnit: 瘦鸡预制体没有 ChickenUnit 组件！瘦鸡可能无法正常工作。回退到代码方式。", this);
+                // 如果瘦鸡预制体没有 ChickenUnit 组件，销毁它并回退到代码方式
+                Destroy(thinChicken);
+                
+                // 回退到代码方式
+                if (spriteRenderer != null)
+                {
+                    spriteRenderer.color = Color.gray;
+                }
+                transform.localScale = transform.localScale * 0.5f;
+                if (rb != null)
+                {
+                    if (parentVelocity != Vector2.zero)
+                    {
+                        rb.linearVelocity = parentVelocity * 0.7f;
+                        StartCoroutine(GraduallyStopMovement(rb));
+                    }
+                    else
+                    {
+                        rb.linearVelocity = Vector2.zero;
+                    }
+                }
+                return; // 不销毁当前对象，因为已经回退到代码方式
+            }
+
+            // 销毁当前对象（在最后销毁，确保瘦鸡已经创建）
+            Destroy(gameObject);
+        }
+
+        /// <summary>
+        /// 协程：让瘦鸡逐渐减速并停止移动
+        /// </summary>
+        /// <param name="thinRb">瘦鸡的刚体组件</param>
+        public System.Collections.IEnumerator GraduallyStopMovement(Rigidbody2D thinRb)
+        {
+            if (thinRb == null) yield break;
+
+            float decelerationTime = 1.5f; // 减速时间（秒）
+            float elapsedTime = 0f;
+            Vector2 initialVelocity = thinRb.linearVelocity;
+
+            while (elapsedTime < decelerationTime && thinRb != null)
+            {
+                elapsedTime += Time.deltaTime;
+                float t = elapsedTime / decelerationTime;
+                
+                // 使用平滑插值逐渐减速
+                thinRb.linearVelocity = Vector2.Lerp(initialVelocity, Vector2.zero, t);
+                
+                yield return null;
+            }
+
+            // 确保最终停止
+            if (thinRb != null)
+            {
+                thinRb.linearVelocity = Vector2.zero;
+            }
         }
 
         /// <summary>
@@ -300,7 +536,89 @@ namespace ProjectChicken.Units
                 // 恢复成功：变回肥鸡状态
                 isFat = true;
 
-                // 恢复视觉（颜色和大小）
+                // 如果当前是通过预制体替换生成的瘦鸡，需要替换回肥鸡预制体
+                if (wasReplacedByPrefab && ChickenSpawner.Instance != null)
+                {
+                    // 从 ChickenSpawner 获取肥鸡预制体
+                    var spawnerType = typeof(ChickenSpawner);
+                    var chickenPrefabField = spawnerType.GetField("chickenPrefab", 
+                        System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                    
+                    if (chickenPrefabField != null)
+                    {
+                        ChickenUnit fatChickenPrefab = chickenPrefabField.GetValue(ChickenSpawner.Instance) as ChickenUnit;
+                        
+                        if (fatChickenPrefab != null)
+                        {
+                            // 保存当前状态
+                            Vector3 currentPosition = transform.position;
+                            bool wasGolden = isGolden;
+                            
+                            // 实例化肥鸡预制体
+                            ChickenUnit fatChicken = Instantiate(fatChickenPrefab, currentPosition, transform.rotation);
+                            
+                            if (fatChicken != null)
+                            {
+                                // 确保肥鸡状态正确
+                                var isFatField = typeof(ChickenUnit).GetField("isFat", 
+                                    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                                if (isFatField != null)
+                                {
+                                    isFatField.SetValue(fatChicken, true);
+                                }
+                                
+                                // 同步金鸡状态
+                                fatChicken.SetGolden(wasGolden);
+                                
+                                // 恢复血量
+                                var currentHPField = typeof(ChickenUnit).GetField("currentHP", 
+                                    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                                var maxHPField = typeof(ChickenUnit).GetField("maxHP", 
+                                    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                                
+                                if (currentHPField != null && maxHPField != null)
+                                {
+                                    float maxHP = (float)maxHPField.GetValue(fatChicken);
+                                    currentHPField.SetValue(fatChicken, maxHP);
+                                }
+                                
+                                // 将肥鸡添加到生成器列表中，并从列表中移除瘦鸡
+                                var spawnedChickensField = spawnerType.GetField("spawnedChickens", 
+                                    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                                
+                                if (spawnedChickensField != null)
+                                {
+                                    var spawnedChickensList = spawnedChickensField.GetValue(ChickenSpawner.Instance) as System.Collections.Generic.List<ChickenUnit>;
+                                    if (spawnedChickensList != null)
+                                    {
+                                        // 从生成器列表中移除瘦鸡
+                                        if (spawnedChickensList.Contains(this))
+                                        {
+                                            spawnedChickensList.Remove(this);
+                                        }
+                                        
+                                        // 添加肥鸡到生成器列表
+                                        if (!spawnedChickensList.Contains(fatChicken))
+                                        {
+                                            spawnedChickensList.Add(fatChicken);
+                                        }
+                                    }
+                                }
+                                
+                                Debug.Log($"ChickenUnit: 瘦鸡在位置 {currentPosition} 恢复为肥鸡预制体", this);
+                                
+                                // 销毁瘦鸡对象
+                                Destroy(gameObject);
+                                return; // 提前返回，因为对象已被销毁
+                            }
+                        }
+                    }
+                    
+                    // 如果替换失败，回退到代码方式恢复视觉
+                    Debug.LogWarning("ChickenUnit: 无法获取肥鸡预制体，回退到代码方式恢复视觉", this);
+                }
+                
+                // 使用代码方式恢复视觉（颜色和大小）
                 if (spriteRenderer != null)
                 {
                     spriteRenderer.color = originalColor;
