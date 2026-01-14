@@ -18,7 +18,7 @@ MonoBehaviour:
   chickenMovementAreaSize: {x: 8.41, y: 7.69}
   chickenMovementAreaCenter: {x: 0, y: 0.08}
   backgroundSprite: {fileID: 7426941313563693996, guid: 849e0b9406f3c394281c9badc386576f, type: 3}
-  upgradeType: 1
+  upgradeType: 0
   chickenCountThreshold: 30
   minCamSize: 5
   maxCamSize: 15
