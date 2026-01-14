@@ -13,6 +13,11 @@ namespace ProjectChicken.Systems
         [SerializeField] private Vector2 areaSize = new Vector2(10f, 10f); // 场地大小（世界单位，内部使用）
         [SerializeField] private Vector2 areaCenter = Vector2.zero; // 场地中心位置（世界坐标）
         [SerializeField] private bool useWorldBounds = true; // 是否使用世界坐标边界（如果为 false，则相对于 GameObject 位置）
+
+        [Header("鸡活动范围配置")]
+        [SerializeField] private Vector2 chickenMovementAreaSize = Vector2.zero; // 鸡的活动范围大小（世界单位，如果为 (0,0) 则使用场地大小）
+        [SerializeField] private Vector2 chickenMovementAreaCenter = Vector2.zero; // 鸡的活动范围中心位置（世界坐标，如果为 (0,0) 则使用场地中心）
+        [SerializeField] private bool useCustomChickenArea = false; // 是否使用自定义鸡活动范围（如果为 false，则使用场地大小和中心）
         
         [Header("像素单位显示（可选）")]
         [SerializeField] private bool usePixelUnits = true; // 是否使用像素单位显示（如果为 true，areaSize 将显示为像素）
@@ -107,6 +112,57 @@ namespace ProjectChicken.Systems
         public float MaxY => AreaBounds.max.y;
 
         /// <summary>
+        /// 鸡活动范围边界（只读属性）
+        /// </summary>
+        public Bounds ChickenMovementBounds
+        {
+            get
+            {
+                // 如果启用了自定义鸡活动范围，使用它；否则使用场地边界
+                Vector2 movementSize;
+                Vector2 movementCenter;
+                
+                if (useCustomChickenArea)
+                {
+                    movementSize = chickenMovementAreaSize != Vector2.zero ? chickenMovementAreaSize : areaSize;
+                    movementCenter = chickenMovementAreaCenter != Vector2.zero ? chickenMovementAreaCenter : areaCenter;
+                }
+                else
+                {
+                    movementSize = areaSize;
+                    movementCenter = areaCenter;
+                }
+                
+                if (!useWorldBounds)
+                {
+                    movementCenter = (Vector2)transform.position + movementCenter;
+                }
+                
+                return new Bounds(movementCenter, movementSize);
+            }
+        }
+
+        /// <summary>
+        /// 鸡活动范围最小 X 坐标
+        /// </summary>
+        public float ChickenMinX => ChickenMovementBounds.min.x;
+
+        /// <summary>
+        /// 鸡活动范围最大 X 坐标
+        /// </summary>
+        public float ChickenMaxX => ChickenMovementBounds.max.x;
+
+        /// <summary>
+        /// 鸡活动范围最小 Y 坐标
+        /// </summary>
+        public float ChickenMinY => ChickenMovementBounds.min.y;
+
+        /// <summary>
+        /// 鸡活动范围最大 Y 坐标
+        /// </summary>
+        public float ChickenMaxY => ChickenMovementBounds.max.y;
+
+        /// <summary>
         /// 检查位置是否在场地内
         /// </summary>
         /// <param name="position">要检查的位置</param>
@@ -140,13 +196,44 @@ namespace ProjectChicken.Systems
         /// 获取场地内的随机位置
         /// </summary>
         /// <param name="padding">边界内边距（避免在边缘生成）</param>
+        /// <param name="useChickenArea">是否使用鸡活动范围（true）还是场地范围（false）</param>
         /// <returns>随机位置</returns>
-        public Vector2 GetRandomPositionInArea(float padding = 0.5f)
+        public Vector2 GetRandomPositionInArea(float padding = 0.5f, bool useChickenArea = true)
         {
-            Bounds bounds = AreaBounds;
+            Bounds bounds = useChickenArea ? ChickenMovementBounds : AreaBounds;
             return new Vector2(
                 Random.Range(bounds.min.x + padding, bounds.max.x - padding),
                 Random.Range(bounds.min.y + padding, bounds.max.y - padding)
+            );
+        }
+
+        /// <summary>
+        /// 检查位置是否在鸡活动范围内
+        /// </summary>
+        /// <param name="position">要检查的位置</param>
+        /// <param name="padding">边界内边距（可选）</param>
+        /// <returns>是否在鸡活动范围内</returns>
+        public bool IsPositionInChickenArea(Vector2 position, float padding = 0f)
+        {
+            Bounds bounds = ChickenMovementBounds;
+            return position.x >= bounds.min.x + padding &&
+                   position.x <= bounds.max.x - padding &&
+                   position.y >= bounds.min.y + padding &&
+                   position.y <= bounds.max.y - padding;
+        }
+
+        /// <summary>
+        /// 将位置限制在鸡活动范围内
+        /// </summary>
+        /// <param name="position">要限制的位置</param>
+        /// <param name="padding">边界内边距（可选）</param>
+        /// <returns>限制后的位置</returns>
+        public Vector2 ClampPositionToChickenArea(Vector2 position, float padding = 0f)
+        {
+            Bounds bounds = ChickenMovementBounds;
+            return new Vector2(
+                Mathf.Clamp(position.x, bounds.min.x + padding, bounds.max.x - padding),
+                Mathf.Clamp(position.y, bounds.min.y + padding, bounds.max.y - padding)
             );
         }
 
@@ -465,19 +552,37 @@ namespace ProjectChicken.Systems
         }
 
         /// <summary>
-        /// 在 Scene 视图中绘制场地边界（调试用）
+        /// 在 Scene 视图中绘制场地边界（调试用，未选中时也显示）
         /// </summary>
         private void OnDrawGizmos()
         {
             if (!showGizmos) return;
+            DrawAreaGizmos();
+        }
 
+        /// <summary>
+        /// 在 Scene 视图中绘制场地边界（调试用，选中时显示更明显的线条）
+        /// </summary>
+        private void OnDrawGizmosSelected()
+        {
+            if (!showGizmos) return;
+            
+            // 选中时用更亮的颜色绘制
+            Color originalColor = gizmoColor;
+            gizmoColor = new Color(originalColor.r * 1.5f, originalColor.g * 1.5f, originalColor.b * 1.5f, 1f);
+            DrawAreaGizmos();
+            gizmoColor = originalColor;
+        }
+
+        /// <summary>
+        /// 绘制场地 Gizmos（辅助方法）
+        /// </summary>
+        private void DrawAreaGizmos()
+        {
             Bounds bounds = AreaBounds;
-            Vector3 center = bounds.center;
-            Vector3 size = bounds.size;
 
+            // 绘制场地矩形边界
             Gizmos.color = gizmoColor;
-
-            // 绘制矩形边界
             Vector3 bottomLeft = new Vector3(bounds.min.x, bounds.min.y, 0f);
             Vector3 bottomRight = new Vector3(bounds.max.x, bounds.min.y, 0f);
             Vector3 topLeft = new Vector3(bounds.min.x, bounds.max.y, 0f);
@@ -488,6 +593,50 @@ namespace ProjectChicken.Systems
             Gizmos.DrawLine(bottomRight, topRight);
             Gizmos.DrawLine(topRight, topLeft);
             Gizmos.DrawLine(topLeft, bottomLeft);
+
+            // 绘制场地中心点
+            Vector3 center = bounds.center;
+            Gizmos.DrawWireSphere(center, 0.2f);
+
+            // 如果鸡活动范围与场地范围不同，绘制鸡活动范围（黄色）
+            Bounds chickenBounds = ChickenMovementBounds;
+            if (chickenBounds.size != bounds.size || chickenBounds.center != bounds.center)
+            {
+                Gizmos.color = Color.yellow;
+                Vector3 chickenBottomLeft = new Vector3(chickenBounds.min.x, chickenBounds.min.y, 0f);
+                Vector3 chickenBottomRight = new Vector3(chickenBounds.max.x, chickenBounds.min.y, 0f);
+                Vector3 chickenTopLeft = new Vector3(chickenBounds.min.x, chickenBounds.max.y, 0f);
+                Vector3 chickenTopRight = new Vector3(chickenBounds.max.x, chickenBounds.max.y, 0f);
+
+                // 绘制鸡活动范围的四条边（虚线效果，通过多次绘制实现）
+                DrawDashedLine(chickenBottomLeft, chickenBottomRight);
+                DrawDashedLine(chickenBottomRight, chickenTopRight);
+                DrawDashedLine(chickenTopRight, chickenTopLeft);
+                DrawDashedLine(chickenTopLeft, chickenBottomLeft);
+
+                // 绘制鸡活动范围中心点
+                Vector3 chickenCenter = chickenBounds.center;
+                Gizmos.DrawWireSphere(chickenCenter, 0.15f);
+            }
+        }
+
+        /// <summary>
+        /// 绘制虚线（辅助方法，通过分段绘制实现虚线效果）
+        /// </summary>
+        private void DrawDashedLine(Vector3 start, Vector3 end)
+        {
+            int segments = 10;
+            for (int i = 0; i < segments; i++)
+            {
+                if (i % 2 == 0) // 只绘制偶数段，形成虚线效果
+                {
+                    float t1 = (float)i / segments;
+                    float t2 = (float)(i + 1) / segments;
+                    Vector3 p1 = Vector3.Lerp(start, end, t1);
+                    Vector3 p2 = Vector3.Lerp(start, end, t2);
+                    Gizmos.DrawLine(p1, p2);
+                }
+            }
         }
 
         /// <summary>
@@ -496,7 +645,9 @@ namespace ProjectChicken.Systems
         /// <param name="newSize">新的场地大小（世界单位）</param>
         /// <param name="newCenter">新的场地中心位置（世界坐标）</param>
         /// <param name="newSprite">新的场地 Sprite（可选）</param>
-        public void UpdateAreaSettings(Vector2 newSize, Vector2 newCenter, Sprite newSprite = null)
+        /// <param name="chickenMovementSize">鸡活动范围大小（可选，如果为 Vector2.zero 则使用场地大小）</param>
+        /// <param name="chickenMovementCenter">鸡活动范围中心（可选，如果为 Vector2.zero 则使用场地中心）</param>
+        public void UpdateAreaSettings(Vector2 newSize, Vector2 newCenter, Sprite newSprite = null, Vector2 chickenMovementSize = default(Vector2), Vector2 chickenMovementCenter = default(Vector2))
         {
             // 更新场地大小
             if (newSize != Vector2.zero)
@@ -506,6 +657,18 @@ namespace ProjectChicken.Systems
 
             // 更新场地中心
             areaCenter = newCenter;
+
+            // 更新鸡活动范围（如果提供）
+            if (chickenMovementSize != default(Vector2))
+            {
+                chickenMovementAreaSize = chickenMovementSize;
+                useCustomChickenArea = true; // 自动启用自定义鸡活动范围
+            }
+            if (chickenMovementCenter != default(Vector2))
+            {
+                chickenMovementAreaCenter = chickenMovementCenter;
+                useCustomChickenArea = true; // 自动启用自定义鸡活动范围
+            }
 
             // 更新 Sprite（如果提供且不为空）
             if (newSprite != null)
@@ -525,7 +688,79 @@ namespace ProjectChicken.Systems
             // 更新显示
             UpdateAreaSprite();
 
-            Debug.Log($"PlayArea: 已更新场地设置 - 大小: {areaSize}, 中心: {areaCenter}, Sprite: {(newSprite != null ? newSprite.name : "null")}", this);
+            Debug.Log($"PlayArea: 已更新场地设置 - 大小: {areaSize}, 中心: {areaCenter}, 鸡活动范围: {ChickenMovementBounds.size}, Sprite: {(newSprite != null ? newSprite.name : "null")}", this);
+        }
+
+        /// <summary>
+        /// 设置鸡活动范围（公共方法，可在编辑器或代码中调用）
+        /// </summary>
+        /// <param name="size">活动范围大小（世界单位）</param>
+        /// <param name="center">活动范围中心（世界坐标）</param>
+        public void SetChickenMovementArea(Vector2 size, Vector2 center)
+        {
+            chickenMovementAreaSize = size;
+            chickenMovementAreaCenter = center;
+            useCustomChickenArea = true;
+            
+            Debug.Log($"PlayArea: 已设置鸡活动范围 - 大小: {size}, 中心: {center}", this);
+        }
+
+        /// <summary>
+        /// 获取当前鸡活动范围设置（公共方法）
+        /// </summary>
+        /// <param name="size">输出：活动范围大小</param>
+        /// <param name="center">输出：活动范围中心</param>
+        public void GetChickenMovementArea(out Vector2 size, out Vector2 center)
+        {
+            size = chickenMovementAreaSize;
+            center = chickenMovementAreaCenter;
+        }
+
+        /// <summary>
+        /// 重置鸡活动范围（使用场地大小和中心）
+        /// </summary>
+        public void ResetChickenMovementArea()
+        {
+            useCustomChickenArea = false;
+            chickenMovementAreaSize = Vector2.zero;
+            chickenMovementAreaCenter = Vector2.zero;
+            
+            Debug.Log("PlayArea: 已重置鸡活动范围，使用场地大小和中心", this);
+        }
+
+        /// <summary>
+        /// 将当前鸡活动范围设置应用到 AreaData（用于保存到资源）
+        /// </summary>
+        /// <param name="areaData">要更新的 AreaData 资源</param>
+        public void ApplyChickenAreaToAreaData(AreaData areaData)
+        {
+            if (areaData == null)
+            {
+                Debug.LogError("PlayArea: AreaData 为空，无法应用鸡活动范围设置！", this);
+                return;
+            }
+
+            // 使用反射来设置 AreaData 的私有字段
+            var areaDataType = typeof(AreaData);
+            var sizeField = areaDataType.GetField("chickenMovementAreaSize", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            var centerField = areaDataType.GetField("chickenMovementAreaCenter", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+
+            if (sizeField != null && centerField != null)
+            {
+                sizeField.SetValue(areaData, chickenMovementAreaSize);
+                centerField.SetValue(areaData, chickenMovementAreaCenter);
+                
+                // 标记资源为已修改
+                #if UNITY_EDITOR
+                UnityEditor.EditorUtility.SetDirty(areaData);
+                #endif
+                
+                Debug.Log($"PlayArea: 已将鸡活动范围设置应用到 AreaData: {areaData.AreaName}", this);
+            }
+            else
+            {
+                Debug.LogError("PlayArea: 无法访问 AreaData 的字段，请检查字段名称是否正确。", this);
+            }
         }
 
         /// <summary>

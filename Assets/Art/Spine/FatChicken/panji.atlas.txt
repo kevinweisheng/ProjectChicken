@@ -1,0 +1,8 @@
+panji.png
+size:140,82
+filter:Linear,Linear
+pma:true
+1
+bounds:2,2,67,78
+2
+bounds:71,2,67,78

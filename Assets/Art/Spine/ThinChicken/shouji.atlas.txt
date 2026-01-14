@@ -1,0 +1,8 @@
+shouji.png
+size:75,60
+filter:Linear,Linear
+pma:true
+1
+bounds:39,2,34,56
+2
+bounds:2,2,35,56

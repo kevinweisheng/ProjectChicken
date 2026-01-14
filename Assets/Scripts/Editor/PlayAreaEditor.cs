@@ -5,7 +5,7 @@ using ProjectChicken.Systems;
 namespace ProjectChicken.Editor
 {
     /// <summary>
-    /// PlayArea 自定义编辑器：在 Inspector 中以像素单位显示 Area Size
+    /// PlayArea 自定义编辑器：在 Inspector 中以像素单位显示 Area Size，并在 Scene 视图中提供可视化调整
     /// </summary>
     [CustomEditor(typeof(PlayArea))]
     [CanEditMultipleObjects]
@@ -23,6 +23,15 @@ namespace ProjectChicken.Editor
         private SerializedProperty sortingLayerNameProperty;
         private SerializedProperty showGizmosProperty;
         private SerializedProperty gizmoColorProperty;
+        
+        // 鸡活动范围相关属性
+        private SerializedProperty chickenMovementAreaSizeProperty;
+        private SerializedProperty chickenMovementAreaCenterProperty;
+        private SerializedProperty useCustomChickenAreaProperty;
+        
+        // Scene 视图调整相关
+        private bool isEditingChickenArea = false;
+        private int selectedHandle = -1; // -1: 无, 0-3: 四个角, 4: 中心
 
         private void OnEnable()
         {
@@ -38,6 +47,22 @@ namespace ProjectChicken.Editor
             sortingLayerNameProperty = serializedObject.FindProperty("sortingLayerName");
             showGizmosProperty = serializedObject.FindProperty("showGizmos");
             gizmoColorProperty = serializedObject.FindProperty("gizmoColor");
+            
+            // 鸡活动范围属性
+            chickenMovementAreaSizeProperty = serializedObject.FindProperty("chickenMovementAreaSize");
+            chickenMovementAreaCenterProperty = serializedObject.FindProperty("chickenMovementAreaCenter");
+            useCustomChickenAreaProperty = serializedObject.FindProperty("useCustomChickenArea");
+        }
+        
+        private void OnSceneGUI()
+        {
+            PlayArea playArea = (PlayArea)target;
+            
+            // 只在未运行时显示调整手柄
+            if (Application.isPlaying) return;
+            
+            // 绘制鸡活动范围的可视化调整手柄
+            DrawChickenAreaHandles(playArea);
         }
 
         public override void OnInspectorGUI()
@@ -118,11 +143,171 @@ namespace ProjectChicken.Editor
             EditorGUILayout.PropertyField(sortingLayerNameProperty, new GUIContent("Sorting Layer Name", "排序图层名称"));
 
             EditorGUILayout.Space();
+            EditorGUILayout.LabelField("鸡活动范围配置", EditorStyles.boldLabel);
+            EditorGUILayout.PropertyField(useCustomChickenAreaProperty, new GUIContent("使用自定义鸡活动范围", "如果启用，可以设置与场地不同的鸡活动范围"));
+            
+            if (useCustomChickenAreaProperty.boolValue)
+            {
+                EditorGUI.indentLevel++;
+                EditorGUILayout.PropertyField(chickenMovementAreaSizeProperty, new GUIContent("活动范围大小", "鸡的活动范围大小（世界单位），如果为 (0,0) 则使用场地大小"));
+                EditorGUILayout.PropertyField(chickenMovementAreaCenterProperty, new GUIContent("活动范围中心", "鸡的活动范围中心位置（世界坐标）"));
+                EditorGUI.indentLevel--;
+                
+                EditorGUILayout.HelpBox("提示：在 Scene 视图中选中 PlayArea，可以拖动手柄来可视化调整鸡活动范围。", MessageType.Info);
+                
+                // 应用到 AreaData 的按钮
+                EditorGUILayout.Space();
+                EditorGUILayout.BeginHorizontal();
+                if (GUILayout.Button("应用到 AreaData", GUILayout.Height(25)))
+                {
+                    ShowAreaDataSelectionWindow(playArea);
+                }
+                if (GUILayout.Button("重置为场地大小", GUILayout.Height(25)))
+                {
+                    playArea.ResetChickenMovementArea();
+                    serializedObject.Update();
+                }
+                EditorGUILayout.EndHorizontal();
+            }
+            else
+            {
+                EditorGUILayout.HelpBox("鸡活动范围将使用场地大小和中心。", MessageType.Info);
+            }
+
+            EditorGUILayout.Space();
             EditorGUILayout.LabelField("可视化（可选）", EditorStyles.boldLabel);
             EditorGUILayout.PropertyField(showGizmosProperty, new GUIContent("Show Gizmos", "在 Scene 视图中显示场地边界"));
             EditorGUILayout.PropertyField(gizmoColorProperty, new GUIContent("Gizmo Color", "Gizmo 颜色"));
 
             serializedObject.ApplyModifiedProperties();
+        }
+        
+        /// <summary>
+        /// 在 Scene 视图中绘制鸡活动范围的调整手柄
+        /// </summary>
+        private void DrawChickenAreaHandles(PlayArea playArea)
+        {
+            if (!useCustomChickenAreaProperty.boolValue) return;
+            
+            serializedObject.Update();
+            
+            Bounds chickenBounds = playArea.ChickenMovementBounds;
+            Vector3 center = chickenBounds.center;
+            Vector3 size = chickenBounds.size;
+            
+            // 计算四个角的位置
+            Vector3 bottomLeft = new Vector3(chickenBounds.min.x, chickenBounds.min.y, 0f);
+            Vector3 bottomRight = new Vector3(chickenBounds.max.x, chickenBounds.min.y, 0f);
+            Vector3 topLeft = new Vector3(chickenBounds.min.x, chickenBounds.max.y, 0f);
+            Vector3 topRight = new Vector3(chickenBounds.max.x, chickenBounds.max.y, 0f);
+            
+            // 绘制黄色虚线边框
+            Handles.color = Color.yellow;
+            Handles.DrawDottedLine(bottomLeft, bottomRight, 5f);
+            Handles.DrawDottedLine(bottomRight, topRight, 5f);
+            Handles.DrawDottedLine(topRight, topLeft, 5f);
+            Handles.DrawDottedLine(topLeft, bottomLeft, 5f);
+            
+            // 绘制调整手柄（四个角和中心）
+            float handleSize = HandleUtility.GetHandleSize(center) * 0.1f;
+            
+            // 四个角的手柄（用于调整大小）
+            EditorGUI.BeginChangeCheck();
+            Vector3 newBottomLeft = Handles.PositionHandle(bottomLeft, Quaternion.identity);
+            Vector3 newBottomRight = Handles.PositionHandle(bottomRight, Quaternion.identity);
+            Vector3 newTopLeft = Handles.PositionHandle(topLeft, Quaternion.identity);
+            Vector3 newTopRight = Handles.PositionHandle(topRight, Quaternion.identity);
+            
+            if (EditorGUI.EndChangeCheck())
+            {
+                Undo.RecordObject(playArea, "调整鸡活动范围大小");
+                
+                // 计算新的边界
+                float newMinX = Mathf.Min(newBottomLeft.x, newTopLeft.x);
+                float newMaxX = Mathf.Max(newBottomRight.x, newTopRight.x);
+                float newMinY = Mathf.Min(newBottomLeft.y, newBottomRight.y);
+                float newMaxY = Mathf.Max(newTopLeft.y, newTopRight.y);
+                
+                Vector2 newSize = new Vector2(newMaxX - newMinX, newMaxY - newMinY);
+                Vector2 newCenter = new Vector2((newMinX + newMaxX) * 0.5f, (newMinY + newMaxY) * 0.5f);
+                
+                // 如果使用世界坐标，需要转换为相对坐标
+                if (useWorldBoundsProperty.boolValue)
+                {
+                    chickenMovementAreaSizeProperty.vector2Value = newSize;
+                    chickenMovementAreaCenterProperty.vector2Value = newCenter;
+                }
+                else
+                {
+                    Vector3 playAreaPos = playArea.transform.position;
+                    chickenMovementAreaSizeProperty.vector2Value = newSize;
+                    chickenMovementAreaCenterProperty.vector2Value = newCenter - (Vector2)playAreaPos;
+                }
+                
+                serializedObject.ApplyModifiedProperties();
+            }
+            
+            // 中心点手柄（用于移动）
+            EditorGUI.BeginChangeCheck();
+            Vector3 newCenterPos = Handles.PositionHandle(center, Quaternion.identity);
+            
+            if (EditorGUI.EndChangeCheck())
+            {
+                Undo.RecordObject(playArea, "移动鸡活动范围中心");
+                
+                Vector2 centerOffset = (Vector2)newCenterPos - (Vector2)center;
+                
+                if (useWorldBoundsProperty.boolValue)
+                {
+                    chickenMovementAreaCenterProperty.vector2Value += centerOffset;
+                }
+                else
+                {
+                    chickenMovementAreaCenterProperty.vector2Value += centerOffset;
+                }
+                
+                serializedObject.ApplyModifiedProperties();
+            }
+            
+            // 绘制标签
+            Handles.Label(center + Vector3.up * 0.5f, "鸡活动范围", EditorStyles.boldLabel);
+        }
+        
+        /// <summary>
+        /// 显示 AreaData 选择窗口
+        /// </summary>
+        private void ShowAreaDataSelectionWindow(PlayArea playArea)
+        {
+            // 创建一个简单的选择窗口
+            GenericMenu menu = new GenericMenu();
+            
+            // 查找所有 AreaData 资源
+            string[] guids = AssetDatabase.FindAssets("t:AreaData");
+            
+            if (guids.Length == 0)
+            {
+                EditorUtility.DisplayDialog("提示", "未找到任何 AreaData 资源。请先创建 AreaData 资源。", "确定");
+                return;
+            }
+            
+            foreach (string guid in guids)
+            {
+                string path = AssetDatabase.GUIDToAssetPath(guid);
+                AreaData areaData = AssetDatabase.LoadAssetAtPath<AreaData>(path);
+                
+                if (areaData != null)
+                {
+                    menu.AddItem(new GUIContent(areaData.AreaName), false, () =>
+                    {
+                        playArea.ApplyChickenAreaToAreaData(areaData);
+                        EditorUtility.SetDirty(areaData);
+                        AssetDatabase.SaveAssets();
+                        EditorUtility.DisplayDialog("成功", $"已将鸡活动范围设置应用到 {areaData.AreaName}", "确定");
+                    });
+                }
+            }
+            
+            menu.ShowAsContext();
         }
 
         /// <summary>

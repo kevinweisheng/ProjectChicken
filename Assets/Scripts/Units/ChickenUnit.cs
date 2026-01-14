@@ -3,6 +3,7 @@ using System;
 using System.Collections;
 using ProjectChicken.Core;
 using ProjectChicken.Systems;
+using Spine.Unity;
 
 namespace ProjectChicken.Units
 {
@@ -10,7 +11,6 @@ namespace ProjectChicken.Units
     /// 鸡单位：实现 IDamageable 接口，具有游荡、受击、产出等行为
     /// </summary>
     [RequireComponent(typeof(Rigidbody2D))]
-    [RequireComponent(typeof(SpriteRenderer))]
     public class ChickenUnit : MonoBehaviour, IDamageable
     {
         [SerializeField] private float maxHP = 100f; // 最大血量
@@ -23,7 +23,27 @@ namespace ProjectChicken.Units
         [SerializeField] private GameObject thinChickenPrefab; // 瘦鸡预制体（如果设置，产出时会替换为这个预制体）
         [SerializeField] private bool useThinChickenPrefab = false; // 是否使用瘦鸡预制体（如果为 false，则使用代码方式改变外观）
         
+        [Header("Spine 动画（可选）")]
+        [SerializeField] private string idleAnimationName = "idle"; // 待机动画名称
+        [SerializeField] private string hitAnimationName = "hit"; // 被攻击动画名称（胖鸡）
+        [SerializeField] private string spawnAnimationName = "spawn"; // 出现动画名称（胖鸡，瘦鸡变回胖鸡时播放）
+        [SerializeField] private bool loopIdleAnimation = true; // 是否循环播放 Idle 动画
+        [SerializeField] private string normalSkinName = "default"; // 普通鸡皮肤名称
+        [SerializeField] private string goldenSkinName = "golden"; // 黄金鸡皮肤名称
+        
+        [Header("渲染排序（解决重叠闪烁）")]
+        [SerializeField] private bool useDynamicSorting = true; // 是否使用动态排序（根据 Y 坐标）
+        [SerializeField] private bool useYCoordinateSorting = false; // 是否使用 Y 坐标动态排序（如果为 false，只使用唯一偏移）
+        [SerializeField] private int baseSortingOrder = 0; // 基础排序顺序（应大于背景的 sortingOrder，背景默认是 -100）
+        [SerializeField] private float sortingOrderMultiplier = -100f; // 排序顺序倍数（Y 坐标越大，sortingOrder 越大）
+        [SerializeField] private string sortingLayerName = "Default"; // 排序图层名称（应与背景在同一图层）
+        [SerializeField] private int minSortingOrder = -50; // 最小排序顺序（防止被背景遮挡，背景默认是 -100）
+        [SerializeField] private int uniqueSortingOffset = 0; // 唯一排序偏移（每只鸡不同，用于避免重叠闪烁）
+        
         private bool wasReplacedByPrefab = false; // 标记当前对象是否是通过预制体替换生成的瘦鸡
+        private bool shouldPlaySpawnAnimation = false; // 标记是否应该播放出现动画（从瘦鸡恢复时）
+        
+        private SkeletonAnimation skeletonAnimation; // Spine 动画组件
 
         private float currentHP; // 当前血量
         private bool isFat = true; // 是否为肥鸡状态（默认为 true）
@@ -52,8 +72,53 @@ namespace ProjectChicken.Units
         public void SetGolden(bool golden)
         {
             isGolden = golden;
-            // 如果是金鸡，改变视觉外观（例如改变颜色为金色）
-            if (spriteRenderer != null)
+            
+            // 如果使用 Spine 动画，切换皮肤
+            if (skeletonAnimation != null && skeletonAnimation.skeleton != null && skeletonAnimation.skeleton.Data != null)
+            {
+                string targetSkinName = golden ? goldenSkinName : normalSkinName;
+                
+                if (!string.IsNullOrEmpty(targetSkinName))
+                {
+                    // 查找皮肤
+                    var targetSkin = skeletonAnimation.skeleton.Data.FindSkin(targetSkinName);
+                    if (targetSkin != null)
+                    {
+                        // 切换皮肤
+                        skeletonAnimation.skeleton.SetSkin(targetSkin);
+                        skeletonAnimation.skeleton.SetSlotsToSetupPose();
+                        
+                        Debug.Log($"ChickenUnit: 切换皮肤为 '{targetSkinName}'", this);
+                    }
+                    else
+                    {
+                        Debug.LogWarning($"ChickenUnit: 找不到皮肤 '{targetSkinName}'，请检查皮肤名称是否正确。", this);
+                        // 回退到颜色方式
+                        if (golden)
+                        {
+                            skeletonAnimation.skeleton.SetColor(Color.yellow);
+                        }
+                        else
+                        {
+                            skeletonAnimation.skeleton.SetColor(Color.white);
+                        }
+                    }
+                }
+                else
+                {
+                    // 如果皮肤名称为空，使用颜色方式
+                    if (golden)
+                    {
+                        skeletonAnimation.skeleton.SetColor(Color.yellow);
+                    }
+                    else
+                    {
+                        skeletonAnimation.skeleton.SetColor(Color.white);
+                    }
+                }
+            }
+            // 如果没有 Spine 动画，使用 SpriteRenderer 颜色
+            else if (spriteRenderer != null && spriteRenderer.enabled)
             {
                 if (golden)
                 {
@@ -69,6 +134,7 @@ namespace ProjectChicken.Units
         private Color originalColor; // 原始颜色（用于受击反馈）
         private Vector3 originalScale; // 原始大小（用于恢复）
         private float hitFlashTimer = 0f; // 受击闪烁计时器
+        private MeshRenderer meshRenderer; // Spine 的 MeshRenderer（用于设置排序）
 
         // 静态事件：当鸡产出时触发（传递位置信息）
         public static event Action<Vector3> OnChickenProduct;
@@ -78,6 +144,103 @@ namespace ProjectChicken.Units
             // 初始化组件
             rb = GetComponent<Rigidbody2D>();
             spriteRenderer = GetComponent<SpriteRenderer>();
+            
+            // 获取 Spine 动画组件
+            skeletonAnimation = GetComponent<SkeletonAnimation>();
+            if (skeletonAnimation == null)
+            {
+                skeletonAnimation = GetComponentInChildren<SkeletonAnimation>();
+            }
+            
+            // 获取 MeshRenderer（用于 Spine 排序）
+            if (skeletonAnimation != null)
+            {
+                meshRenderer = skeletonAnimation.GetComponent<MeshRenderer>();
+                if (meshRenderer == null)
+                {
+                    meshRenderer = skeletonAnimation.GetComponentInChildren<MeshRenderer>();
+                }
+                
+                // 初始化 Spine 的排序图层
+                if (meshRenderer != null)
+                {
+                    meshRenderer.sortingLayerName = sortingLayerName;
+                }
+            }
+            
+            // 初始化 SpriteRenderer 的排序图层
+            if (spriteRenderer != null)
+            {
+                spriteRenderer.sortingLayerName = sortingLayerName;
+            }
+            
+            // 初始化排序顺序
+            UpdateSortingOrder();
+            
+            // 播放动画（Idle 或出现动画）
+            if (skeletonAnimation != null)
+            {
+                if (skeletonAnimation.AnimationState != null)
+                {
+                    // 如果是从瘦鸡恢复的胖鸡，播放出现动画
+                    if (shouldPlaySpawnAnimation && !string.IsNullOrEmpty(spawnAnimationName))
+                    {
+                        var trackEntry = skeletonAnimation.AnimationState.SetAnimation(0, spawnAnimationName, false);
+                        if (trackEntry != null)
+                        {
+                            Debug.Log($"ChickenUnit: 开始播放出现动画 '{spawnAnimationName}'", this);
+                            
+                            // 出现动画播放完成后，恢复 Idle 动画
+                            if (!string.IsNullOrEmpty(idleAnimationName))
+                            {
+                                trackEntry.Complete += (entry) =>
+                                {
+                                    if (skeletonAnimation != null && skeletonAnimation.AnimationState != null)
+                                    {
+                                        skeletonAnimation.AnimationState.SetAnimation(0, idleAnimationName, loopIdleAnimation);
+                                    }
+                                };
+                            }
+                        }
+                        else
+                        {
+                            Debug.LogWarning($"ChickenUnit: 无法播放出现动画 '{spawnAnimationName}'，trackEntry 为 null。", this);
+                            // 回退到播放 Idle
+                            if (!string.IsNullOrEmpty(idleAnimationName))
+                            {
+                                skeletonAnimation.AnimationState.SetAnimation(0, idleAnimationName, loopIdleAnimation);
+                            }
+                        }
+                        // 重置标志
+                        shouldPlaySpawnAnimation = false;
+                    }
+                    // 否则正常播放 Idle 动画
+                    else if (!string.IsNullOrEmpty(idleAnimationName))
+                    {
+                        var trackEntry = skeletonAnimation.AnimationState.SetAnimation(0, idleAnimationName, loopIdleAnimation);
+                        if (trackEntry != null)
+                        {
+                            Debug.Log($"ChickenUnit: 成功播放 Idle 动画 '{idleAnimationName}'", this);
+                        }
+                        else
+                        {
+                            Debug.LogWarning($"ChickenUnit: 无法播放 Idle 动画 '{idleAnimationName}'，trackEntry 为 null。请检查动画名称是否正确。", this);
+                        }
+                    }
+                    else
+                    {
+                        Debug.LogWarning("ChickenUnit: Idle 动画名称为空，请设置 Idle Animation Name。", this);
+                    }
+                }
+                else
+                {
+                    Debug.LogWarning("ChickenUnit: SkeletonAnimation 的 AnimationState 为 null，请检查 Spine 数据是否正确配置。", this);
+                }
+            }
+            else
+            {
+                Debug.LogWarning("ChickenUnit: 未找到 SkeletonAnimation 组件。如果使用 Spine 动画，请确保已添加 SkeletonAnimation 组件。", this);
+            }
             
             // 获取主摄像机
             if (mainCamera == null)
@@ -94,6 +257,12 @@ namespace ProjectChicken.Units
 
             // 初始化血量
             currentHP = maxHP;
+            
+            // 如果已经是金鸡，应用金鸡皮肤
+            if (isGolden)
+            {
+                SetGolden(true);
+            }
 
             // 立即开始移动（不等待第一个 wanderInterval）
             if (isFat && rb != null)
@@ -134,6 +303,59 @@ namespace ProjectChicken.Units
             // 受击闪烁效果
             UpdateHitFlash();
         }
+        
+        private void LateUpdate()
+        {
+            // 在每帧结束时更新排序顺序，确保渲染顺序正确
+            if (useDynamicSorting)
+            {
+                UpdateSortingOrder();
+            }
+        }
+        
+        /// <summary>
+        /// 设置唯一排序偏移（由生成器调用，为每只鸡分配不同的值）
+        /// </summary>
+        /// <param name="offset">排序偏移值</param>
+        public void SetUniqueSortingOffset(int offset)
+        {
+            uniqueSortingOffset = offset;
+            // 立即更新排序顺序
+            UpdateSortingOrder();
+        }
+        
+        /// <summary>
+        /// 更新渲染排序顺序（根据 Y 坐标或唯一偏移）
+        /// </summary>
+        private void UpdateSortingOrder()
+        {
+            if (!useDynamicSorting) return;
+            
+            // 计算排序顺序
+            int sortingOrder = baseSortingOrder + uniqueSortingOffset;
+            
+            // 如果启用 Y 坐标排序，加上 Y 坐标的影响
+            if (useYCoordinateSorting)
+            {
+                sortingOrder += Mathf.RoundToInt(transform.position.y * sortingOrderMultiplier);
+            }
+            
+            // 确保排序顺序不小于最小值（防止被背景遮挡，背景默认是 -100）
+            sortingOrder = Mathf.Max(sortingOrder, minSortingOrder);
+            
+            // 设置 Spine 的排序顺序
+            if (meshRenderer != null)
+            {
+                meshRenderer.sortingOrder = sortingOrder;
+                meshRenderer.sortingLayerName = sortingLayerName;
+            }
+            // 设置 SpriteRenderer 的排序顺序
+            else if (spriteRenderer != null && spriteRenderer.enabled)
+            {
+                spriteRenderer.sortingOrder = sortingOrder;
+                spriteRenderer.sortingLayerName = sortingLayerName;
+            }
+        }
 
         /// <summary>
         /// 改变游荡方向：随机设置线性速度
@@ -164,11 +386,11 @@ namespace ProjectChicken.Units
 
             if (PlayArea.Instance != null)
             {
-                // 使用场地边界
-                minX = PlayArea.Instance.MinX + boundaryPadding;
-                maxX = PlayArea.Instance.MaxX - boundaryPadding;
-                minY = PlayArea.Instance.MinY + boundaryPadding;
-                maxY = PlayArea.Instance.MaxY - boundaryPadding;
+                // 使用鸡活动范围边界（而不是场地边界）
+                minX = PlayArea.Instance.ChickenMinX + boundaryPadding;
+                maxX = PlayArea.Instance.ChickenMaxX - boundaryPadding;
+                minY = PlayArea.Instance.ChickenMinY + boundaryPadding;
+                maxY = PlayArea.Instance.ChickenMaxY - boundaryPadding;
             }
             else if (mainCamera != null)
             {
@@ -256,10 +478,78 @@ namespace ProjectChicken.Units
         /// </summary>
         private void TriggerHitFlash()
         {
-            if (spriteRenderer != null)
+            // 如果使用 Spine 动画，播放被攻击动画（仅胖鸡）
+            if (skeletonAnimation != null && skeletonAnimation.AnimationState != null && isFat)
             {
-                spriteRenderer.color = Color.red;
-                hitFlashTimer = hitFlashDuration;
+                // 胖鸡播放被攻击动画
+                if (!string.IsNullOrEmpty(hitAnimationName))
+                {
+                    // 检查动画是否存在
+                    var skeletonData = skeletonAnimation.skeleton?.Data;
+                    if (skeletonData != null)
+                    {
+                        var hitAnimation = skeletonData.FindAnimation(hitAnimationName);
+                        if (hitAnimation == null)
+                        {
+                            Debug.LogWarning($"ChickenUnit: 找不到被攻击动画 '{hitAnimationName}'，请检查动画名称是否正确。", this);
+                            // 回退到颜色闪烁
+                            if (skeletonAnimation.skeleton != null)
+                            {
+                                skeletonAnimation.skeleton.SetColor(Color.red);
+                                hitFlashTimer = hitFlashDuration;
+                            }
+                            return;
+                        }
+                    }
+                    
+                    // 播放被攻击动画（不循环，播放一次）
+                    var trackEntry = skeletonAnimation.AnimationState.SetAnimation(0, hitAnimationName, false);
+                    
+                    if (trackEntry == null)
+                    {
+                        Debug.LogWarning($"ChickenUnit: 无法播放被攻击动画 '{hitAnimationName}'，trackEntry 为 null。请检查动画名称是否正确，以及 Spine 数据是否已正确加载。", this);
+                        // 回退到颜色闪烁
+                        if (skeletonAnimation.skeleton != null)
+                        {
+                            skeletonAnimation.skeleton.SetColor(Color.red);
+                            hitFlashTimer = hitFlashDuration;
+                        }
+                        return;
+                    }
+                    
+                    Debug.Log($"ChickenUnit: 开始播放被攻击动画 '{hitAnimationName}'", this);
+                    
+                    // 被攻击动画播放完成后，恢复 Idle 动画
+                    if (!string.IsNullOrEmpty(idleAnimationName))
+                    {
+                        trackEntry.Complete += (entry) =>
+                        {
+                            if (isFat && skeletonAnimation != null && skeletonAnimation.AnimationState != null)
+                            {
+                                skeletonAnimation.AnimationState.SetAnimation(0, idleAnimationName, loopIdleAnimation);
+                            }
+                        };
+                    }
+                }
+                else
+                {
+                    // 如果没有被攻击动画，使用颜色闪烁
+                    if (skeletonAnimation.skeleton != null)
+                    {
+                        skeletonAnimation.skeleton.SetColor(Color.red);
+                        hitFlashTimer = hitFlashDuration;
+                    }
+                }
+            }
+            
+            // 如果没有 Spine 动画或播放失败，使用 SpriteRenderer 颜色闪烁
+            if (skeletonAnimation == null || skeletonAnimation.AnimationState == null || !isFat)
+            {
+                if (spriteRenderer != null && spriteRenderer.enabled)
+                {
+                    spriteRenderer.color = Color.red;
+                    hitFlashTimer = hitFlashDuration;
+                }
             }
         }
 
@@ -274,7 +564,11 @@ namespace ProjectChicken.Units
                 if (hitFlashTimer <= 0f)
                 {
                     // 恢复原始颜色
-                    if (spriteRenderer != null)
+                    if (skeletonAnimation != null && skeletonAnimation.skeleton != null)
+                    {
+                        skeletonAnimation.skeleton.SetColor(Color.white);
+                    }
+                    else if (spriteRenderer != null && spriteRenderer.enabled)
                     {
                         spriteRenderer.color = originalColor;
                     }
@@ -309,7 +603,21 @@ namespace ProjectChicken.Units
             else
             {
                 // 使用代码方式改变外观（原有逻辑）
-                if (spriteRenderer != null)
+                // 瘦鸡状态下播放待机动画（如果 Spine 动画可用）
+                if (skeletonAnimation != null && skeletonAnimation.AnimationState != null)
+                {
+                    if (!string.IsNullOrEmpty(idleAnimationName))
+                    {
+                        // 瘦鸡播放待机动画
+                        skeletonAnimation.AnimationState.SetAnimation(0, idleAnimationName, loopIdleAnimation);
+                    }
+                }
+                // 如果使用 Spine 动画，可以通过改变颜色
+                if (skeletonAnimation != null && skeletonAnimation.skeleton != null)
+                {
+                    skeletonAnimation.skeleton.SetColor(Color.gray);
+                }
+                else if (spriteRenderer != null && spriteRenderer.enabled)
                 {
                     spriteRenderer.color = Color.gray;
                 }
@@ -341,11 +649,17 @@ namespace ProjectChicken.Units
         /// <param name="parentVelocity">父对象（胖鸡）的速度</param>
         private void ReplaceWithThinChicken(Vector2 parentVelocity)
         {
+            // 保存 Spine 动画引用（如果有）
+            SkeletonAnimation originalSkeletonAnimation = skeletonAnimation;
             if (thinChickenPrefab == null)
             {
                 Debug.LogWarning("ChickenUnit: thinChickenPrefab 为空，无法替换！使用代码方式改变外观。", this);
                 // 回退到代码方式
-                if (spriteRenderer != null)
+                if (skeletonAnimation != null && skeletonAnimation.skeleton != null)
+                {
+                    skeletonAnimation.skeleton.SetColor(Color.gray);
+                }
+                else if (spriteRenderer != null && spriteRenderer.enabled)
                 {
                     spriteRenderer.color = Color.gray;
                 }
@@ -378,7 +692,11 @@ namespace ProjectChicken.Units
             {
                 Debug.LogError("ChickenUnit: 瘦鸡预制体实例化失败！回退到代码方式。", this);
                 // 回退到代码方式
-                if (spriteRenderer != null)
+                if (skeletonAnimation != null && skeletonAnimation.skeleton != null)
+                {
+                    skeletonAnimation.skeleton.SetColor(Color.gray);
+                }
+                else if (spriteRenderer != null && spriteRenderer.enabled)
                 {
                     spriteRenderer.color = Color.gray;
                 }
@@ -420,6 +738,27 @@ namespace ProjectChicken.Units
                 
                 // 同步金鸡状态
                 thinChickenUnit.SetGolden(wasGolden);
+                
+                // 确保瘦鸡播放待机动画
+                var thinSkeletonAnimation = thinChicken.GetComponent<SkeletonAnimation>();
+                if (thinSkeletonAnimation == null)
+                {
+                    thinSkeletonAnimation = thinChicken.GetComponentInChildren<SkeletonAnimation>();
+                }
+                if (thinSkeletonAnimation != null && thinSkeletonAnimation.AnimationState != null)
+                {
+                    // 使用反射获取瘦鸡的 idleAnimationName
+                    var idleAnimationNameField = typeof(ChickenUnit).GetField("idleAnimationName", 
+                        System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                    if (idleAnimationNameField != null)
+                    {
+                        string thinIdleName = idleAnimationNameField.GetValue(thinChickenUnit) as string;
+                        if (!string.IsNullOrEmpty(thinIdleName))
+                        {
+                            thinSkeletonAnimation.AnimationState.SetAnimation(0, thinIdleName, true);
+                        }
+                    }
+                }
                 
                 // 继承胖鸡的移动速度，让瘦鸡延续移动行为
                 Rigidbody2D thinRb = thinChicken.GetComponent<Rigidbody2D>();
@@ -464,7 +803,11 @@ namespace ProjectChicken.Units
                 Destroy(thinChicken);
                 
                 // 回退到代码方式
-                if (spriteRenderer != null)
+                if (skeletonAnimation != null && skeletonAnimation.skeleton != null)
+                {
+                    skeletonAnimation.skeleton.SetColor(Color.gray);
+                }
+                else if (spriteRenderer != null && spriteRenderer.enabled)
                 {
                     spriteRenderer.color = Color.gray;
                 }
@@ -570,6 +913,14 @@ namespace ProjectChicken.Units
                                 // 同步金鸡状态
                                 fatChicken.SetGolden(wasGolden);
                                 
+                                // 设置标志，让 Start() 方法播放出现动画而不是 Idle
+                                var shouldPlaySpawnField = typeof(ChickenUnit).GetField("shouldPlaySpawnAnimation", 
+                                    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                                if (shouldPlaySpawnField != null)
+                                {
+                                    shouldPlaySpawnField.SetValue(fatChicken, true);
+                                }
+                                
                                 // 恢复血量
                                 var currentHPField = typeof(ChickenUnit).GetField("currentHP", 
                                     System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
@@ -619,7 +970,44 @@ namespace ProjectChicken.Units
                 }
                 
                 // 使用代码方式恢复视觉（颜色和大小）
-                if (spriteRenderer != null)
+                // 如果不是通过预制体替换，在当前对象上播放出现动画
+                if (!wasReplacedByPrefab)
+                {
+                    // 播放出现动画（胖鸡从瘦鸡恢复时）
+                    if (skeletonAnimation != null && skeletonAnimation.AnimationState != null)
+                    {
+                        if (!string.IsNullOrEmpty(spawnAnimationName))
+                        {
+                            // 播放出现动画（不循环，播放一次）
+                            var trackEntry = skeletonAnimation.AnimationState.SetAnimation(0, spawnAnimationName, false);
+                            
+                            Debug.Log($"ChickenUnit: 开始播放出现动画 '{spawnAnimationName}'", this);
+                            
+                            // 出现动画播放完成后，恢复 Idle 动画
+                            if (trackEntry != null && !string.IsNullOrEmpty(idleAnimationName))
+                            {
+                                trackEntry.Complete += (entry) =>
+                                {
+                                    if (isFat && skeletonAnimation != null && skeletonAnimation.AnimationState != null)
+                                    {
+                                        skeletonAnimation.AnimationState.SetAnimation(0, idleAnimationName, loopIdleAnimation);
+                                    }
+                                };
+                            }
+                        }
+                        else if (!string.IsNullOrEmpty(idleAnimationName))
+                        {
+                            // 如果没有出现动画，直接播放 Idle
+                            skeletonAnimation.AnimationState.SetAnimation(0, idleAnimationName, loopIdleAnimation);
+                        }
+                    }
+                }
+                
+                if (skeletonAnimation != null && skeletonAnimation.skeleton != null)
+                {
+                    skeletonAnimation.skeleton.SetColor(Color.white);
+                }
+                else if (spriteRenderer != null && spriteRenderer.enabled)
                 {
                     spriteRenderer.color = originalColor;
                 }
@@ -654,4 +1042,5 @@ namespace ProjectChicken.Units
         }
     }
 }
+
 

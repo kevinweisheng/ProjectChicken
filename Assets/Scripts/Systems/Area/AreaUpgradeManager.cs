@@ -53,6 +53,9 @@ namespace ProjectChicken.Systems
             // 验证依赖项
             ValidateDependencies();
 
+            // 验证 AreaDataList
+            ValidateAreaDataList();
+
             // 从存档加载场地等级（如果 ResourceManager 还未加载，使用默认值）
             // ResourceManager 会在加载后调用 LoadAreaLevel(int) 来应用场地
             LoadAreaLevel();
@@ -68,6 +71,31 @@ namespace ProjectChicken.Systems
                     currentAreaLevel = 0; // 如果等级超出范围，重置为 0
                 }
                 ApplyCurrentArea();
+            }
+        }
+
+        /// <summary>
+        /// 验证 AreaDataList 是否有效
+        /// </summary>
+        private void ValidateAreaDataList()
+        {
+            if (areaDataList == null || areaDataList.Count == 0)
+            {
+                Debug.LogError("AreaUpgradeManager: AreaDataList 为空！请确保在 Inspector 中至少添加一个 AreaData。", this);
+                return;
+            }
+
+            // 检查列表中是否有 null 元素
+            for (int i = 0; i < areaDataList.Count; i++)
+            {
+                if (areaDataList[i] == null)
+                {
+                    Debug.LogError($"AreaUpgradeManager: AreaDataList 中索引 {i} 的元素为空！请确保所有元素都已正确分配。", this);
+                }
+                else if (showDebugLogs)
+                {
+                    Debug.Log($"AreaUpgradeManager: 场地 {i}: {areaDataList[i].AreaName} (阈值: {areaDataList[i].ChickenCountThreshold})", this);
+                }
             }
         }
 
@@ -120,16 +148,34 @@ namespace ProjectChicken.Systems
             // 检查是否有下一个场地
             if (currentAreaLevel + 1 >= areaDataList.Count)
             {
+                if (showDebugLogs)
+                {
+                    Debug.Log($"AreaUpgradeManager: 已达到最高等级 {currentAreaLevel}（总共有 {areaDataList.Count} 个场地）", this);
+                }
                 return; // 已达到最高等级
             }
 
             // 获取当前和下一个场地数据
             AreaData nextAreaData = areaDataList[currentAreaLevel + 1];
-            if (nextAreaData == null) return;
+            if (nextAreaData == null)
+            {
+                if (showDebugLogs)
+                {
+                    Debug.LogWarning($"AreaUpgradeManager: 下一个场地数据（等级 {currentAreaLevel + 1}）为空！", this);
+                }
+                return;
+            }
 
             // 检查鸡数量是否超过阈值
             int currentChickenCount = GetCurrentChickenCount();
-            if (currentChickenCount >= nextAreaData.ChickenCountThreshold)
+            int requiredThreshold = nextAreaData.ChickenCountThreshold;
+            
+            if (showDebugLogs && Time.frameCount % 60 == 0) // 每60帧打印一次，避免日志过多
+            {
+                Debug.Log($"AreaUpgradeManager: 当前等级 {currentAreaLevel}/{areaDataList.Count - 1}, 鸡数量: {currentChickenCount}/{requiredThreshold}", this);
+            }
+            
+            if (currentChickenCount >= requiredThreshold)
             {
                 // 检查鸡是否真的溢出了场地边界
                 if (AreChickensOverflowingArea())
@@ -137,13 +183,17 @@ namespace ProjectChicken.Systems
                     // 触发升级
                     UpgradeToNextArea();
                 }
+                else if (showDebugLogs && Time.frameCount % 60 == 0)
+                {
+                    Debug.Log($"AreaUpgradeManager: 鸡数量已达到阈值 {requiredThreshold}，但鸡未溢出活动范围，暂不升级", this);
+                }
             }
         }
 
         /// <summary>
-        /// 检查鸡是否溢出了场地边界
+        /// 检查鸡是否溢出了鸡活动范围
         /// </summary>
-        /// <returns>如果鸡溢出场地，返回 true</returns>
+        /// <returns>如果鸡溢出活动范围，返回 true</returns>
         private bool AreChickensOverflowingArea()
         {
             if (playArea == null) return false;
@@ -156,15 +206,15 @@ namespace ProjectChicken.Systems
             {
                 if (chicken == null || !chicken.IsFat) continue;
 
-                // 检查鸡是否在场地内
+                // 检查鸡是否在鸡活动范围内
                 Vector2 chickenPos = chicken.transform.position;
-                if (!playArea.IsPositionInArea(chickenPos, 0.5f)) // 0.5f 是边界内边距
+                if (!playArea.IsPositionInChickenArea(chickenPos, 0.5f)) // 0.5f 是边界内边距
                 {
                     overflowCount++;
                 }
             }
 
-            // 如果有超过 20% 的鸡溢出，认为场地已溢出
+            // 如果有超过 20% 的鸡溢出，认为活动范围已溢出
             int totalFatChickens = GetCurrentChickenCount();
             if (totalFatChickens == 0) return false;
 
@@ -173,7 +223,7 @@ namespace ProjectChicken.Systems
 
             if (showDebugLogs && isOverflowing)
             {
-                Debug.Log($"AreaUpgradeManager: 检测到场地溢出 - 溢出鸡数量: {overflowCount}/{totalFatChickens} ({overflowRatio * 100:F1}%)", this);
+                Debug.Log($"AreaUpgradeManager: 检测到鸡活动范围溢出 - 溢出鸡数量: {overflowCount}/{totalFatChickens} ({overflowRatio * 100:F1}%)", this);
             }
 
             return isOverflowing;
@@ -206,27 +256,31 @@ namespace ProjectChicken.Systems
         /// </summary>
         private void UpgradeToNextArea()
         {
-            if (currentAreaLevel + 1 >= areaDataList.Count)
+            int nextLevel = currentAreaLevel + 1;
+            
+            if (nextLevel >= areaDataList.Count)
             {
                 if (showDebugLogs)
                 {
-                    Debug.Log("AreaUpgradeManager: 已达到最高场地等级，无法继续升级。", this);
+                    Debug.Log($"AreaUpgradeManager: 已达到最高场地等级 {currentAreaLevel}（总共有 {areaDataList.Count} 个场地），无法继续升级。", this);
                 }
                 return;
             }
 
-            currentAreaLevel++;
-            AreaData newAreaData = areaDataList[currentAreaLevel];
+            AreaData newAreaData = areaDataList[nextLevel];
 
             if (newAreaData == null)
             {
-                Debug.LogError($"AreaUpgradeManager: 场地等级 {currentAreaLevel} 的数据为空！", this);
+                Debug.LogError($"AreaUpgradeManager: 场地等级 {nextLevel} 的数据为空！无法升级。请检查 AreaDataList 中索引 {nextLevel} 的元素。", this);
                 return;
             }
 
+            // 更新等级
+            currentAreaLevel = nextLevel;
+
             if (showDebugLogs)
             {
-                Debug.Log($"AreaUpgradeManager: 升级场地到等级 {currentAreaLevel}: {newAreaData.AreaName}", this);
+                Debug.Log($"AreaUpgradeManager: 升级场地到等级 {currentAreaLevel}/{areaDataList.Count - 1}: {newAreaData.AreaName}", this);
             }
 
             // 应用新场地
@@ -281,10 +335,16 @@ namespace ProjectChicken.Systems
                 // 安全地获取 Sprite（检查是否为 null）
                 Sprite backgroundSprite = areaData.BackgroundSprite;
                 
+                // 确定鸡活动范围：如果场地数据中指定了，使用它；否则使用场地大小和中心
+                Vector2 chickenAreaSize = areaData.ChickenMovementAreaSize;
+                Vector2 chickenAreaCenter = areaData.ChickenMovementAreaCenter;
+                
                 playArea.UpdateAreaSettings(
                     areaData.AreaSize,
                     areaData.AreaCenter,
-                    backgroundSprite // 可能为 null，但 UpdateAreaSettings 会处理
+                    backgroundSprite, // 可能为 null，但 UpdateAreaSettings 会处理
+                    chickenAreaSize != Vector2.zero ? chickenAreaSize : default(Vector2),
+                    chickenAreaCenter != Vector2.zero ? chickenAreaCenter : default(Vector2)
                 );
             }
             else
@@ -385,6 +445,65 @@ namespace ProjectChicken.Systems
             if (showDebugLogs)
             {
                 Debug.Log("AreaUpgradeManager: 已重置场地等级为 0", this);
+            }
+        }
+
+        /// <summary>
+        /// 手动切换到指定场地等级（用于测试或手动应用 AreaData）
+        /// </summary>
+        /// <param name="level">目标场地等级（从 0 开始）</param>
+        /// <param name="saveToDisk">是否保存到存档（默认 true）</param>
+        public void SetAreaLevel(int level, bool saveToDisk = true)
+        {
+            if (areaDataList == null || areaDataList.Count == 0)
+            {
+                Debug.LogError("AreaUpgradeManager: 场地数据列表为空，无法切换场地等级！", this);
+                return;
+            }
+
+            if (level < 0)
+            {
+                Debug.LogWarning($"AreaUpgradeManager: 场地等级不能小于 0，已调整为 0", this);
+                level = 0;
+            }
+
+            if (level >= areaDataList.Count)
+            {
+                Debug.LogWarning($"AreaUpgradeManager: 场地等级 {level} 超出范围（最大为 {areaDataList.Count - 1}），已调整为最大值", this);
+                level = areaDataList.Count - 1;
+            }
+
+            currentAreaLevel = level;
+            ApplyCurrentArea();
+
+            if (saveToDisk)
+            {
+                SaveAreaLevel();
+            }
+
+            if (showDebugLogs)
+            {
+                Debug.Log($"AreaUpgradeManager: 已手动切换到场地等级 {level}: {currentAreaData?.AreaName}", this);
+            }
+        }
+
+        /// <summary>
+        /// 手动应用指定的 AreaData 到 PlayArea（用于测试，不会保存到存档）
+        /// </summary>
+        /// <param name="areaData">要应用的场地数据</param>
+        public void ApplyAreaDataManually(AreaData areaData)
+        {
+            if (areaData == null)
+            {
+                Debug.LogError("AreaUpgradeManager: 尝试应用空的 AreaData！", this);
+                return;
+            }
+
+            ApplyAreaData(areaData);
+
+            if (showDebugLogs)
+            {
+                Debug.Log($"AreaUpgradeManager: 已手动应用 AreaData: {areaData.AreaName}（未保存到存档）", this);
             }
         }
     }

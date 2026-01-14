@@ -25,6 +25,9 @@ namespace ProjectChicken.Systems
         
         // 跟踪所有生成的鸡（用于清理）
         private List<ChickenUnit> spawnedChickens = new List<ChickenUnit>();
+        
+        // 排序顺序计数器（为每只新生成的鸡分配唯一的排序偏移）
+        private static int sortingOrderCounter = 0;
 
         private void Awake()
         {
@@ -169,6 +172,9 @@ namespace ProjectChicken.Systems
                 // 分裂生成的鸡继承原鸡的类型（普通鸡）
                 newChicken.SetGolden(false);
                 
+                // 为每只新生成的鸡分配唯一的排序偏移（每只鸡 +1）
+                newChicken.SetUniqueSortingOffset(sortingOrderCounter++);
+                
                 spawnedChickens.Add(newChicken);
                 Debug.Log($"ChickenSpawner: 在位置 {spawnPosition} 通过分裂生成了一只鸡", this);
             }
@@ -213,6 +219,9 @@ namespace ProjectChicken.Systems
                 // 根据金鸡生成率决定是否生成金鸡
                 bool isGolden = ShouldSpawnGoldenChicken();
                 newChicken.SetGolden(isGolden);
+                
+                // 为每只新生成的鸡分配唯一的排序偏移（每只鸡 +1）
+                newChicken.SetUniqueSortingOffset(sortingOrderCounter++);
                 
                 spawnedChickens.Add(newChicken);
                 
@@ -271,6 +280,9 @@ namespace ProjectChicken.Systems
 
             // 重置生成标志，允许下一回合重新生成
             hasSpawnedInitialChickens = false;
+            
+            // 重置排序顺序计数器（每回合重新计数）
+            sortingOrderCounter = 0;
 
             Debug.Log($"ChickenSpawner: 已清理 {destroyedCount} 只鸡（包括瘦鸡）", this);
         }
@@ -284,8 +296,8 @@ namespace ProjectChicken.Systems
             // 优先使用场地边界，如果没有场地则使用屏幕边界（向后兼容）
             if (PlayArea.Instance != null)
             {
-                // 使用场地边界生成
-                Vector2 randomPos = PlayArea.Instance.GetRandomPositionInArea(spawnPadding);
+                // 使用鸡活动范围生成（而不是场地边界）
+                Vector2 randomPos = PlayArea.Instance.GetRandomPositionInArea(spawnPadding, useChickenArea: true);
                 return new Vector3(randomPos.x, randomPos.y, 0f);
             }
             else if (mainCamera != null)

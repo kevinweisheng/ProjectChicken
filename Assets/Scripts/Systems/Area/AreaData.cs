@@ -28,6 +28,13 @@ namespace ProjectChicken.Systems
         [Tooltip("场地中心位置（世界坐标）")]
         [SerializeField] private Vector2 areaCenter = Vector2.zero;
 
+        [Header("鸡活动范围配置")]
+        [Tooltip("鸡的活动范围大小（世界单位）。如果为 (0,0)，则使用场地大小。可以设置得比场地小，限制鸡的活动区域")]
+        [SerializeField] private Vector2 chickenMovementAreaSize = Vector2.zero;
+
+        [Tooltip("鸡的活动范围中心位置（世界坐标）。如果场地中心与活动范围中心不同，可以在此设置")]
+        [SerializeField] private Vector2 chickenMovementAreaCenter = Vector2.zero;
+
         [Header("美术素材")]
         [Tooltip("场地背景 Sprite")]
         [SerializeField] private Sprite backgroundSprite;
@@ -59,6 +66,8 @@ namespace ProjectChicken.Systems
         public float MinCamSize => minCamSize;
         public float MaxCamSize => maxCamSize;
         public Vector2 MovementBounds => movementBounds;
+        public Vector2 ChickenMovementAreaSize => chickenMovementAreaSize;
+        public Vector2 ChickenMovementAreaCenter => chickenMovementAreaCenter;
     }
 }
 

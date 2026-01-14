@@ -410,7 +410,7 @@ namespace ProjectChicken.Units
         /// <summary>
         /// 在 Scene 视图中绘制攻击范围（红色圆圈）
         /// </summary>
-        private void OnDrawGizmos()
+        protected void OnDrawGizmos()
         {
             // 绘制当前攻击范围（从 UpgradeManager 读取，如果可用）
             // 在编辑器中抑制警告，避免产生大量日志
