@@ -24,7 +24,9 @@ namespace ProjectChicken.UI
 
         [Header("UI组件")]
         [SerializeField] private CanvasGroup canvasGroup; // CanvasGroup 组件（用于控制显示/隐藏）
-        [SerializeField] private Button closeButton; // 返回主菜单按钮
+        [SerializeField] private Button closeButton; // 返回主菜单按钮（可选）
+        [SerializeField] private Button startGameButton; // 开始游戏按钮
+        [SerializeField] private TMP_Text eggsCountText; // 剩余鸡蛋数显示文本
 
         [Header("系统引用")]
         [SerializeField] private MainMenuPanel mainMenuPanel; // 主菜单面板引用（如果为空则自动查找）
@@ -82,9 +84,16 @@ namespace ProjectChicken.UI
             {
                 closeButton.onClick.AddListener(OnCloseButtonClicked);
             }
+            // 注意：返回按钮是可选的，不配置也不会报错
+
+            // 绑定开始游戏按钮的点击事件
+            if (startGameButton != null)
+            {
+                startGameButton.onClick.AddListener(OnStartGameClicked);
+            }
             else
             {
-                Debug.LogWarning("SkillTreePanel: closeButton 未配置！", this);
+                Debug.LogWarning("SkillTreePanel: startGameButton 未配置！", this);
             }
 
             // 获取 Canvas 引用
@@ -233,6 +242,9 @@ namespace ProjectChicken.UI
             {
                 Debug.LogWarning("SkillTreePanel: canvasGroup 为空，无法显示面板！", this);
             }
+            
+            // 更新剩余鸡蛋数显示
+            UpdateEggsCountDisplay();
         }
 
         /// <summary>
@@ -285,27 +297,40 @@ namespace ProjectChicken.UI
         {
             Debug.Log("SkillTreePanel: 点击返回按钮", this);
 
-            // 隐藏技能树面板（使用 CanvasGroup 方式）
+            // 隐藏技能树面板
             Hide();
 
-            // 显示主菜单面板
+            // 显示主菜单面板（游戏启动时的主菜单）
             if (mainMenuPanel != null)
             {
-                // 确保当前在 Preparation 状态
-                if (GameManager.Instance != null && GameManager.Instance.CurrentState == GameState.Preparation)
-                {
-                    // 主动显示主菜单面板（因为可能被隐藏了）
-                    mainMenuPanel.ShowMainMenu();
-                    Debug.Log("SkillTreePanel: 已返回主菜单", this);
-                }
-                else
-                {
-                    Debug.LogWarning($"SkillTreePanel: 当前不在 Preparation 状态（当前状态：{GameManager.Instance?.CurrentState}），主菜单可能不会显示", this);
-                }
+                mainMenuPanel.ShowMainMenu();
+                Debug.Log("SkillTreePanel: 已返回主菜单", this);
             }
             else
             {
                 Debug.LogWarning("SkillTreePanel: mainMenuPanel 为空，无法返回主菜单！请确保 MainMenuPanel 在场景中存在。", this);
+            }
+        }
+
+        /// <summary>
+        /// 开始游戏按钮点击事件
+        /// </summary>
+        private void OnStartGameClicked()
+        {
+            Debug.Log("SkillTreePanel: 点击开始游戏按钮", this);
+
+            // 隐藏技能树面板
+            Hide();
+
+            // 开始新的一局游戏
+            if (GameManager.Instance != null)
+            {
+                GameManager.Instance.RestartGame();
+                Debug.Log("SkillTreePanel: 已开始新一局游戏", this);
+            }
+            else
+            {
+                Debug.LogError("SkillTreePanel: GameManager.Instance 为空，无法开始游戏！", this);
             }
         }
 
@@ -323,6 +348,9 @@ namespace ProjectChicken.UI
                     slot.RefreshUI();
                 }
             }
+            
+            // 更新剩余鸡蛋数显示
+            UpdateEggsCountDisplay();
 
             Debug.Log("SkillTreePanel: UI 已刷新", this);
         }
@@ -335,6 +363,29 @@ namespace ProjectChicken.UI
         {
             // 当全局货币变化时，刷新所有技能按钮的UI
             RefreshUI();
+            
+            // 更新剩余鸡蛋数显示
+            UpdateEggsCountDisplay();
+        }
+        
+        /// <summary>
+        /// 更新剩余鸡蛋数显示
+        /// </summary>
+        private void UpdateEggsCountDisplay()
+        {
+            if (eggsCountText != null)
+            {
+                if (ResourceManager.Instance != null)
+                {
+                    int totalEggs = ResourceManager.Instance.TotalGlobalEggs;
+                    eggsCountText.text = $"剩余鸡蛋: {totalEggs}";
+                }
+                else
+                {
+                    eggsCountText.text = "剩余鸡蛋: 0";
+                    Debug.LogWarning("SkillTreePanel: ResourceManager.Instance 为空，无法读取剩余鸡蛋数！", this);
+                }
+            }
         }
 
         /// <summary>

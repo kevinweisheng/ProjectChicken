@@ -17,6 +17,7 @@ namespace ProjectChicken.Units
         [SerializeField] private float wanderInterval = 2f; // 游荡方向改变间隔（秒）
         [SerializeField] private float wanderSpeed = 2f; // 游荡速度
         [SerializeField] private float hitFlashDuration = 0.1f; // 受击闪烁持续时间
+        [SerializeField] private Color hitFlashColor = Color.red; // 受击闪烁颜色
         [SerializeField] private float boundaryPadding = 0.5f; // 边界内边距（避免鸡紧贴屏幕边缘）
 
         [Header("瘦鸡预制体（可选）")]
@@ -30,6 +31,26 @@ namespace ProjectChicken.Units
         [SerializeField] private bool loopIdleAnimation = true; // 是否循环播放 Idle 动画
         [SerializeField] private string normalSkinName = "default"; // 普通鸡皮肤名称
         [SerializeField] private string goldenSkinName = "golden"; // 黄金鸡皮肤名称
+        
+        [Header("抚摸序列帧动画（可选）")]
+        [Tooltip("抚摸时显示的序列帧 Sprite（按顺序排列）")]
+        [SerializeField] private Sprite[] petAnimationSprites = new Sprite[0];
+        [Tooltip("每帧的显示时间（秒）")]
+        [SerializeField] private float petAnimationFrameTime = 0.1f;
+        [Tooltip("序列帧显示位置偏移（相对于鸡的位置，Y 轴向上为正）")]
+        [SerializeField] private Vector2 petAnimationOffset = new Vector2(0f, 1f);
+        [Tooltip("序列帧的排序顺序（应大于鸡的排序顺序，确保显示在鸡的上方）")]
+        [SerializeField] private int petAnimationSortingOrder = 100;
+        [Tooltip("序列帧的排序图层名称")]
+        [SerializeField] private string petAnimationSortingLayerName = "Default";
+        
+        [Header("下蛋特效（可选）")]
+        [Tooltip("下蛋时播放的特效预制体（可以是粒子系统、序列帧动画等）")]
+        [SerializeField] private GameObject eggEffectPrefab;
+        [Tooltip("特效显示位置偏移（相对于鸡的位置，Y 轴向上为正）")]
+        [SerializeField] private Vector2 eggEffectOffset = Vector2.zero;
+        [Tooltip("特效持续时间（秒，0 表示使用特效自身的生命周期）")]
+        [SerializeField] private float eggEffectDuration = 0f;
         
         [Header("渲染排序（解决重叠闪烁）")]
         [SerializeField] private bool useDynamicSorting = true; // 是否使用动态排序（根据 Y 坐标）
@@ -135,6 +156,11 @@ namespace ProjectChicken.Units
         private Vector3 originalScale; // 原始大小（用于恢复）
         private float hitFlashTimer = 0f; // 受击闪烁计时器
         private MeshRenderer meshRenderer; // Spine 的 MeshRenderer（用于设置排序）
+        
+        // 抚摸序列帧动画相关
+        private GameObject petAnimationObject = null; // 序列帧显示对象
+        private SpriteRenderer petAnimationRenderer = null; // 序列帧渲染器
+        private Coroutine petAnimationCoroutine = null; // 序列帧动画协程
 
         // 静态事件：当鸡产出时触发（传递位置信息）
         public static event Action<Vector3> OnChickenProduct;
@@ -478,6 +504,12 @@ namespace ProjectChicken.Units
         /// </summary>
         private void TriggerHitFlash()
         {
+            // 播放抚摸序列帧动画
+            PlayPetAnimation();
+            
+            // 瞬间变色效果（无论是否有 Spine 动画，都会触发）
+            ApplyHitFlashColor();
+            
             // 如果使用 Spine 动画，播放被攻击动画（仅胖鸡）
             if (skeletonAnimation != null && skeletonAnimation.AnimationState != null && isFat)
             {
@@ -492,12 +524,6 @@ namespace ProjectChicken.Units
                         if (hitAnimation == null)
                         {
                             Debug.LogWarning($"ChickenUnit: 找不到被攻击动画 '{hitAnimationName}'，请检查动画名称是否正确。", this);
-                            // 回退到颜色闪烁
-                            if (skeletonAnimation.skeleton != null)
-                            {
-                                skeletonAnimation.skeleton.SetColor(Color.red);
-                                hitFlashTimer = hitFlashDuration;
-                            }
                             return;
                         }
                     }
@@ -508,12 +534,6 @@ namespace ProjectChicken.Units
                     if (trackEntry == null)
                     {
                         Debug.LogWarning($"ChickenUnit: 无法播放被攻击动画 '{hitAnimationName}'，trackEntry 为 null。请检查动画名称是否正确，以及 Spine 数据是否已正确加载。", this);
-                        // 回退到颜色闪烁
-                        if (skeletonAnimation.skeleton != null)
-                        {
-                            skeletonAnimation.skeleton.SetColor(Color.red);
-                            hitFlashTimer = hitFlashDuration;
-                        }
                         return;
                     }
                     
@@ -531,25 +551,26 @@ namespace ProjectChicken.Units
                         };
                     }
                 }
-                else
-                {
-                    // 如果没有被攻击动画，使用颜色闪烁
-                    if (skeletonAnimation.skeleton != null)
-                    {
-                        skeletonAnimation.skeleton.SetColor(Color.red);
-                        hitFlashTimer = hitFlashDuration;
-                    }
-                }
             }
+        }
+
+        /// <summary>
+        /// 应用受击闪烁颜色（瞬间变色）
+        /// </summary>
+        private void ApplyHitFlashColor()
+        {
+            // 设置受击闪烁计时器
+            hitFlashTimer = hitFlashDuration;
             
-            // 如果没有 Spine 动画或播放失败，使用 SpriteRenderer 颜色闪烁
-            if (skeletonAnimation == null || skeletonAnimation.AnimationState == null || !isFat)
+            // 如果使用 Spine 动画，设置颜色
+            if (skeletonAnimation != null && skeletonAnimation.skeleton != null)
             {
-                if (spriteRenderer != null && spriteRenderer.enabled)
-                {
-                    spriteRenderer.color = Color.red;
-                    hitFlashTimer = hitFlashDuration;
-                }
+                skeletonAnimation.skeleton.SetColor(hitFlashColor);
+            }
+            // 如果使用 SpriteRenderer，设置颜色
+            else if (spriteRenderer != null && spriteRenderer.enabled)
+            {
+                spriteRenderer.color = hitFlashColor;
             }
         }
 
@@ -577,10 +598,136 @@ namespace ProjectChicken.Units
         }
 
         /// <summary>
+        /// 播放抚摸序列帧动画
+        /// </summary>
+        private void PlayPetAnimation()
+        {
+            // 如果没有设置序列帧，不播放
+            if (petAnimationSprites == null || petAnimationSprites.Length == 0)
+            {
+                return;
+            }
+
+            // 如果已经有协程在运行，先停止它
+            if (petAnimationCoroutine != null)
+            {
+                StopCoroutine(petAnimationCoroutine);
+            }
+
+            // 确保序列帧显示对象存在
+            EnsurePetAnimationObject();
+
+            // 启动新的动画协程
+            petAnimationCoroutine = StartCoroutine(PlayPetAnimationCoroutine());
+        }
+
+        /// <summary>
+        /// 确保抚摸序列帧显示对象存在
+        /// </summary>
+        private void EnsurePetAnimationObject()
+        {
+            if (petAnimationObject == null)
+            {
+                // 创建序列帧显示对象
+                petAnimationObject = new GameObject("PetAnimation");
+                petAnimationObject.transform.SetParent(transform);
+                petAnimationObject.transform.localPosition = petAnimationOffset;
+                petAnimationObject.transform.localRotation = Quaternion.identity;
+                petAnimationObject.transform.localScale = Vector3.one;
+
+                // 添加 SpriteRenderer
+                petAnimationRenderer = petAnimationObject.AddComponent<SpriteRenderer>();
+                petAnimationRenderer.sortingOrder = petAnimationSortingOrder;
+                petAnimationRenderer.sortingLayerName = petAnimationSortingLayerName;
+                
+                // 初始时隐藏
+                petAnimationRenderer.enabled = false;
+            }
+        }
+
+        /// <summary>
+        /// 播放抚摸序列帧动画的协程
+        /// </summary>
+        private IEnumerator PlayPetAnimationCoroutine()
+        {
+            // 确保对象存在
+            EnsurePetAnimationObject();
+            
+            if (petAnimationRenderer == null)
+            {
+                yield break;
+            }
+
+            // 显示序列帧对象
+            petAnimationRenderer.enabled = true;
+
+            // 遍历所有动画帧
+            for (int i = 0; i < petAnimationSprites.Length; i++)
+            {
+                if (petAnimationSprites[i] != null)
+                {
+                    // 设置当前帧
+                    petAnimationRenderer.sprite = petAnimationSprites[i];
+                }
+
+                // 等待帧时间
+                yield return new WaitForSeconds(petAnimationFrameTime);
+            }
+
+            // 动画播放完毕，隐藏序列帧对象
+            if (petAnimationRenderer != null)
+            {
+                petAnimationRenderer.enabled = false;
+            }
+
+            petAnimationCoroutine = null;
+        }
+
+        /// <summary>
+        /// 播放下蛋特效
+        /// </summary>
+        private void PlayEggEffect()
+        {
+            if (eggEffectPrefab == null) return;
+
+            // 计算特效位置
+            Vector3 effectPosition = transform.position + (Vector3)eggEffectOffset;
+
+            // 实例化特效
+            GameObject effectInstance = Instantiate(eggEffectPrefab, effectPosition, Quaternion.identity);
+
+            // 如果设置了持续时间，在指定时间后销毁特效
+            if (eggEffectDuration > 0f)
+            {
+                Destroy(effectInstance, eggEffectDuration);
+            }
+            // 否则，尝试自动检测特效的生命周期
+            else
+            {
+                // 检查是否有粒子系统
+                ParticleSystem particles = effectInstance.GetComponent<ParticleSystem>();
+                if (particles != null)
+                {
+                    // 如果粒子系统存在，使用其主模块的持续时间
+                    float particleDuration = particles.main.duration + particles.main.startLifetime.constantMax;
+                    Destroy(effectInstance, particleDuration);
+                }
+                else
+                {
+                    // 如果没有粒子系统，默认 5 秒后销毁
+                    Destroy(effectInstance, 5f);
+                }
+            }
+        }
+
+        /// <summary>
         /// 鸡产出：触发事件，切换状态，改变视觉
         /// </summary>
         private void OnChickenProducted()
         {
+            // 播放下蛋特效
+            PlayEggEffect();
+
             // 触发静态事件，传递位置信息
             OnChickenProduct?.Invoke(transform.position);
 

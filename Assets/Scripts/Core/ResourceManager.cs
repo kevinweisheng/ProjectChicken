@@ -34,8 +34,21 @@ namespace ProjectChicken.Core
         public int TotalGlobalEggs 
         { 
             get => totalGlobalEggs; 
-            private set => totalGlobalEggs = value; 
+            private set 
+            { 
+                totalGlobalEggs = value;
+                // 每次修改总鸡蛋数时自动保存（延迟保存，避免频繁写入）
+                if (Application.isPlaying)
+                {
+                    SaveGameDelayed();
+                }
+            }
         }
+        
+        // 延迟保存相关
+        private float saveDelayTimer = 0f;
+        private const float SAVE_DELAY = 0.5f; // 延迟0.5秒保存，避免频繁写入
+        private bool isSavePending = false;
 
         /// <summary>
         /// 当前拥有的鸡蛋数量（只读属性，兼容旧代码，返回全局货币）
@@ -122,7 +135,8 @@ namespace ProjectChicken.Core
             }
 
             TotalGlobalEggs -= amount;
-            SaveGame(); // 保存游戏数据
+            // 消费时立即保存（重要操作，不延迟）
+            SaveGame();
             UpdateUI();
             
             // 触发全局货币变化事件
@@ -292,6 +306,71 @@ namespace ProjectChicken.Core
             if (sessionEggsText != null)
             {
                 sessionEggsText.text = CurrentSessionEggs.ToString();
+            }
+        }
+        
+        /// <summary>
+        /// 处理延迟保存
+        /// </summary>
+        private void Update()
+        {
+            // 处理延迟保存
+            if (isSavePending)
+            {
+                saveDelayTimer += Time.deltaTime;
+                if (saveDelayTimer >= SAVE_DELAY)
+                {
+                    SaveGame();
+                    isSavePending = false;
+                    saveDelayTimer = 0f;
+                }
+            }
+        }
+        
+        /// <summary>
+        /// 延迟保存游戏数据（避免频繁写入文件）
+        /// </summary>
+        private void SaveGameDelayed()
+        {
+            isSavePending = true;
+            saveDelayTimer = 0f;
+        }
+        
+        /// <summary>
+        /// 游戏退出时立即保存
+        /// </summary>
+        private void OnApplicationQuit()
+        {
+            // 游戏退出时立即保存
+            if (isSavePending)
+            {
+                SaveGame();
+            }
+            else
+            {
+                SaveGame(); // 确保退出时保存
+            }
+            Debug.Log("ResourceManager: 游戏退出，已保存数据", this);
+        }
+        
+        /// <summary>
+        /// 游戏暂停时（移动设备）立即保存
+        /// </summary>
+        /// <param name="pauseStatus">是否暂停</param>
+        private void OnApplicationPause(bool pauseStatus)
+        {
+            // 游戏暂停时（移动设备）立即保存
+            if (pauseStatus)
+            {
+                if (isSavePending)
+                {
+                    SaveGame();
+                }
+                else
+                {
+                    SaveGame(); // 确保暂停时保存
+                }
+                Debug.Log("ResourceManager: 游戏暂停，已保存数据", this);
             }
         }
     }

@@ -85,18 +85,20 @@ namespace ProjectChicken.Systems
             switch (newState)
             {
                 case GameState.Playing:
-                    // 游戏开始时，一次性生成初始数量的鸡
-                    if (!hasSpawnedInitialChickens)
-                    {
-                        SpawnInitialChickens();
-                        hasSpawnedInitialChickens = true;
-                    }
+                    // 游戏开始时，确保清除旧状态并生成初始数量的鸡
+                    // 重置生成标志，确保每次进入 Playing 状态都会生成新鸡
+                    hasSpawnedInitialChickens = false;
+                    
+                    // 生成初始数量的鸡
+                    SpawnInitialChickens();
+                    hasSpawnedInitialChickens = true;
                     Debug.Log("ChickenSpawner: 游戏开始，已生成初始鸡", this);
                     break;
 
                 case GameState.Preparation:
                 case GameState.GameOver:
                     // 准备阶段或游戏结束，重置生成标志
+                    // 注意：鸡的清除由 GameManager.ClearRoundState() 处理
                     hasSpawnedInitialChickens = false;
                     Debug.Log($"ChickenSpawner: 状态为 {newState}，重置生成标志", this);
                     break;

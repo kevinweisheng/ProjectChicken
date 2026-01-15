@@ -14,8 +14,16 @@ namespace ProjectChicken.Units
         [SerializeField] private Camera mainCamera; // 主摄像机（用于屏幕坐标转世界坐标）
 
         [Header("鼠标光标")]
-        [SerializeField] private Texture2D customCursor; // 自定义鼠标光标图片
+        [SerializeField] private Texture2D customCursor; // 自定义鼠标光标图片（默认状态）
         [SerializeField] private Vector2 cursorHotspot = Vector2.zero; // 光标热点位置（通常是图片中心或点击点）
+        
+        [Header("抚摸动画（序列帧）")]
+        [Tooltip("抚摸动画的序列帧（按顺序排列）")]
+        [SerializeField] private Texture2D[] petAnimationFrames = new Texture2D[0];
+        [Tooltip("每帧的显示时间（秒）")]
+        [SerializeField] private float petAnimationFrameTime = 0.1f;
+        [Tooltip("是否循环播放抚摸动画（如果为 false，播放一次后恢复默认光标）")]
+        [SerializeField] private bool loopPetAnimation = false;
 
         [Header("攻击范围显示")]
         [SerializeField] private SpriteRenderer rangeIndicator; // 攻击范围指示器（SpriteRenderer）
@@ -28,6 +36,10 @@ namespace ProjectChicken.Units
 
         private float attackTimer = 0f; // 攻击计时器
         private float lastRange = -1f; // 上次的攻击范围（用于检测是否需要更新圆圈大小）
+        
+        // 抚摸动画相关
+        private bool isPlayingPetAnimation = false; // 是否正在播放抚摸动画
+        private Coroutine petAnimationCoroutine = null; // 抚摸动画协程
 
         [Header("分形系统约束（由 FractalManager 动态设置）")]
         // 分形系统约束变量
@@ -162,6 +174,9 @@ namespace ProjectChicken.Units
         /// </summary>
         private void PerformAttack()
         {
+            // 播放抚摸动画
+            PlayPetAnimation();
+
             // 从 UpgradeManager 获取当前属性值
             float currentAttackRange = GetCurrentAttackRange();
             float currentDamage = GetCurrentDamage();
@@ -405,6 +420,128 @@ namespace ProjectChicken.Units
                     mainCamera.orthographicSize = size;
                 }
             }
+        }
+
+        /// <summary>
+        /// 播放抚摸动画（序列帧）
+        /// </summary>
+        private void PlayPetAnimation()
+        {
+            // 如果没有设置动画帧，不播放
+            if (petAnimationFrames == null || petAnimationFrames.Length == 0)
+            {
+                return;
+            }
+
+            // 如果正在播放动画且不循环，不重复播放
+            if (isPlayingPetAnimation && !loopPetAnimation)
+            {
+                return;
+            }
+
+            // 如果已经有协程在运行，先停止它
+            if (petAnimationCoroutine != null)
+            {
+                StopCoroutine(petAnimationCoroutine);
+            }
+
+            // 启动新的动画协程
+            petAnimationCoroutine = StartCoroutine(PlayPetAnimationCoroutine());
+        }
+
+        /// <summary>
+        /// 播放抚摸动画的协程
+        /// </summary>
+        private System.Collections.IEnumerator PlayPetAnimationCoroutine()
+        {
+            isPlayingPetAnimation = true;
+
+            do
+            {
+                // 遍历所有动画帧
+                for (int i = 0; i < petAnimationFrames.Length; i++)
+                {
+                    if (petAnimationFrames[i] != null)
+                    {
+                        // 创建可读的纹理副本（如果原纹理不可读）
+                        Texture2D readableTexture = CreateReadableTexture(petAnimationFrames[i]);
+                        if (readableTexture != null)
+                        {
+                            // 设置当前帧为鼠标光标
+                            Cursor.SetCursor(readableTexture, cursorHotspot, CursorMode.Auto);
+                        }
+                    }
+
+                    // 等待帧时间
+                    yield return new WaitForSeconds(petAnimationFrameTime);
+                }
+            } while (loopPetAnimation); // 如果循环，重复播放
+
+            // 动画播放完毕，恢复默认光标
+            if (customCursor != null)
+            {
+                Texture2D readableDefaultCursor = CreateReadableTexture(customCursor);
+                if (readableDefaultCursor != null)
+                {
+                    Cursor.SetCursor(readableDefaultCursor, cursorHotspot, CursorMode.Auto);
+                }
+                else
+                {
+                    Cursor.SetCursor(customCursor, cursorHotspot, CursorMode.Auto);
+                }
+            }
+            else
+            {
+                Cursor.SetCursor(null, Vector2.zero, CursorMode.Auto);
+            }
+
+            isPlayingPetAnimation = false;
+            petAnimationCoroutine = null;
+        }
+
+        /// <summary>
+        /// 创建可读的纹理副本（如果原纹理不可读）
+        /// </summary>
+        /// <param name="source">源纹理</param>
+        /// <returns>可读的纹理副本，如果原纹理已可读则返回原纹理</returns>
+        private Texture2D CreateReadableTexture(Texture2D source)
+        {
+            if (source == null) return null;
+
+            // 检查纹理是否已经可读
+            try
+            {
+                // 尝试读取一个像素来检查是否可读
+                source.GetPixel(0, 0);
+                // 如果成功，说明纹理已可读，直接返回
+                return source;
+            }
+            catch
+            {
+                // 纹理不可读，需要创建可读副本
+            }
+
+            // 使用 RenderTexture 创建可读副本
+            RenderTexture renderTexture = RenderTexture.GetTemporary(
+                source.width,
+                source.height,
+                0,
+                RenderTextureFormat.Default,
+                RenderTextureReadWrite.Linear);
+
+            Graphics.Blit(source, renderTexture);
+            RenderTexture previous = RenderTexture.active;
+            RenderTexture.active = renderTexture;
+
+            // 创建新的可读纹理
+            Texture2D readableTexture = new Texture2D(source.width, source.height);
+            readableTexture.ReadPixels(new Rect(0, 0, renderTexture.width, renderTexture.height), 0, 0);
+            readableTexture.Apply();
+
+            RenderTexture.active = previous;
+            RenderTexture.ReleaseTemporary(renderTexture);
+
+            return readableTexture;
         }
 
         /// <summary>

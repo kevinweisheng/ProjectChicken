@@ -187,9 +187,24 @@ namespace ProjectChicken.Editor
         /// </summary>
         private void DrawChickenAreaHandles(PlayArea playArea)
         {
-            if (!useCustomChickenAreaProperty.boolValue) return;
+            // 使用反射获取私有字段（避免使用 serializedObject）
+            System.Reflection.FieldInfo useCustomChickenAreaField = typeof(PlayArea).GetField("useCustomChickenArea", 
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            System.Reflection.FieldInfo chickenMovementAreaSizeField = typeof(PlayArea).GetField("chickenMovementAreaSize", 
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            System.Reflection.FieldInfo chickenMovementAreaCenterField = typeof(PlayArea).GetField("chickenMovementAreaCenter", 
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            System.Reflection.FieldInfo useWorldBoundsField = typeof(PlayArea).GetField("useWorldBounds", 
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
             
-            serializedObject.Update();
+            if (useCustomChickenAreaField == null || chickenMovementAreaSizeField == null || 
+                chickenMovementAreaCenterField == null || useWorldBoundsField == null)
+            {
+                return; // 如果无法访问字段，直接返回
+            }
+            
+            bool useCustomChickenArea = (bool)useCustomChickenAreaField.GetValue(playArea);
+            if (!useCustomChickenArea) return;
             
             Bounds chickenBounds = playArea.ChickenMovementBounds;
             Vector3 center = chickenBounds.center;
@@ -232,19 +247,20 @@ namespace ProjectChicken.Editor
                 Vector2 newCenter = new Vector2((newMinX + newMaxX) * 0.5f, (newMinY + newMaxY) * 0.5f);
                 
                 // 如果使用世界坐标，需要转换为相对坐标
-                if (useWorldBoundsProperty.boolValue)
+                bool useWorldBounds = (bool)useWorldBoundsField.GetValue(playArea);
+                if (useWorldBounds)
                 {
-                    chickenMovementAreaSizeProperty.vector2Value = newSize;
-                    chickenMovementAreaCenterProperty.vector2Value = newCenter;
+                    chickenMovementAreaSizeField.SetValue(playArea, newSize);
+                    chickenMovementAreaCenterField.SetValue(playArea, newCenter);
                 }
                 else
                 {
                     Vector3 playAreaPos = playArea.transform.position;
-                    chickenMovementAreaSizeProperty.vector2Value = newSize;
-                    chickenMovementAreaCenterProperty.vector2Value = newCenter - (Vector2)playAreaPos;
+                    chickenMovementAreaSizeField.SetValue(playArea, newSize);
+                    chickenMovementAreaCenterField.SetValue(playArea, newCenter - (Vector2)playAreaPos);
                 }
                 
-                serializedObject.ApplyModifiedProperties();
+                EditorUtility.SetDirty(playArea);
             }
             
             // 中心点手柄（用于移动）
@@ -257,16 +273,10 @@ namespace ProjectChicken.Editor
                 
                 Vector2 centerOffset = (Vector2)newCenterPos - (Vector2)center;
                 
-                if (useWorldBoundsProperty.boolValue)
-                {
-                    chickenMovementAreaCenterProperty.vector2Value += centerOffset;
-                }
-                else
-                {
-                    chickenMovementAreaCenterProperty.vector2Value += centerOffset;
-                }
+                Vector2 currentCenter = (Vector2)chickenMovementAreaCenterField.GetValue(playArea);
+                chickenMovementAreaCenterField.SetValue(playArea, currentCenter + centerOffset);
                 
-                serializedObject.ApplyModifiedProperties();
+                EditorUtility.SetDirty(playArea);
             }
             
             // 绘制标签

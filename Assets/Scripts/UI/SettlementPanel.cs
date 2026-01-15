@@ -16,7 +16,14 @@ namespace ProjectChicken.UI
         [Header("UI组件")]
         [SerializeField] private CanvasGroup canvasGroup; // CanvasGroup 组件（用于控制显示/隐藏）
         [SerializeField] private TMP_Text scoreText; // 显示分数/时间的文本
-        [SerializeField] private Button claimButton; // 领取按钮
+        [SerializeField] private Button claimButton; // 领取按钮（进入技能树）
+        [SerializeField] private Button startNextRoundButton; // 开始下一回合按钮（直接开始游戏）
+
+        [Header("系统引用")]
+        [SerializeField] private SkillTreePanel skillTreePanel; // 技能树面板引用（可选，如果为空则使用单例）
+        
+        // 保存本局结算的鸡蛋数（在结算前读取）
+        private int lastSessionEggs = 0;
 
         private void Awake()
         {
@@ -34,6 +41,12 @@ namespace ProjectChicken.UI
 
         private void Start()
         {
+            // 如果没有手动指定，尝试使用单例获取 SkillTreePanel
+            if (skillTreePanel == null)
+            {
+                skillTreePanel = SkillTreePanel.Instance;
+            }
+
             // 绑定领取按钮的点击事件
             if (claimButton != null)
             {
@@ -42,6 +55,16 @@ namespace ProjectChicken.UI
             else
             {
                 Debug.LogWarning("SettlementPanel: claimButton 未配置！", this);
+            }
+
+            // 绑定开始下一回合按钮的点击事件
+            if (startNextRoundButton != null)
+            {
+                startNextRoundButton.onClick.AddListener(OnStartNextRoundClicked);
+            }
+            else
+            {
+                Debug.LogWarning("SettlementPanel: startNextRoundButton 未配置！", this);
             }
 
             // 初始状态：隐藏面板
@@ -69,7 +92,19 @@ namespace ProjectChicken.UI
             switch (newState)
             {
                 case GameState.GameOver:
-                    // 游戏结束，显示结算面板
+                    // 游戏结束，先保存当前的局内鸡蛋数（在结算之前）
+                    if (ResourceManager.Instance != null)
+                    {
+                        lastSessionEggs = ResourceManager.Instance.CurrentSessionEggs;
+                        Debug.Log($"SettlementPanel: 保存本局鸡蛋数 {lastSessionEggs}", this);
+                    }
+                    else
+                    {
+                        lastSessionEggs = 0;
+                        Debug.LogWarning("SettlementPanel: ResourceManager.Instance 为空，无法读取分数！", this);
+                    }
+                    
+                    // 然后显示结算面板
                     Debug.Log("SettlementPanel: 游戏结束，显示结算面板", this);
                     ShowPanel();
                     break;
@@ -100,22 +135,13 @@ namespace ProjectChicken.UI
                 Debug.LogWarning("SettlementPanel: canvasGroup 为空，无法显示面板！", this);
             }
 
-            // 读取并显示本局分数
+            // 显示本局分数（使用保存的值，因为结算后 CurrentSessionEggs 已被重置为 0）
             if (scoreText != null)
             {
-                int currentScore = 0;
-                if (ResourceManager.Instance != null)
-                {
-                    currentScore = ResourceManager.Instance.CurrentScore;
-                }
-                else
-                {
-                    Debug.LogWarning("SettlementPanel: ResourceManager.Instance 为空，无法读取分数！", this);
-                }
-                
+                // 使用保存的 lastSessionEggs，而不是从 ResourceManager 读取（因为已经结算并重置了）
                 // 格式化显示："本局产出: {score} 蛋"
-                scoreText.text = $"本局产出: {currentScore} 蛋";
-                Debug.Log($"SettlementPanel: 显示分数 {currentScore}", this);
+                scoreText.text = $"本局产出: {lastSessionEggs} 蛋";
+                Debug.Log($"SettlementPanel: 显示分数 {lastSessionEggs}", this);
             }
             else
             {
@@ -137,32 +163,48 @@ namespace ProjectChicken.UI
         }
 
         /// <summary>
-        /// 领取按钮点击事件：将单局分数存入全局货币，然后进入准备阶段
+        /// 领取按钮点击事件：直接进入技能树界面
+        /// 注意：局内鸡蛋数已在回合结束时自动存入总鸡蛋数（GameManager.ChangeGameState）
         /// </summary>
         private void OnClaimClicked()
         {
             Debug.Log("SettlementPanel: 点击领取按钮", this);
 
-            // 第一步：将单局分数存入全局货币仓库（会自动重置局内分数）
-            if (ResourceManager.Instance != null)
+            // 隐藏结算面板
+            HidePanel();
+
+            // 直接进入技能树界面（不再进入主菜单）
+            if (skillTreePanel != null)
             {
-                ResourceManager.Instance.BankSessionEggs();
+                skillTreePanel.Show();
+                Debug.Log("SettlementPanel: 已打开技能树面板", this);
             }
             else
             {
-                Debug.LogError("SettlementPanel: ResourceManager.Instance 为空，无法结算分数！", this);
-                return; // 如果 ResourceManager 为空，直接返回
+                Debug.LogWarning("SettlementPanel: skillTreePanel 为空，无法打开技能树！", this);
             }
+        }
 
-            // 第二步：进入准备/养成界面
+        /// <summary>
+        /// 开始下一回合按钮点击事件：直接开始新的一局游戏
+        /// 注意：局内鸡蛋数已在回合结束时自动存入总鸡蛋数（GameManager.ChangeGameState）
+        /// </summary>
+        private void OnStartNextRoundClicked()
+        {
+            Debug.Log("SettlementPanel: 点击开始下一回合按钮", this);
+
+            // 隐藏结算面板
+            HidePanel();
+
+            // 直接开始新的一局游戏
             if (GameManager.Instance != null)
             {
-                GameManager.Instance.EnterPreparationPhase();
-                Debug.Log("SettlementPanel: 已调用 EnterPreparationPhase()", this);
+                GameManager.Instance.RestartGame();
+                Debug.Log("SettlementPanel: 已开始下一回合", this);
             }
             else
             {
-                Debug.LogError("SettlementPanel: GameManager.Instance 为空，无法进入准备阶段！", this);
+                Debug.LogError("SettlementPanel: GameManager.Instance 为空，无法开始游戏！", this);
             }
         }
     }

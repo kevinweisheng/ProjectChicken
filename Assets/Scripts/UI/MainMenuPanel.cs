@@ -8,7 +8,7 @@ using ProjectChicken.Systems;
 namespace ProjectChicken.UI
 {
     /// <summary>
-    /// 主菜单面板：管理养成阶段的 UI（准备阶段，使用 CanvasGroup 控制显示/隐藏）
+    /// 主菜单面板：游戏启动时的主菜单（新游戏、继续游戏、退出游戏）
     /// 注意：使用 CanvasGroup 时，面板 GameObject 应始终激活，这样事件订阅才能正常工作
     /// </summary>
     [RequireComponent(typeof(CanvasGroup))]
@@ -16,13 +16,11 @@ namespace ProjectChicken.UI
     {
         [Header("UI组件")]
         [SerializeField] private CanvasGroup canvasGroup; // CanvasGroup 组件（用于控制显示/隐藏）
-        [SerializeField] private TMP_Text totalEggsText; // 显示全局货币数量的文本
-        [SerializeField] private Button startBattleButton; // 开始战斗按钮
-        [SerializeField] private Button openSkillTreeButton; // 打开技能树按钮
-        [SerializeField] private Button clearSaveButton; // 清除存档按钮（可选，用于测试）
+        [SerializeField] private Button newGameButton; // 新游戏按钮
+        [SerializeField] private Button continueGameButton; // 继续游戏按钮
+        [SerializeField] private Button exitGameButton; // 退出游戏按钮
 
         [Header("系统引用")]
-        [SerializeField] private ChickenSpawner spawner; // 鸡生成器（用于清理）
         [SerializeField] private SkillTreePanel skillTreePanel; // 技能树面板引用（可选，如果为空则使用单例）
 
         private void Awake()
@@ -41,97 +39,49 @@ namespace ProjectChicken.UI
 
         private void Start()
         {
-            if (spawner == null)
-            {
-                spawner = FindFirstObjectByType<ChickenSpawner>();
-            }
-
             // 如果没有手动指定，尝试使用单例获取 SkillTreePanel
             if (skillTreePanel == null)
             {
                 skillTreePanel = SkillTreePanel.Instance;
             }
 
-            // 绑定开始战斗按钮的点击事件
-            if (startBattleButton != null)
+            // 绑定新游戏按钮的点击事件
+            if (newGameButton != null)
             {
-                startBattleButton.onClick.AddListener(OnStartBattleClicked);
+                newGameButton.onClick.AddListener(OnNewGameClicked);
             }
             else
             {
-                Debug.LogWarning("MainMenuPanel: startBattleButton 未配置！", this);
+                Debug.LogWarning("MainMenuPanel: newGameButton 未配置！", this);
             }
 
-            // 绑定打开技能树按钮的点击事件
-            if (openSkillTreeButton != null)
+            // 绑定继续游戏按钮的点击事件
+            if (continueGameButton != null)
             {
-                openSkillTreeButton.onClick.AddListener(OnOpenSkillTreeClicked);
+                continueGameButton.onClick.AddListener(OnContinueGameClicked);
             }
             else
             {
-                Debug.LogWarning("MainMenuPanel: openSkillTreeButton 未配置！", this);
+                Debug.LogWarning("MainMenuPanel: continueGameButton 未配置！", this);
             }
 
-            // 绑定清除存档按钮的点击事件
-            if (clearSaveButton != null)
+            // 绑定退出游戏按钮的点击事件
+            if (exitGameButton != null)
             {
-                clearSaveButton.onClick.AddListener(OnClearSaveClicked);
+                exitGameButton.onClick.AddListener(OnExitGameClicked);
             }
-            // 注意：清除存档按钮是可选的，不配置也不会报错（用于测试功能）
-
-            // 初始状态：根据当前游戏状态决定是否显示
-            UpdatePanelVisibility();
-        }
-
-        private void Update()
-        {
-            // 快捷键：按 Delete 键清除存档（用于测试）
-            // 使用新的 Input System
-            if (Keyboard.current != null && Keyboard.current.deleteKey.wasPressedThisFrame)
+            else
             {
-                OnClearSaveClicked();
+                Debug.LogWarning("MainMenuPanel: exitGameButton 未配置！", this);
             }
+
+            // 初始状态：显示主菜单（游戏启动时）
+            ShowPanel();
         }
 
-        private void OnEnable()
-        {
-            // 订阅游戏状态改变事件
-            GameManager.OnGameStateChanged += OnGameStateChanged;
-            Debug.Log("MainMenuPanel: 已订阅游戏状态改变事件", this);
-        }
+        // Update 方法已移除，主菜单不再需要快捷键功能
 
-        private void OnDisable()
-        {
-            // 取消订阅：防止内存泄漏
-            GameManager.OnGameStateChanged -= OnGameStateChanged;
-            Debug.Log("MainMenuPanel: 已取消订阅游戏状态改变事件", this);
-        }
-
-        /// <summary>
-        /// 游戏状态改变事件处理
-        /// </summary>
-        /// <param name="newState">新游戏状态</param>
-        private void OnGameStateChanged(GameState newState)
-        {
-            Debug.Log($"MainMenuPanel: 收到游戏状态改变事件，新状态：{newState}", this);
-            
-            switch (newState)
-            {
-                case GameState.Preparation:
-                    // 进入准备阶段，显示面板并清理上一局的残余怪物
-                    Debug.Log("MainMenuPanel: 进入准备阶段，显示面板", this);
-                    ClearRemainingChickens(); // 清理上一局的残余怪物
-                    ShowPanel(); // 显示面板（会更新全局货币显示）
-                    break;
-
-                case GameState.Playing:
-                case GameState.GameOver:
-                    // 游戏进行中或游戏结束，隐藏面板
-                    Debug.Log($"MainMenuPanel: 状态为 {newState}，隐藏面板", this);
-                    HidePanel();
-                    break;
-            }
-        }
+        // 主菜单不再订阅游戏状态改变事件，只在游戏启动时显示
 
         /// <summary>
         /// 显示主菜单面板
@@ -143,8 +93,7 @@ namespace ProjectChicken.UI
                 canvasGroup.alpha = 1f; // 完全不透明
                 canvasGroup.interactable = true; // 可交互
                 canvasGroup.blocksRaycasts = true; // 阻挡射线（可以点击）
-                UpdateTotalEggsDisplay(); // 更新全局货币显示
-                Debug.Log("MainMenuPanel: 面板已显示", this);
+                Debug.Log("MainMenuPanel: 主菜单面板已显示", this);
             }
             else
             {
@@ -174,86 +123,19 @@ namespace ProjectChicken.UI
         }
 
         /// <summary>
-        /// 更新面板显示状态（根据当前游戏状态）
+        /// 新游戏按钮点击事件
         /// </summary>
-        private void UpdatePanelVisibility()
+        private void OnNewGameClicked()
         {
-            if (GameManager.Instance != null)
-            {
-                if (GameManager.Instance.CurrentState == GameState.Preparation)
-                {
-                    ShowPanel();
-                }
-                else
-                {
-                    HidePanel();
-                }
-            }
-        }
+            Debug.Log("MainMenuPanel: 点击新游戏按钮", this);
 
-        /// <summary>
-        /// 更新全局货币显示
-        /// </summary>
-        private void UpdateTotalEggsDisplay()
-        {
-            if (totalEggsText != null)
+            // 清除存档
+            if (ResourceManager.Instance != null)
             {
-                int totalEggs = 0;
-                if (ResourceManager.Instance != null)
-                {
-                    totalEggs = ResourceManager.Instance.TotalGlobalEggs;
-                }
-                else
-                {
-                    Debug.LogWarning("MainMenuPanel: ResourceManager.Instance 为空，无法读取全局货币！", this);
-                }
+                ResourceManager.Instance.ClearSaveData();
+            }
 
-                totalEggsText.text = totalEggs.ToString();
-            }
-            else
-            {
-                Debug.LogWarning("MainMenuPanel: totalEggsText 未配置！", this);
-            }
-        }
-
-        /// <summary>
-        /// 清理上一局的残余怪物
-        /// </summary>
-        private void ClearRemainingChickens()
-        {
-            if (spawner != null)
-            {
-                spawner.ClearAllChickens();
-                Debug.Log("MainMenuPanel: 已清理上一局的残余怪物", this);
-            }
-            else
-            {
-                Debug.LogWarning("MainMenuPanel: spawner 为空，无法清理怪物！", this);
-            }
-        }
-
-        /// <summary>
-        /// 开始战斗按钮点击事件
-        /// </summary>
-        private void OnStartBattleClicked()
-        {
-            if (GameManager.Instance != null)
-            {
-                GameManager.Instance.RestartGame();
-                Debug.Log("MainMenuPanel: 开始新一局战斗", this);
-            }
-            else
-            {
-                Debug.LogError("MainMenuPanel: GameManager.Instance 为空，无法开始战斗！", this);
-            }
-        }
-
-        /// <summary>
-        /// 打开技能树按钮点击事件
-        /// </summary>
-        private void OnOpenSkillTreeClicked()
-        {
-            // 隐藏主菜单面板
+            // 隐藏主菜单
             HidePanel();
 
             // 显示技能树面板
@@ -269,28 +151,52 @@ namespace ProjectChicken.UI
         }
 
         /// <summary>
-        /// 清除存档按钮点击事件
+        /// 继续游戏按钮点击事件
         /// </summary>
-        private void OnClearSaveClicked()
+        private void OnContinueGameClicked()
         {
+            Debug.Log("MainMenuPanel: 点击继续游戏按钮", this);
+
+            // 加载存档
             if (ResourceManager.Instance != null)
             {
-                ResourceManager.Instance.ClearSaveData();
-                UpdateTotalEggsDisplay(); // 更新显示
-                Debug.Log("MainMenuPanel: 存档已清除", this);
+                ResourceManager.Instance.LoadGame();
+            }
+
+            // 隐藏主菜单
+            HidePanel();
+
+            // 显示技能树面板
+            if (skillTreePanel != null)
+            {
+                skillTreePanel.Show();
+                Debug.Log("MainMenuPanel: 已打开技能树面板", this);
             }
             else
             {
-                Debug.LogError("MainMenuPanel: ResourceManager.Instance 为空，无法清除存档！", this);
+                Debug.LogWarning("MainMenuPanel: skillTreePanel 为空，无法打开技能树！", this);
             }
         }
 
         /// <summary>
-        /// 手动刷新全局货币显示（供外部调用）
+        /// 退出游戏按钮点击事件
         /// </summary>
-        public void RefreshTotalEggsDisplay()
+        private void OnExitGameClicked()
         {
-            UpdateTotalEggsDisplay();
+            Debug.Log("MainMenuPanel: 点击退出游戏按钮", this);
+
+            // 保存游戏
+            if (ResourceManager.Instance != null)
+            {
+                ResourceManager.Instance.SaveGame();
+            }
+
+            // 退出游戏
+            #if UNITY_EDITOR
+                UnityEditor.EditorApplication.isPlaying = false;
+            #else
+                Application.Quit();
+            #endif
         }
     }
 }

@@ -352,14 +352,15 @@ namespace ProjectChicken.Systems
                 Debug.LogWarning("AreaUpgradeManager: PlayArea 为空，无法更新场地设置！", this);
             }
 
-            // 如果是 FractalZoom 类型，更新摄像机约束
-            if (areaData.UpgradeType == AreaUpgradeType.FractalZoom && playerController != null)
+            // 更新摄像机约束（无论是什么类型，都应该应用约束）
+            if (playerController != null)
             {
                 playerController.UpdateConstraints(
                     areaData.MovementBounds,
                     areaData.MinCamSize,
                     areaData.MaxCamSize
                 );
+                Debug.Log($"AreaUpgradeManager: 已更新摄像机约束 - 平移限制: {areaData.MovementBounds}, 缩放范围: {areaData.MinCamSize} - {areaData.MaxCamSize}", this);
             }
 
             if (showDebugLogs)

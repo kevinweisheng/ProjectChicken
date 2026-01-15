@@ -50,5 +50,8 @@ TagManager:
   - name: Background
     uniqueID: 2048214389
     locked: 0
+  - name: Animation
+    uniqueID: 1007692299
+    locked: 0
   m_RenderingLayers:
   - Default

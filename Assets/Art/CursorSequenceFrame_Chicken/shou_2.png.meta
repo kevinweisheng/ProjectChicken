@@ -1,10 +1,10 @@
 fileFormatVersion: 2
-guid: 58d9c4653a9f7ce42b205b2c6f31bd77
+guid: 0d58612014ced9e49a333121bb1a8350
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: -857270020218531044
-    second: Cursor 1_0
+      213: 7775611303545887118
+    second: shou_2_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -51,13 +51,13 @@ TextureImporter:
   spriteMeshType: 1
   alignment: 0
   spritePivot: {x: 0.5, y: 0.5}
-  spritePixelsToUnits: 100
+  spritePixelsToUnits: 400
   spriteBorder: {x: 0, y: 0, z: 0, w: 0}
   spriteGenerateFallbackPhysicsShape: 1
   alphaUsage: 1
   alphaIsTransparency: 1
   spriteTessellationDetail: -1
-  textureType: 7
+  textureType: 8
   textureShape: 1
   singleChannelComponent: 0
   flipbookRows: 1
@@ -100,13 +100,13 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: Cursor 1_0
+      name: shou_2_0
       rect:
         serializedVersion: 2
         x: 0
         y: 0
-        width: 90
-        height: 98
+        width: 241
+        height: 259
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -115,8 +115,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: c135848657d5a14f0800000000000000
-      internalID: -857270020218531044
+      spriteID: e895d5b984588eb60800000000000000
+      internalID: 7775611303545887118
       vertices: []
       indices: 
       edges: []
@@ -135,7 +135,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      Cursor 1_0: -857270020218531044
+      shou_2_0: 7775611303545887118
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

@@ -14,6 +14,7 @@ GameObject:
   - component: {fileID: 954115228423850123}
   - component: {fileID: 2389722036147876232}
   - component: {fileID: -6515108047256915683}
+  - component: {fileID: -8123247315987136544}
   m_Layer: 6
   m_Name: Chicken_Fat
   m_TagString: Untagged
@@ -79,6 +80,7 @@ MonoBehaviour:
   wanderInterval: 2
   wanderSpeed: 2
   hitFlashDuration: 0.1
+  hitFlashColor: {r: 1, g: 0, b: 0, a: 1}
   boundaryPadding: 0.5
   thinChickenPrefab: {fileID: 2804361130355396527, guid: d08c35a069bcab749a06f1ef05a1fd33, type: 3}
   useThinChickenPrefab: 1
@@ -88,6 +90,26 @@ MonoBehaviour:
   loopIdleAnimation: 1
   normalSkinName: 1
   goldenSkinName: 2
+  petAnimationSprites:
+  - {fileID: -723034233004139970, guid: a636017aeada63949b88f0aec62e5ba4, type: 3}
+  - {fileID: 7775611303545887118, guid: 0d58612014ced9e49a333121bb1a8350, type: 3}
+  - {fileID: 7397962550300144817, guid: 5168a9e357fea9941a7eb55a3e71a768, type: 3}
+  - {fileID: 8154613386392291147, guid: 445176edd2d7ef74eaf13e2ed0cd1726, type: 3}
+  - {fileID: -2450568497275850154, guid: cef76e0cc21e4dc4eb4800f1af7406a0, type: 3}
+  petAnimationFrameTime: 0.09
+  petAnimationOffset: {x: 0.25, y: 0.25}
+  petAnimationSortingOrder: 100
+  petAnimationSortingLayerName: Animation
+  eggEffectPrefab: {fileID: 7494254314386391344, guid: 3ca483f7917b9c84eae5cacde359cf7c, type: 3}
+  eggEffectOffset: {x: 0, y: 0}
+  eggEffectDuration: 0
+  useDynamicSorting: 1
+  useYCoordinateSorting: 0
+  baseSortingOrder: 0
+  sortingOrderMultiplier: -100
+  sortingLayerName: Default
+  minSortingOrder: -50
+  uniqueSortingOffset: 0
 --- !u!58 &954115228423850123
 CircleCollider2D:
   m_ObjectHideFlags: 0
@@ -122,8 +144,8 @@ CircleCollider2D:
   m_UsedByEffector: 0
   m_CompositeOperation: 0
   m_CompositeOrder: 0
-  m_Offset: {x: 0, y: 0}
-  m_Radius: 0.3
+  m_Offset: {x: 0, y: 0.36}
+  m_Radius: 0.33
 --- !u!23 &2389722036147876232
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -216,3 +238,11 @@ MonoBehaviour:
   _animationName: 
   loop: 0
   timeScale: 1
+--- !u!33 &-8123247315987136544
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7717966309197080778}
+  m_Mesh: {fileID: 0}
