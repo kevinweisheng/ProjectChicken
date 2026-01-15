@@ -405,6 +405,21 @@ namespace ProjectChicken.Core
         }
 
         /// <summary>
+        /// 延长回合时间（由产蛋时触发）
+        /// </summary>
+        /// <param name="amount">延长时间（秒）</param>
+        public void ExtendSessionTime(float amount)
+        {
+            if (currentState == GameState.Playing && amount > 0f)
+            {
+                remainingTime += amount;
+                // 触发倒计时更新事件，通知UI更新
+                OnTimerUpdated?.Invoke(remainingTime);
+                Debug.Log($"GameManager: 回合时间延长 {amount} 秒，当前剩余时间：{remainingTime} 秒", this);
+            }
+        }
+
+        /// <summary>
         /// 应用分形阶段生产倍率（当分形管理器升级阶段时调用）
         /// 可选功能：如果 ResourceManager 有生产倍率系统，可以在这里应用
         /// </summary>

@@ -181,6 +181,20 @@ namespace ProjectChicken.Units
             float currentAttackRange = GetCurrentAttackRange();
             float currentDamage = GetCurrentDamage();
 
+            // 检查是否触发暴击
+            bool isCrit = false;
+            if (UpgradeManager.Instance != null)
+            {
+                float critChance = UpgradeManager.Instance.CritChance;
+                if (critChance > 0f && UnityEngine.Random.value < critChance)
+                {
+                    isCrit = true;
+                    float critMultiplier = UpgradeManager.Instance.CritMultiplier;
+                    currentDamage *= critMultiplier;
+                    Debug.Log($"PlayerController: 触发暴击！伤害倍率：{critMultiplier}x，最终伤害：{currentDamage}", this);
+                }
+            }
+
             // 使用 Physics2D.OverlapCircle 检测范围内的敌人
             Collider2D[] hits = Physics2D.OverlapCircleAll(transform.position, currentAttackRange, enemyLayer);
 
@@ -192,6 +206,53 @@ namespace ProjectChicken.Units
                 {
                     damageable.TakeDamage(currentDamage);
                 }
+            }
+
+            // 检查是否触发引力波
+            if (UpgradeManager.Instance != null)
+            {
+                float gravityWaveChance = UpgradeManager.Instance.GravityWaveChance;
+                if (gravityWaveChance > 0f && UnityEngine.Random.value < gravityWaveChance)
+                {
+                    TriggerGravityWave(transform.position, currentAttackRange);
+                }
+            }
+        }
+
+        /// <summary>
+        /// 触发引力波：对更大范围内的敌人造成伤害
+        /// </summary>
+        /// <param name="center">引力波中心位置</param>
+        /// <param name="baseRange">基础攻击范围</param>
+        private void TriggerGravityWave(Vector3 center, float baseRange)
+        {
+            // 引力波范围是基础范围的2倍
+            float gravityWaveRange = baseRange * 2f;
+            
+            // 从 UpgradeManager 获取当前伤害
+            float currentDamage = GetCurrentDamage();
+            
+            // 引力波伤害为基础伤害的50%（可调整）
+            float gravityWaveDamage = currentDamage * 0.5f;
+
+            // 使用 Physics2D.OverlapCircle 检测引力波范围内的敌人
+            Collider2D[] hits = Physics2D.OverlapCircleAll(center, gravityWaveRange, enemyLayer);
+
+            int hitCount = 0;
+            foreach (Collider2D hit in hits)
+            {
+                // 检查是否实现了 IDamageable 接口
+                IDamageable damageable = hit.GetComponent<IDamageable>();
+                if (damageable != null)
+                {
+                    damageable.TakeDamage(gravityWaveDamage);
+                    hitCount++;
+                }
+            }
+
+            if (hitCount > 0)
+            {
+                Debug.Log($"PlayerController: 触发引力波！范围：{gravityWaveRange}，伤害：{gravityWaveDamage}，命中：{hitCount} 个敌人", this);
             }
         }
 

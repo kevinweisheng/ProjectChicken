@@ -65,16 +65,42 @@ namespace ProjectChicken.Systems
                 eggValue = UpgradeManager.Instance.GoldenEggMultiplier;
             }
 
+            // 检查是否触发双倍产出
+            bool isDoubleProduction = false;
+            if (UpgradeManager.Instance != null && UpgradeManager.Instance.IsDoubleProductionUnlocked)
+            {
+                float doubleProductionChance = UpgradeManager.Instance.DoubleProductionChance;
+                if (doubleProductionChance > 0f && UnityEngine.Random.value < doubleProductionChance)
+                {
+                    isDoubleProduction = true;
+                    eggValue *= 2;
+                    Debug.Log($"EggProjectile: 触发双倍产出！鸡蛋价值翻倍：{eggValue}", this);
+                }
+            }
+
             // 调用资源管理器增加鸡蛋（制造"飞到了才算数"的延迟满足感）
             if (ResourceManager.Instance != null)
             {
                 ResourceManager.Instance.AddEgg(eggValue);
                 string eggType = isGoldenEgg ? "金蛋" : "普通蛋";
-                Debug.Log($"EggProjectile: {eggType}到达，获得 {eggValue} 个鸡蛋", this);
+                string doubleText = isDoubleProduction ? "（双倍产出）" : "";
+                Debug.Log($"EggProjectile: {eggType}到达，获得 {eggValue} 个鸡蛋{doubleText}", this);
             }
             else
             {
                 Debug.LogWarning("EggProjectile: ResourceManager.Instance 为空！无法增加鸡蛋。");
+            }
+
+            // 检查是否触发回合时间延长
+            if (UpgradeManager.Instance != null && GameManager.Instance != null)
+            {
+                float eggTimeExtensionChance = UpgradeManager.Instance.EggTimeExtensionChance;
+                if (eggTimeExtensionChance > 0f && UnityEngine.Random.value < eggTimeExtensionChance)
+                {
+                    float extensionAmount = UpgradeManager.Instance.EggTimeExtensionAmount;
+                    GameManager.Instance.ExtendSessionTime(extensionAmount);
+                    Debug.Log($"EggProjectile: 触发回合时间延长！增加 {extensionAmount} 秒", this);
+                }
             }
 
             // 销毁自身

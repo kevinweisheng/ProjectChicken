@@ -10,22 +10,22 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: b90188f1ca604af43b6d2d397acd9fff, type: 3}
-  m_Name: Node_1_Range
+  m_Name: Chicken_Mitosis_Unlock
   m_EditorClassIdentifier: Assembly-CSharp::ProjectChicken.Systems.SkillTree.SkillNodeData
-  id: 10001
+  id: 10003
   icon: {fileID: 0}
-  displayName: "\u629A\u6478\u8303\u56F4"
+  displayName: "\u66F4\u5927\u7684\u629A\u6478\u8303\u56F4"
   description: 
-  prerequisite: {fileID: 0}
-  effectType: 1
+  prerequisite: {fileID: 11400000, guid: 137bbf2cd6d37d649a83c594fed0fe6c, type: 2}
+  effectType: 0
   levels:
   - cost: 1
-    effectValue: 5
+    effectValue: 1
   - cost: 1
-    effectValue: 5
+    effectValue: 1
   - cost: 1
-    effectValue: 5
+    effectValue: 1
   - cost: 1
-    effectValue: 5
+    effectValue: 1
   - cost: 1
-    effectValue: 5
+    effectValue: 1

@@ -19,7 +19,12 @@ namespace ProjectChicken.Systems.SkillTree
         MaxChickenCount, // 最大鸡数量提升（增加人口上限）
         InitialChickenCount, // 初始鸡数量提升（回合开始时生成的鸡数量）
         GoldenChickenSpawnRate, // 金鸡生成率提升
-        GoldenEggMultiplier     // 金蛋价值倍率提升
+        GoldenEggMultiplier,     // 金蛋价值倍率提升
+        CritChance,              // 暴击率提升（攻击时有概率造成额外伤害）
+        UnlockDoubleProduction,  // 解锁双倍产出能力
+        DoubleProductionChance,  // 双倍产出概率提升（产蛋时有概率产出双倍）
+        EggTimeExtensionChance,   // 产蛋时增加回合时间的概率（每生产1颗蛋，有概率增加0.2s回合时间）
+        GravityWaveChance        // 引力波生成概率提升（攻击时有概率生成引力波）
     }
 
     /// <summary>

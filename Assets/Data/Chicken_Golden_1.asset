@@ -10,22 +10,22 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: b90188f1ca604af43b6d2d397acd9fff, type: 3}
-  m_Name: Node_6_Range_Big
+  m_Name: Chicken_Golden_1
   m_EditorClassIdentifier: Assembly-CSharp::ProjectChicken.Systems.SkillTree.SkillNodeData
   id: 10003
   icon: {fileID: 0}
-  displayName: "\u66F4\u5927\u7684\u629A\u6478\u8303\u56F4"
+  displayName: "\u63D0\u5347\u9EC4\u91D1\u9E21\u8BDE\u751F\u6982\u7387"
   description: 
-  prerequisite: {fileID: 11400000, guid: 137bbf2cd6d37d649a83c594fed0fe6c, type: 2}
-  effectType: 0
+  prerequisite: {fileID: 0}
+  effectType: 9
   levels:
   - cost: 1
-    effectValue: 1
+    effectValue: 10
   - cost: 1
-    effectValue: 1
+    effectValue: 10
   - cost: 1
-    effectValue: 1
+    effectValue: 10
   - cost: 1
-    effectValue: 1
+    effectValue: 10
   - cost: 1
-    effectValue: 1
+    effectValue: 10

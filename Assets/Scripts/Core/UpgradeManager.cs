@@ -41,6 +41,21 @@ namespace ProjectChicken.Core
         private float goldenChickenSpawnRate = 0.05f; // 金鸡生成率（基础5%）
         private int goldenEggMultiplier = 5; // 金蛋价值倍率（基础1金蛋=5普通蛋）
 
+        // 暴击相关属性
+        private float critChance = 0f; // 暴击率（0-1之间，基础0%）
+        private float critMultiplier = 2f; // 暴击倍率（暴击时伤害倍数，固定2倍）
+
+        // 双倍产出相关属性
+        private bool isDoubleProductionUnlocked = false; // 是否解锁双倍产出能力
+        private float doubleProductionChance = 0f; // 双倍产出概率（0-1之间，基础0%）
+
+        // 产蛋时间延长相关属性
+        private float eggTimeExtensionChance = 0.01f; // 产蛋时增加回合时间的概率（基础1%）
+        private float eggTimeExtensionAmount = 0.2f; // 每次产蛋时增加的回合时间（固定0.2秒）
+
+        // 引力波相关属性
+        private float gravityWaveChance = 0f; // 引力波生成概率（0-1之间，基础0%）
+
         /// <summary>
         /// 当前攻击力（只读属性）
         /// </summary>
@@ -95,6 +110,41 @@ namespace ProjectChicken.Core
         /// 金蛋价值倍率（只读属性）
         /// </summary>
         public int GoldenEggMultiplier => goldenEggMultiplier;
+
+        /// <summary>
+        /// 暴击率（只读属性，0-1之间）
+        /// </summary>
+        public float CritChance => critChance;
+
+        /// <summary>
+        /// 暴击倍率（只读属性）
+        /// </summary>
+        public float CritMultiplier => critMultiplier;
+
+        /// <summary>
+        /// 是否解锁双倍产出能力（只读属性）
+        /// </summary>
+        public bool IsDoubleProductionUnlocked => isDoubleProductionUnlocked;
+
+        /// <summary>
+        /// 双倍产出概率（只读属性，0-1之间）
+        /// </summary>
+        public float DoubleProductionChance => doubleProductionChance;
+
+        /// <summary>
+        /// 产蛋时增加回合时间的概率（只读属性，0-1之间）
+        /// </summary>
+        public float EggTimeExtensionChance => eggTimeExtensionChance;
+
+        /// <summary>
+        /// 产蛋时增加的回合时间（只读属性，秒）
+        /// </summary>
+        public float EggTimeExtensionAmount => eggTimeExtensionAmount;
+
+        /// <summary>
+        /// 引力波生成概率（只读属性，0-1之间）
+        /// </summary>
+        public float GravityWaveChance => gravityWaveChance;
 
         private void Awake()
         {
@@ -324,6 +374,31 @@ namespace ProjectChicken.Core
                     Debug.Log($"UpgradeManager: 金蛋价值倍率提升 {value}，当前倍率：{goldenEggMultiplier}", this);
                     break;
 
+                case SkillEffectType.CritChance:
+                    critChance = Mathf.Clamp01(critChance + value);
+                    Debug.Log($"UpgradeManager: 暴击率提升 {value}，当前暴击率：{critChance * 100f}%", this);
+                    break;
+
+                case SkillEffectType.UnlockDoubleProduction:
+                    isDoubleProductionUnlocked = true;
+                    Debug.Log($"UpgradeManager: 已解锁双倍产出能力！", this);
+                    break;
+
+                case SkillEffectType.DoubleProductionChance:
+                    doubleProductionChance = Mathf.Clamp01(doubleProductionChance + value);
+                    Debug.Log($"UpgradeManager: 双倍产出概率提升 {value}，当前概率：{doubleProductionChance * 100f}%", this);
+                    break;
+
+                case SkillEffectType.EggTimeExtensionChance:
+                    eggTimeExtensionChance = Mathf.Clamp01(eggTimeExtensionChance + value);
+                    Debug.Log($"UpgradeManager: 产蛋时间延长概率提升 {value}，当前概率：{eggTimeExtensionChance * 100f}%", this);
+                    break;
+
+                case SkillEffectType.GravityWaveChance:
+                    gravityWaveChance = Mathf.Clamp01(gravityWaveChance + value);
+                    Debug.Log($"UpgradeManager: 引力波生成概率提升 {value}，当前概率：{gravityWaveChance * 100f}%", this);
+                    break;
+
                 default:
                     Debug.LogWarning($"UpgradeManager: 未知的技能效果类型：{node.EffectType}", this);
                     break;
@@ -392,6 +467,19 @@ namespace ProjectChicken.Core
             // 重置金鸡相关属性
             goldenChickenSpawnRate = 0.05f;
             goldenEggMultiplier = 5;
+
+            // 重置暴击相关属性
+            critChance = 0f;
+
+            // 重置双倍产出相关属性
+            isDoubleProductionUnlocked = false;
+            doubleProductionChance = 0f;
+
+            // 重置产蛋时间延长相关属性
+            eggTimeExtensionChance = 0.01f; // 基础1%
+
+            // 重置引力波相关属性
+            gravityWaveChance = 0f;
 
             Debug.Log($"UpgradeManager: 开始加载 {skillRecords.Count} 个技能记录...", this);
 
@@ -511,6 +599,19 @@ namespace ProjectChicken.Core
             // 重置金鸡相关属性
             goldenChickenSpawnRate = 0.05f;
             goldenEggMultiplier = 5;
+
+            // 重置暴击相关属性
+            critChance = 0f;
+
+            // 重置双倍产出相关属性
+            isDoubleProductionUnlocked = false;
+            doubleProductionChance = 0f;
+
+            // 重置产蛋时间延长相关属性
+            eggTimeExtensionChance = 0.01f; // 基础1%
+
+            // 重置引力波相关属性
+            gravityWaveChance = 0f;
 
             Debug.Log("UpgradeManager: 所有技能已重置", this);
         }
