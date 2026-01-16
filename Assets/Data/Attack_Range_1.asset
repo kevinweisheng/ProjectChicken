@@ -10,23 +10,19 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: b90188f1ca604af43b6d2d397acd9fff, type: 3}
-  m_Name: Attack_Rang_1
+  m_Name: Attack_Range_1
   m_EditorClassIdentifier: Assembly-CSharp::ProjectChicken.Systems.SkillTree.SkillNodeData
-  id: 10002
-  icon: {fileID: 0}
-  displayName: "\u629A\u6478\u529B\u5EA6"
-  description: "\u629A\u6478\u529B\u5EA6+1"
-  prerequisite: {fileID: 11400000, guid: 2a49aad19844112429328b81f4a7832f, type: 2}
+  id: 10003
+  icon: {fileID: -8459403705366533286, guid: cf546b2d04b25104bb8fdc13e6049edf, type: 3}
+  displayName: "\u629A\u6478\u8303\u56F4"
+  description: "\u4E0A\u5E1D\u4E4B\u624B\u7B3C\u7F69\u8303\u56F4\u7684\u76F4\u5F84\u6269\u5927:\n+0.2"
+  prerequisite: {fileID: 0}
   prerequisites: []
-  effectType: 0
+  effectType: 1
   levels:
-  - cost: 1
-    effectValue: 1
-  - cost: 1
-    effectValue: 1
-  - cost: 1
-    effectValue: 1
-  - cost: 1
-    effectValue: 1
-  - cost: 1
-    effectValue: 1
+  - cost: 100
+    effectValue: 0.2
+  - cost: 200
+    effectValue: 0.2
+  - cost: 500
+    effectValue: 0.2

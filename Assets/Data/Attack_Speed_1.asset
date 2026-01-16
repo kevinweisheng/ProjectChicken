@@ -13,19 +13,20 @@ MonoBehaviour:
   m_Name: Attack_Speed_1
   m_EditorClassIdentifier: Assembly-CSharp::ProjectChicken.Systems.SkillTree.SkillNodeData
   id: 10002
-  icon: {fileID: 0}
-  displayName: "\u629A\u6478\u529B\u5EA6"
-  description: 
-  prerequisite: {fileID: 11400000, guid: 2a49aad19844112429328b81f4a7832f, type: 2}
-  effectType: 0
+  icon: {fileID: 2555786686673327811, guid: cf546b2d04b25104bb8fdc13e6049edf, type: 3}
+  displayName: "\u629A\u6478\u901F\u5EA6"
+  description: "\u4E0A\u5E1D\u4E4B\u624B\u7684\u629A\u6478\u901F\u5EA6\u53D8\u5FEB:\n+2%"
+  prerequisite: {fileID: 0}
+  prerequisites: []
+  effectType: 2
   levels:
-  - cost: 1
-    effectValue: 1
-  - cost: 1
-    effectValue: 1
-  - cost: 1
-    effectValue: 1
-  - cost: 1
-    effectValue: 1
-  - cost: 1
-    effectValue: 1
+  - cost: 25
+    effectValue: -0.02
+  - cost: 30
+    effectValue: -0.02
+  - cost: 35
+    effectValue: -0.02
+  - cost: 40
+    effectValue: -0.02
+  - cost: 45
+    effectValue: -0.02

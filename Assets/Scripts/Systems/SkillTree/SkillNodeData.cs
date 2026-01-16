@@ -23,8 +23,8 @@ namespace ProjectChicken.Systems.SkillTree
         CritChance,              // 暴击率提升（攻击时有概率造成额外伤害）
         UnlockDoubleProduction,  // 解锁双倍产出能力
         DoubleProductionChance,  // 双倍产出概率提升（产蛋时有概率产出双倍）
-        EggTimeExtensionChance,   // 产蛋时增加回合时间的概率（每生产1颗蛋，有概率增加0.2s回合时间）
-        GravityWaveChance        // 引力波生成概率提升（攻击时有概率生成引力波）
+        UnlockGravityWave,        // 解锁引力波能力（鸡生蛋时，有概率让回合时间增加0.2秒）
+        GravityWaveChance        // 引力波概率提升（提升鸡生蛋时触发引力波的概率）
     }
 
     /// <summary>

@@ -12,20 +12,21 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b90188f1ca604af43b6d2d397acd9fff, type: 3}
   m_Name: Chicken_GoldenEggValue_1
   m_EditorClassIdentifier: Assembly-CSharp::ProjectChicken.Systems.SkillTree.SkillNodeData
-  id: 10003
-  icon: {fileID: 0}
-  displayName: "\u63D0\u5347\u9EC4\u91D1\u9E21\u8BDE\u751F\u6982\u7387"
-  description: 
+  id: 10012
+  icon: {fileID: 4947782767623223046, guid: cf546b2d04b25104bb8fdc13e6049edf, type: 3}
+  displayName: "\u91D1\u86CB\u4EF7\u503C"
+  description: "\u56FD\u9645\u91D1\u4EF7\u6301\u7EED\u4E0A\u6DA8\uFF0C\u91D1\u86CB\u4EF7\u503C\u4E5F\u968F\u4E4B\u63D0\u5347:\n+1"
   prerequisite: {fileID: 0}
-  effectType: 9
+  prerequisites: []
+  effectType: 11
   levels:
-  - cost: 1
-    effectValue: 10
-  - cost: 1
-    effectValue: 10
-  - cost: 1
-    effectValue: 10
-  - cost: 1
-    effectValue: 10
-  - cost: 1
-    effectValue: 10
+  - cost: 60
+    effectValue: 1
+  - cost: 80
+    effectValue: 1
+  - cost: 100
+    effectValue: 1
+  - cost: 120
+    effectValue: 1
+  - cost: 1400
+    effectValue: 1

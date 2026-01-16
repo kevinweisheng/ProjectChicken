@@ -13,19 +13,20 @@ MonoBehaviour:
   m_Name: Chicken_Amount_1
   m_EditorClassIdentifier: Assembly-CSharp::ProjectChicken.Systems.SkillTree.SkillNodeData
   id: 10001
-  icon: {fileID: 0}
-  displayName: "\u629A\u6478\u8303\u56F4"
-  description: 
+  icon: {fileID: -9129400180117497764, guid: cf546b2d04b25104bb8fdc13e6049edf, type: 3}
+  displayName: "\u9E21\u7684\u6570\u91CF"
+  description: "\u589E\u52A0\u4E16\u754C\u86CB\u751F\u65F6\u9E21\u7684\u6570\u91CF:\n+1"
   prerequisite: {fileID: 0}
-  effectType: 1
+  prerequisites: []
+  effectType: 9
   levels:
-  - cost: 1
-    effectValue: 5
-  - cost: 1
-    effectValue: 5
-  - cost: 1
-    effectValue: 5
-  - cost: 1
-    effectValue: 5
-  - cost: 1
-    effectValue: 5
+  - cost: 5
+    effectValue: 1
+  - cost: 10
+    effectValue: 1
+  - cost: 15
+    effectValue: 1
+  - cost: 20
+    effectValue: 1
+  - cost: 25
+    effectValue: 1

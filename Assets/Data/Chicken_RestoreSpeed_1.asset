@@ -12,21 +12,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b90188f1ca604af43b6d2d397acd9fff, type: 3}
   m_Name: Chicken_RestoreSpeed_1
   m_EditorClassIdentifier: Assembly-CSharp::ProjectChicken.Systems.SkillTree.SkillNodeData
-  id: 10001
-  icon: {fileID: 0}
-  displayName: "\u629A\u6478\u8303\u56F4"
-  description: "\u629A\u6478\u8303\u56F4+10%"
+  id: 10005
+  icon: {fileID: -4236719958431771925, guid: cf546b2d04b25104bb8fdc13e6049edf, type: 3}
+  displayName: "\u9E21\u7684\u6062\u590D\u901F\u5EA6"
+  description: "\u9E21\u86CB\u4F1A\u66F4\u5FEB\u6210\u719F\u5728\u9E21\u7684\u4F53\u5185:\n+5%\n"
   prerequisite: {fileID: 0}
   prerequisites: []
-  effectType: 1
+  effectType: 5
   levels:
-  - cost: 1
-    effectValue: 5
-  - cost: 1
-    effectValue: 5
-  - cost: 1
-    effectValue: 5
-  - cost: 1
-    effectValue: 5
-  - cost: 1
-    effectValue: 5
+  - cost: 20
+    effectValue: 0.05
+  - cost: 40
+    effectValue: 0.05
+  - cost: 60
+    effectValue: 0.05

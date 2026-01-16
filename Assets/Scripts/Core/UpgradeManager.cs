@@ -49,12 +49,10 @@ namespace ProjectChicken.Core
         private bool isDoubleProductionUnlocked = false; // 是否解锁双倍产出能力
         private float doubleProductionChance = 0f; // 双倍产出概率（0-1之间，基础0%）
 
-        // 产蛋时间延长相关属性
-        private float eggTimeExtensionChance = 0.01f; // 产蛋时增加回合时间的概率（基础1%）
-        private float eggTimeExtensionAmount = 0.2f; // 每次产蛋时增加的回合时间（固定0.2秒）
-
         // 引力波相关属性
-        private float gravityWaveChance = 0f; // 引力波生成概率（0-1之间，基础0%）
+        private bool isGravityWaveUnlocked = false; // 是否解锁引力波能力
+        private float gravityWaveChance = 0.01f; // 引力波触发概率（基础1%，鸡生蛋时触发引力波的概率）
+        private float gravityWaveTimeExtension = 0.2f; // 引力波触发时增加的回合时间（固定0.2秒，可配置）
 
         /// <summary>
         /// 当前攻击力（只读属性）
@@ -132,19 +130,21 @@ namespace ProjectChicken.Core
         public float DoubleProductionChance => doubleProductionChance;
 
         /// <summary>
-        /// 产蛋时增加回合时间的概率（只读属性，0-1之间）
+        /// 是否解锁引力波能力（只读属性）
+        /// 解锁后，鸡生蛋时有概率触发引力波，增加回合时间
         /// </summary>
-        public float EggTimeExtensionChance => eggTimeExtensionChance;
+        public bool IsGravityWaveUnlocked => isGravityWaveUnlocked;
 
         /// <summary>
-        /// 产蛋时增加的回合时间（只读属性，秒）
-        /// </summary>
-        public float EggTimeExtensionAmount => eggTimeExtensionAmount;
-
-        /// <summary>
-        /// 引力波生成概率（只读属性，0-1之间）
+        /// 引力波触发概率（只读属性，0-1之间）
+        /// 鸡生蛋时，有该概率触发引力波，增加回合时间
         /// </summary>
         public float GravityWaveChance => gravityWaveChance;
+
+        /// <summary>
+        /// 引力波触发时增加的回合时间（只读属性，秒）
+        /// </summary>
+        public float GravityWaveTimeExtension => gravityWaveTimeExtension;
 
         private void Awake()
         {
@@ -389,14 +389,14 @@ namespace ProjectChicken.Core
                     Debug.Log($"UpgradeManager: 双倍产出概率提升 {value}，当前概率：{doubleProductionChance * 100f}%", this);
                     break;
 
-                case SkillEffectType.EggTimeExtensionChance:
-                    eggTimeExtensionChance = Mathf.Clamp01(eggTimeExtensionChance + value);
-                    Debug.Log($"UpgradeManager: 产蛋时间延长概率提升 {value}，当前概率：{eggTimeExtensionChance * 100f}%", this);
+                case SkillEffectType.UnlockGravityWave:
+                    isGravityWaveUnlocked = true;
+                    Debug.Log($"UpgradeManager: 已解锁引力波能力！", this);
                     break;
 
                 case SkillEffectType.GravityWaveChance:
                     gravityWaveChance = Mathf.Clamp01(gravityWaveChance + value);
-                    Debug.Log($"UpgradeManager: 引力波生成概率提升 {value}，当前概率：{gravityWaveChance * 100f}%", this);
+                    Debug.Log($"UpgradeManager: 引力波概率提升 {value}，当前概率：{gravityWaveChance * 100f}%", this);
                     break;
 
                 default:
@@ -475,11 +475,9 @@ namespace ProjectChicken.Core
             isDoubleProductionUnlocked = false;
             doubleProductionChance = 0f;
 
-            // 重置产蛋时间延长相关属性
-            eggTimeExtensionChance = 0.01f; // 基础1%
-
             // 重置引力波相关属性
-            gravityWaveChance = 0f;
+            isGravityWaveUnlocked = false;
+            gravityWaveChance = 0.01f; // 引力波触发概率（基础1%）
 
             Debug.Log($"UpgradeManager: 开始加载 {skillRecords.Count} 个技能记录...", this);
 
@@ -607,11 +605,9 @@ namespace ProjectChicken.Core
             isDoubleProductionUnlocked = false;
             doubleProductionChance = 0f;
 
-            // 重置产蛋时间延长相关属性
-            eggTimeExtensionChance = 0.01f; // 基础1%
-
             // 重置引力波相关属性
-            gravityWaveChance = 0f;
+            isGravityWaveUnlocked = false;
+            gravityWaveChance = 0.01f; // 引力波触发概率（基础1%）
 
             Debug.Log("UpgradeManager: 所有技能已重置", this);
         }

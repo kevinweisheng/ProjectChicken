@@ -1,0 +1,509 @@
+fileFormatVersion: 2
+guid: cf546b2d04b25104bb8fdc13e6049edf
+TextureImporter:
+  internalIDToNameTable:
+  - first:
+      213: 2555786686673327811
+    second: Skill_Silver_0
+  - first:
+      213: -2663646964086750585
+    second: Skill_Silver_1
+  - first:
+      213: -6061608243989626836
+    second: Skill_Silver_2
+  - first:
+      213: -8459403705366533286
+    second: Skill_Silver_3
+  - first:
+      213: -5238480137863074562
+    second: Skill_Silver_4
+  - first:
+      213: 4947782767623223046
+    second: Skill_Silver_5
+  - first:
+      213: -4236719958431771925
+    second: Skill_Silver_6
+  - first:
+      213: -1797581925943563314
+    second: Skill_Silver_7
+  - first:
+      213: 6291565899268773359
+    second: Skill_Silver_8
+  - first:
+      213: -4030381616395167474
+    second: Skill_Silver_9
+  - first:
+      213: 6066336879238408186
+    second: Skill_Silver_10
+  - first:
+      213: 8741566209762793639
+    second: Skill_Silver_11
+  - first:
+      213: 8864012298434065410
+    second: Skill_Silver_12
+  - first:
+      213: -4015348310913150706
+    second: Skill_Silver_13
+  - first:
+      213: -9129400180117497764
+    second: Skill_Silver_14
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 1
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 1
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 100
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: Skill_Silver_0
+      rect:
+        serializedVersion: 2
+        x: 67
+        y: 962
+        width: 397
+        height: 397
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 3c616dc437af77320800000000000000
+      internalID: 2555786686673327811
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Skill_Silver_1
+      rect:
+        serializedVersion: 2
+        x: 464
+        y: 962
+        width: 397
+        height: 397
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 782cf82e233d80bd0800000000000000
+      internalID: -2663646964086750585
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Skill_Silver_2
+      rect:
+        serializedVersion: 2
+        x: 861
+        y: 962
+        width: 397
+        height: 397
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: c204b69fa67d0eba0800000000000000
+      internalID: -6061608243989626836
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Skill_Silver_3
+      rect:
+        serializedVersion: 2
+        x: 1258
+        y: 962
+        width: 397
+        height: 397
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: a5b210a56292a9a80800000000000000
+      internalID: -8459403705366533286
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Skill_Silver_4
+      rect:
+        serializedVersion: 2
+        x: 1655
+        y: 962
+        width: 397
+        height: 397
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: efc6bbbb11e2d47b0800000000000000
+      internalID: -5238480137863074562
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Skill_Silver_5
+      rect:
+        serializedVersion: 2
+        x: 2052
+        y: 962
+        width: 397
+        height: 397
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 6073bf1763e0aa440800000000000000
+      internalID: 4947782767623223046
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Skill_Silver_6
+      rect:
+        serializedVersion: 2
+        x: 67
+        y: 565
+        width: 397
+        height: 397
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: be2ddd815a52435c0800000000000000
+      internalID: -4236719958431771925
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Skill_Silver_7
+      rect:
+        serializedVersion: 2
+        x: 464
+        y: 565
+        width: 397
+        height: 397
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: ecba87923c4bd07e0800000000000000
+      internalID: -1797581925943563314
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Skill_Silver_8
+      rect:
+        serializedVersion: 2
+        x: 861
+        y: 565
+        width: 397
+        height: 397
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: fe550eae9d1205750800000000000000
+      internalID: 6291565899268773359
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Skill_Silver_9
+      rect:
+        serializedVersion: 2
+        x: 1258
+        y: 565
+        width: 397
+        height: 397
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: e09508516453118c0800000000000000
+      internalID: -4030381616395167474
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Skill_Silver_10
+      rect:
+        serializedVersion: 2
+        x: 1655
+        y: 565
+        width: 397
+        height: 397
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: af76bd63045ff2450800000000000000
+      internalID: 6066336879238408186
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Skill_Silver_11
+      rect:
+        serializedVersion: 2
+        x: 2052
+        y: 565
+        width: 397
+        height: 397
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 7a818792728405970800000000000000
+      internalID: 8741566209762793639
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Skill_Silver_12
+      rect:
+        serializedVersion: 2
+        x: 67
+        y: 168
+        width: 397
+        height: 397
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 2043bdcc83c430b70800000000000000
+      internalID: 8864012298434065410
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Skill_Silver_13
+      rect:
+        serializedVersion: 2
+        x: 464
+        y: 168
+        width: 397
+        height: 397
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: e019e864cfd9648c0800000000000000
+      internalID: -4015348310913150706
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Skill_Silver_14
+      rect:
+        serializedVersion: 2
+        x: 861
+        y: 168
+        width: 397
+        height: 397
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: c5895b3e7eadd4180800000000000000
+      internalID: -9129400180117497764
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: a41db47101835dc45ad79047cd647a1c
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries:
+      - key: SpriteEditor.SliceSettings
+        value: '{"sliceOnImport":false,"gridCellCount":{"x":1.0,"y":1.0},"gridSpriteSize":{"x":397.0,"y":397.0},"gridSpriteOffset":{"x":67.0,"y":369.0},"gridSpritePadding":{"x":0.0,"y":0.0},"pivot":{"x":0.5,"y":0.5},"pivotPixels":{"x":0.0,"y":0.0},"autoSlicingMethod":0,"spriteAlignment":0,"pivotUnitMode":0,"slicingType":1,"keepEmptyRects":false,"isAlternate":false}'
+    nameFileIdTable:
+      Skill_Silver_0: 2555786686673327811
+      Skill_Silver_1: -2663646964086750585
+      Skill_Silver_10: 6066336879238408186
+      Skill_Silver_11: 8741566209762793639
+      Skill_Silver_12: 8864012298434065410
+      Skill_Silver_13: -4015348310913150706
+      Skill_Silver_14: -9129400180117497764
+      Skill_Silver_2: -6061608243989626836
+      Skill_Silver_3: -8459403705366533286
+      Skill_Silver_4: -5238480137863074562
+      Skill_Silver_5: 4947782767623223046
+      Skill_Silver_6: -4236719958431771925
+      Skill_Silver_7: -1797581925943563314
+      Skill_Silver_8: 6291565899268773359
+      Skill_Silver_9: -4030381616395167474
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

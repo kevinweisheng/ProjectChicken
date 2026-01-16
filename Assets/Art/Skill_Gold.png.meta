@@ -1,0 +1,509 @@
+fileFormatVersion: 2
+guid: 0b121fd2f61f3ae469d49531727bd66a
+TextureImporter:
+  internalIDToNameTable:
+  - first:
+      213: 5433598066260371475
+    second: Skill_Gold_0
+  - first:
+      213: -4723887356875273998
+    second: Skill_Gold_1
+  - first:
+      213: 6181279283831514432
+    second: Skill_Gold_2
+  - first:
+      213: 2205199796532015361
+    second: Skill_Gold_3
+  - first:
+      213: -7666484974716347519
+    second: Skill_Gold_4
+  - first:
+      213: -8348734880986576576
+    second: Skill_Gold_5
+  - first:
+      213: 3927112188781158364
+    second: Skill_Gold_6
+  - first:
+      213: -3876974971061457481
+    second: Skill_Gold_7
+  - first:
+      213: 2378121779852781931
+    second: Skill_Gold_8
+  - first:
+      213: 8624236657022484728
+    second: Skill_Gold_9
+  - first:
+      213: 3532663566643899854
+    second: Skill_Gold_10
+  - first:
+      213: 2282338314709696735
+    second: Skill_Gold_11
+  - first:
+      213: -4748414587033599715
+    second: Skill_Gold_12
+  - first:
+      213: 8925567840631832223
+    second: Skill_Gold_13
+  - first:
+      213: 4139249836119925685
+    second: Skill_Gold_14
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 1
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 1
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 100
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: Skill_Gold_0
+      rect:
+        serializedVersion: 2
+        x: 67
+        y: 962
+        width: 397
+        height: 397
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 318e2bf17a4086b40800000000000000
+      internalID: 5433598066260371475
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Skill_Gold_1
+      rect:
+        serializedVersion: 2
+        x: 464
+        y: 962
+        width: 397
+        height: 397
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 2f88d762a71617eb0800000000000000
+      internalID: -4723887356875273998
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Skill_Gold_2
+      rect:
+        serializedVersion: 2
+        x: 861
+        y: 962
+        width: 397
+        height: 397
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 045224242c058c550800000000000000
+      internalID: 6181279283831514432
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Skill_Gold_3
+      rect:
+        serializedVersion: 2
+        x: 1258
+        y: 962
+        width: 397
+        height: 397
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 101fd0308817a9e10800000000000000
+      internalID: 2205199796532015361
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Skill_Gold_4
+      rect:
+        serializedVersion: 2
+        x: 1655
+        y: 962
+        width: 397
+        height: 397
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 18b9926c88c2b9590800000000000000
+      internalID: -7666484974716347519
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Skill_Gold_5
+      rect:
+        serializedVersion: 2
+        x: 2052
+        y: 962
+        width: 397
+        height: 397
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 049c1e6fbd5532c80800000000000000
+      internalID: -8348734880986576576
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Skill_Gold_6
+      rect:
+        serializedVersion: 2
+        x: 67
+        y: 565
+        width: 397
+        height: 397
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: cdf586d9ab7ef7630800000000000000
+      internalID: 3927112188781158364
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Skill_Gold_7
+      rect:
+        serializedVersion: 2
+        x: 464
+        y: 565
+        width: 397
+        height: 397
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 7bd2dce0ec7323ac0800000000000000
+      internalID: -3876974971061457481
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Skill_Gold_8
+      rect:
+        serializedVersion: 2
+        x: 861
+        y: 565
+        width: 397
+        height: 397
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: b69aeb0b829c00120800000000000000
+      internalID: 2378121779852781931
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Skill_Gold_9
+      rect:
+        serializedVersion: 2
+        x: 1258
+        y: 565
+        width: 397
+        height: 397
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 8f04ab0eb817fa770800000000000000
+      internalID: 8624236657022484728
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Skill_Gold_10
+      rect:
+        serializedVersion: 2
+        x: 1655
+        y: 565
+        width: 397
+        height: 397
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: ecd26c80cca860130800000000000000
+      internalID: 3532663566643899854
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Skill_Gold_11
+      rect:
+        serializedVersion: 2
+        x: 2052
+        y: 565
+        width: 397
+        height: 397
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: fd00989da9e7caf10800000000000000
+      internalID: 2282338314709696735
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Skill_Gold_12
+      rect:
+        serializedVersion: 2
+        x: 67
+        y: 168
+        width: 397
+        height: 397
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: d11449d571e3a1eb0800000000000000
+      internalID: -4748414587033599715
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Skill_Gold_13
+      rect:
+        serializedVersion: 2
+        x: 464
+        y: 168
+        width: 397
+        height: 397
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: b2577c3dbe201124794f7d564ac93f1c
+      internalID: 8925567840631832223
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Skill_Gold_14
+      rect:
+        serializedVersion: 2
+        x: 861
+        y: 168
+        width: 397
+        height: 397
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 94d059a0806783a4ea71ed5b06417dee
+      internalID: 4139249836119925685
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: bb972218510cc4d41b1ae34fc2f7fdb7
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries:
+      - key: SpriteEditor.SliceSettings
+        value: '{"sliceOnImport":false,"gridCellCount":{"x":1.0,"y":1.0},"gridSpriteSize":{"x":397.0,"y":397.0},"gridSpriteOffset":{"x":67.0,"y":369.0},"gridSpritePadding":{"x":0.0,"y":0.0},"pivot":{"x":0.5,"y":0.5},"pivotPixels":{"x":0.0,"y":0.0},"autoSlicingMethod":0,"spriteAlignment":0,"pivotUnitMode":0,"slicingType":1,"keepEmptyRects":false,"isAlternate":false}'
+    nameFileIdTable:
+      Skill_Gold_0: 5433598066260371475
+      Skill_Gold_1: -4723887356875273998
+      Skill_Gold_10: 3532663566643899854
+      Skill_Gold_11: 2282338314709696735
+      Skill_Gold_12: -4748414587033599715
+      Skill_Gold_13: 8925567840631832223
+      Skill_Gold_14: 4139249836119925685
+      Skill_Gold_2: 6181279283831514432
+      Skill_Gold_3: 2205199796532015361
+      Skill_Gold_4: -7666484974716347519
+      Skill_Gold_5: -8348734880986576576
+      Skill_Gold_6: 3927112188781158364
+      Skill_Gold_7: -3876974971061457481
+      Skill_Gold_8: 2378121779852781931
+      Skill_Gold_9: 8624236657022484728
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

@@ -25,6 +25,10 @@ namespace ProjectChicken.UI
         [SerializeField] private GameObject lockCover; // 遮罩物体（用于显示"未解锁"状态）
         [SerializeField] private TMP_Text statusText; // 状态文本（可选，显示"已拥有"等）
 
+        [Header("图标配置")]
+        [Tooltip("满级时的图标 Sprite（如果设置，满级时会切换到此图标）")]
+        [SerializeField] private Sprite maxLevelIconSprite; // 满级时的图标
+
         [Header("颜色配置")]
         [SerializeField] private Color normalColor = Color.white; // 正常颜色
         [SerializeField] private Color disabledColor = Color.gray; // 禁用颜色
@@ -273,10 +277,19 @@ namespace ProjectChicken.UI
                 lockCover.SetActive(false);
             }
 
-            // 设置颜色为已解锁颜色（满级状态）
+            // 如果指定了满级图标，切换图标
             if (iconImage != null)
             {
-                iconImage.color = unlockedColor;
+                if (maxLevelIconSprite != null)
+                {
+                    iconImage.sprite = maxLevelIconSprite;
+                    iconImage.color = Color.white; // 使用 Sprite 的原始颜色
+                }
+                else
+                {
+                    // 如果没有指定满级图标，使用颜色变化
+                    iconImage.color = unlockedColor;
+                }
             }
         }
 
@@ -302,9 +315,14 @@ namespace ProjectChicken.UI
                 lockCover.SetActive(false);
             }
 
-            // 设置正常颜色
+            // 恢复普通图标（如果之前切换到了满级图标）
             if (iconImage != null)
             {
+                // 如果当前使用的是满级图标，恢复为普通图标
+                if (maxLevelIconSprite != null && iconImage.sprite == maxLevelIconSprite && targetSkill != null)
+                {
+                    iconImage.sprite = targetSkill.Icon;
+                }
                 iconImage.color = normalColor;
             }
         }
@@ -331,9 +349,14 @@ namespace ProjectChicken.UI
                 lockCover.SetActive(true);
             }
 
-            // 设置灰色
+            // 恢复普通图标（如果之前切换到了满级图标）
             if (iconImage != null)
             {
+                // 如果当前使用的是满级图标，恢复为普通图标
+                if (maxLevelIconSprite != null && iconImage.sprite == maxLevelIconSprite && targetSkill != null)
+                {
+                    iconImage.sprite = targetSkill.Icon;
+                }
                 iconImage.color = disabledColor;
             }
         }

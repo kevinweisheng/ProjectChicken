@@ -12,20 +12,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b90188f1ca604af43b6d2d397acd9fff, type: 3}
   m_Name: System_RoundTime_1
   m_EditorClassIdentifier: Assembly-CSharp::ProjectChicken.Systems.SkillTree.SkillNodeData
-  id: 10003
-  icon: {fileID: 0}
-  displayName: "\u63D0\u5347\u9EC4\u91D1\u9E21\u8BDE\u751F\u6982\u7387"
-  description: 
+  id: 10015
+  icon: {fileID: 8741566209762793639, guid: cf546b2d04b25104bb8fdc13e6049edf, type: 3}
+  displayName: "\u56DE\u5408\u65F6\u95F4"
+  description: "\u56DE\u5408\u65F6\u95F4\u589E\u52A0\uFF1A\n+5s"
   prerequisite: {fileID: 0}
-  effectType: 9
+  prerequisites: []
+  effectType: 3
   levels:
-  - cost: 1
-    effectValue: 10
-  - cost: 1
-    effectValue: 10
-  - cost: 1
-    effectValue: 10
-  - cost: 1
-    effectValue: 10
-  - cost: 1
-    effectValue: 10
+  - cost: 10000
+    effectValue: 5
+  - cost: 20000
+    effectValue: 5
+  - cost: 30000
+    effectValue: 5

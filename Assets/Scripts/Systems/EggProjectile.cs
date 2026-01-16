@@ -8,12 +8,18 @@ namespace ProjectChicken.Systems
     /// </summary>
     public class EggProjectile : MonoBehaviour
     {
+        [Header("移动配置")]
         [SerializeField] private float moveSpeed = 5f; // 移动速度
         [SerializeField] private float arrivalDistance = 0.1f; // 到达判定距离
+        
+        [Header("美术素材")]
+        [SerializeField] private Sprite normalEggSprite; // 普通蛋的 Sprite（可选，如果不设置则使用默认）
+        [SerializeField] private Sprite goldenEggSprite; // 金蛋的 Sprite（可选，如果不设置则使用颜色变化）
 
         private Vector3 targetPosition; // 目标位置
         private bool isInitialized = false; // 是否已初始化
         private bool isGoldenEgg = false; // 是否为金蛋
+        private SpriteRenderer spriteRenderer; // SpriteRenderer 组件缓存
 
         /// <summary>
         /// 初始化投射物
@@ -26,11 +32,38 @@ namespace ProjectChicken.Systems
             isGoldenEgg = golden;
             isInitialized = true;
 
-            // 如果是金蛋，可以改变视觉外观（例如改变颜色为金色）
-            SpriteRenderer spriteRenderer = GetComponent<SpriteRenderer>();
-            if (spriteRenderer != null && golden)
+            // 获取或缓存 SpriteRenderer 组件
+            if (spriteRenderer == null)
             {
-                spriteRenderer.color = Color.yellow; // 金色
+                spriteRenderer = GetComponent<SpriteRenderer>();
+            }
+
+            // 根据是否为金蛋设置视觉外观
+            if (spriteRenderer != null)
+            {
+                if (golden)
+                {
+                    // 如果指定了金蛋 Sprite，使用 Sprite 替换
+                    if (goldenEggSprite != null)
+                    {
+                        spriteRenderer.sprite = goldenEggSprite;
+                        spriteRenderer.color = Color.white; // 使用 Sprite 时保持白色，显示原始颜色
+                    }
+                    else
+                    {
+                        // 如果没有指定金蛋 Sprite，则使用颜色变化（向后兼容）
+                        spriteRenderer.color = Color.yellow; // 金色
+                    }
+                }
+                else
+                {
+                    // 普通蛋：如果指定了普通蛋 Sprite，使用它
+                    if (normalEggSprite != null)
+                    {
+                        spriteRenderer.sprite = normalEggSprite;
+                    }
+                    spriteRenderer.color = Color.white; // 普通蛋保持白色
+                }
             }
         }
 
@@ -91,15 +124,15 @@ namespace ProjectChicken.Systems
                 Debug.LogWarning("EggProjectile: ResourceManager.Instance 为空！无法增加鸡蛋。");
             }
 
-            // 检查是否触发回合时间延长
-            if (UpgradeManager.Instance != null && GameManager.Instance != null)
+            // 检查是否触发引力波（鸡生蛋时，有概率让回合时间增加）
+            if (UpgradeManager.Instance != null && GameManager.Instance != null && UpgradeManager.Instance.IsGravityWaveUnlocked)
             {
-                float eggTimeExtensionChance = UpgradeManager.Instance.EggTimeExtensionChance;
-                if (eggTimeExtensionChance > 0f && UnityEngine.Random.value < eggTimeExtensionChance)
+                float gravityWaveChance = UpgradeManager.Instance.GravityWaveChance;
+                if (gravityWaveChance > 0f && UnityEngine.Random.value < gravityWaveChance)
                 {
-                    float extensionAmount = UpgradeManager.Instance.EggTimeExtensionAmount;
+                    float extensionAmount = UpgradeManager.Instance.GravityWaveTimeExtension;
                     GameManager.Instance.ExtendSessionTime(extensionAmount);
-                    Debug.Log($"EggProjectile: 触发回合时间延长！增加 {extensionAmount} 秒", this);
+                    Debug.Log($"EggProjectile: 触发引力波！增加 {extensionAmount} 秒回合时间", this);
                 }
             }
 

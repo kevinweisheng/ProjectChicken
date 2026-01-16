@@ -10,22 +10,15 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: b90188f1ca604af43b6d2d397acd9fff, type: 3}
-  m_Name: System_EggRoundTime_Unlock
+  m_Name: System_GravityWave_Unlock
   m_EditorClassIdentifier: Assembly-CSharp::ProjectChicken.Systems.SkillTree.SkillNodeData
-  id: 10003
-  icon: {fileID: 0}
-  displayName: "\u63D0\u5347\u9EC4\u91D1\u9E21\u8BDE\u751F\u6982\u7387"
-  description: 
+  id: 10013
+  icon: {fileID: 8864012298434065410, guid: cf546b2d04b25104bb8fdc13e6049edf, type: 3}
+  displayName: "\u5F15\u529B\u6CE2"
+  description: "\u73B0\u5728\u9E21\u4E0B\u86CB\u6709\u6982\u7387\u4EA7\u751F\u5F15\u529B\u6CE2\uFF0C\u56DE\u5408\u65F6\u95F4+0.2s"
   prerequisite: {fileID: 0}
-  effectType: 9
+  prerequisites: []
+  effectType: 15
   levels:
-  - cost: 1
-    effectValue: 10
-  - cost: 1
-    effectValue: 10
-  - cost: 1
-    effectValue: 10
-  - cost: 1
-    effectValue: 10
-  - cost: 1
-    effectValue: 10
+  - cost: 10000
+    effectValue: 1

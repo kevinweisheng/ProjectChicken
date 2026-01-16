@@ -208,8 +208,8 @@ namespace ProjectChicken.Units
                 }
             }
 
-            // 检查是否触发引力波
-            if (UpgradeManager.Instance != null)
+            // 检查是否触发引力波（需要先解锁）
+            if (UpgradeManager.Instance != null && UpgradeManager.Instance.IsGravityWaveUnlocked)
             {
                 float gravityWaveChance = UpgradeManager.Instance.GravityWaveChance;
                 if (gravityWaveChance > 0f && UnityEngine.Random.value < gravityWaveChance)
