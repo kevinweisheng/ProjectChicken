@@ -56,6 +56,11 @@ namespace ProjectChicken.Systems
         [Tooltip("摄像机平移限制（+/- X 和 Y）")]
         [SerializeField] private Vector2 movementBounds = Vector2.zero;
 
+        [Header("肥鸡生命值等级")]
+        [Tooltip("该场地等级对应的肥鸡生命值等级（0-5，共6个等级），用于匹配下蛋数量配置")]
+        [Range(0, 5)]
+        [SerializeField] private int chickenHealthLevel = 0;
+
         // 公共属性
         public string AreaName => areaName;
         public Vector2 AreaSize => areaSize;
@@ -68,6 +73,7 @@ namespace ProjectChicken.Systems
         public Vector2 MovementBounds => movementBounds;
         public Vector2 ChickenMovementAreaSize => chickenMovementAreaSize;
         public Vector2 ChickenMovementAreaCenter => chickenMovementAreaCenter;
+        public int ChickenHealthLevel => chickenHealthLevel;
     }
 }
 

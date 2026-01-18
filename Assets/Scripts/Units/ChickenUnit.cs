@@ -87,6 +87,19 @@ namespace ProjectChicken.Units
         public bool IsGolden => isGolden;
 
         /// <summary>
+        /// 设置最大生命值（供生成器调用，根据阶段等级设置）
+        /// </summary>
+        /// <param name="health">最大生命值</param>
+        public void SetMaxHP(float health)
+        {
+            if (health > 0f)
+            {
+                maxHP = health;
+                currentHP = maxHP; // 同时设置当前生命值为最大值
+            }
+        }
+
+        /// <summary>
         /// 设置是否为金鸡（供生成器调用）
         /// </summary>
         /// <param name="golden">是否为金鸡</param>
@@ -162,8 +175,8 @@ namespace ProjectChicken.Units
         private SpriteRenderer petAnimationRenderer = null; // 序列帧渲染器
         private Coroutine petAnimationCoroutine = null; // 序列帧动画协程
 
-        // 静态事件：当鸡产出时触发（传递位置信息）
-        public static event Action<Vector3> OnChickenProduct;
+        // 静态事件：当鸡产出时触发（传递位置信息和是否为金鸡）
+        public static event Action<Vector3, bool> OnChickenProduct;
 
         private void Start()
         {
@@ -311,7 +324,11 @@ namespace ProjectChicken.Units
                     recoveryTimer = 0f;
                     TryRecover();
                 }
-                // 瘦鸡状态下不执行其他行为
+                
+                // 瘦鸡也需要边界检测，防止跑出场地外
+                CheckAndAdjustBoundary();
+                
+                // 瘦鸡状态下不执行其他行为（不执行游荡和受击闪烁）
                 return;
             }
 
@@ -728,8 +745,8 @@ namespace ProjectChicken.Units
             // 播放下蛋特效
             PlayEggEffect();
 
-            // 触发静态事件，传递位置信息
-            OnChickenProduct?.Invoke(transform.position);
+            // 触发静态事件，传递位置信息和是否为金鸡
+            OnChickenProduct?.Invoke(transform.position, isGolden);
 
             // 切换状态为已产出
             isFat = false;
@@ -828,9 +845,10 @@ namespace ProjectChicken.Units
                 return;
             }
 
-            // 保存当前状态
+            // 保存当前状态（包括原始的最大生命值）
             Vector3 currentPosition = transform.position;
             bool wasGolden = isGolden;
+            float originalMaxHP = maxHP; // 保存原始的最大生命值（例如5），而不是预制体的默认值
 
             // 实例化瘦鸡预制体
             GameObject thinChicken = Instantiate(thinChickenPrefab, currentPosition, transform.rotation);
@@ -885,6 +903,11 @@ namespace ProjectChicken.Units
                 
                 // 同步金鸡状态
                 thinChickenUnit.SetGolden(wasGolden);
+                
+                // 同步最大生命值：使用原始肥鸡的最大生命值（例如5），而不是瘦鸡预制体的默认值
+                thinChickenUnit.SetMaxHP(originalMaxHP);
+                
+                Debug.Log($"ChickenUnit: 替换为瘦鸡时，将生命值设置为原始值 {originalMaxHP}（而不是瘦鸡预制体的默认值）", this);
                 
                 // 确保瘦鸡播放待机动画
                 var thinSkeletonAnimation = thinChicken.GetComponent<SkeletonAnimation>();
@@ -1040,9 +1063,12 @@ namespace ProjectChicken.Units
                         
                         if (fatChickenPrefab != null)
                         {
-                            // 保存当前状态
+                            // 保存当前状态（包括原始的最大生命值）
                             Vector3 currentPosition = transform.position;
                             bool wasGolden = isGolden;
+                            
+                            // 保存瘦鸡原来的最大生命值（应该在生成时通过 SetMaxHP 设置过）
+                            float originalMaxHP = maxHP;
                             
                             // 实例化肥鸡预制体
                             ChickenUnit fatChicken = Instantiate(fatChickenPrefab, currentPosition, transform.rotation);
@@ -1068,17 +1094,11 @@ namespace ProjectChicken.Units
                                     shouldPlaySpawnField.SetValue(fatChicken, true);
                                 }
                                 
-                                // 恢复血量
-                                var currentHPField = typeof(ChickenUnit).GetField("currentHP", 
-                                    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-                                var maxHPField = typeof(ChickenUnit).GetField("maxHP", 
-                                    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                                // 恢复血量：使用原来的最大生命值（而不是预制体的默认值）
+                                // 这样可以确保恢复后的鸡保持正确的生命值（例如5，而不是预制体的默认值100）
+                                fatChicken.SetMaxHP(originalMaxHP);
                                 
-                                if (currentHPField != null && maxHPField != null)
-                                {
-                                    float maxHP = (float)maxHPField.GetValue(fatChicken);
-                                    currentHPField.SetValue(fatChicken, maxHP);
-                                }
+                                Debug.Log($"ChickenUnit: 恢复肥鸡时，将生命值设置为原来的 {originalMaxHP}（而不是预制体的默认值）", this);
                                 
                                 // 将肥鸡添加到生成器列表中，并从列表中移除瘦鸡
                                 var spawnedChickensField = spawnerType.GetField("spawnedChickens", 

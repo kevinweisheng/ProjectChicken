@@ -54,6 +54,11 @@ namespace ProjectChicken.Systems
         [Tooltip("场地背景 Sprite（可选）。如果设置，将应用到 PlayArea 的 SpriteRenderer")]
         [SerializeField] private Sprite playAreaSprite;
 
+        [Header("肥鸡生命值等级")]
+        [Tooltip("该阶段对应的肥鸡生命值等级（0-5，共6个等级）")]
+        [Range(0, 5)]
+        [SerializeField] private int chickenHealthLevel = 0;
+
         // 公共属性（只读）
         public string StageName => stageName;
         public StageTransitionType TransitionType => transitionType;
@@ -65,6 +70,7 @@ namespace ProjectChicken.Systems
         public Vector2 PlayAreaSize => playAreaSize;
         public Vector2 PlayAreaCenter => playAreaCenter;
         public Sprite PlayAreaSprite => playAreaSprite;
+        public int ChickenHealthLevel => chickenHealthLevel;
     }
 }
 

@@ -4,6 +4,7 @@ using UnityEngine.EventSystems;
 using UnityEngine.Events;
 using TMPro;
 using System;
+using System.Collections.Generic;
 using ProjectChicken.Systems.SkillTree;
 using ProjectChicken.Core;
 
@@ -17,6 +18,10 @@ namespace ProjectChicken.UI
     {
         [Header("技能数据")]
         [SerializeField] private SkillNodeData targetSkill; // 该按钮对应的技能数据
+        
+        [Header("父子关系（自动配置）")]
+        [Tooltip("该技能槽位的前置技能槽位列表（根据 SkillNodeData 的购买条件自动设置，也可手动调整）")]
+        public List<SkillSlotUI> parentSlots = new List<SkillSlotUI>(); // 前置技能槽位列表
 
         [Header("UI组件引用")]
         [SerializeField] private Button buttonComp; // 自身的 Button 组件
@@ -37,6 +42,67 @@ namespace ProjectChicken.UI
         [Header("悬停事件")]
         [SerializeField] private UnityEvent<SkillNodeData> OnHoverEnter; // 鼠标进入事件
         [SerializeField] private UnityEvent<SkillNodeData> OnHoverExit; // 鼠标离开事件
+
+        /// <summary>
+        /// 编辑器模式下：当Inspector中的字段改变时自动调用（用于在编辑时刷新图标显示）
+        /// </summary>
+        private void OnValidate()
+        {
+            // 只在编辑模式下执行，且不运行游戏时
+            if (!Application.isPlaying)
+            {
+                // 确保组件已初始化
+                InitializeComponents();
+                // 刷新图标显示（不依赖运行时系统）
+                RefreshDisplayInEditor();
+            }
+        }
+
+        /// <summary>
+        /// 编辑器模式下刷新显示（不依赖运行时系统）
+        /// </summary>
+        private void RefreshDisplayInEditor()
+        {
+            if (targetSkill == null)
+            {
+                return;
+            }
+
+            // 设置图标（在编辑模式下也显示）
+            if (iconImage != null && targetSkill.Icon != null)
+            {
+                iconImage.sprite = targetSkill.Icon;
+                // 在编辑模式下使用正常颜色
+                iconImage.color = normalColor;
+            }
+
+            // 隐藏文本（编辑模式下）
+            if (costText != null)
+            {
+                costText.gameObject.SetActive(false);
+            }
+            if (statusText != null)
+            {
+                statusText.gameObject.SetActive(false);
+            }
+
+            // 隐藏遮罩（编辑模式下）
+            if (lockCover != null)
+            {
+                lockCover.SetActive(false);
+            }
+        }
+
+        /// <summary>
+        /// 编辑器模式下：当组件首次添加到GameObject时调用（用于初始化显示）
+        /// </summary>
+        private void Reset()
+        {
+            // 确保组件引用已设置
+            InitializeComponents();
+            // 刷新显示
+            RefreshDisplayInEditor();
+        }
 
         private void Start()
         {
@@ -172,6 +238,22 @@ namespace ProjectChicken.UI
             bool canUnlock = CanUnlockSkill();
             bool hasEnoughMoney = HasEnoughMoney();
 
+            // 检查技能是否不可解锁（未解锁且前置条件不满足）
+            bool isSkillHidden = !isUnlocked && !canUnlock;
+
+            // 如果技能不可解锁，隐藏整个 GameObject
+            if (isSkillHidden)
+            {
+                gameObject.SetActive(false);
+                return;
+            }
+
+            // 确保 GameObject 可见
+            if (!gameObject.activeSelf)
+            {
+                gameObject.SetActive(true);
+            }
+
             // 更新价格和状态文本
             UpdateCostAndStatusText();
 
@@ -206,18 +288,45 @@ namespace ProjectChicken.UI
 
         /// <summary>
         /// 检查是否可以解锁技能（前置条件是否满足）
+        /// 只要任意一个前置技能已解锁（level > 0），就可以解锁当前技能
         /// </summary>
         /// <returns>是否可以解锁</returns>
         private bool CanUnlockSkill()
         {
-            if (targetSkill.Prerequisite == null)
+            if (UpgradeManager.Instance == null)
             {
-                // 没有前置技能，可以直接解锁
+                return false;
+            }
+
+            // 如果没有前置技能（既没有 Prerequisite 也没有 parentSlots），可以直接解锁
+            if (targetSkill.Prerequisite == null && (parentSlots == null || parentSlots.Count == 0))
+            {
                 return true;
             }
 
-            // 检查前置技能是否已解锁
-            return UpgradeManager.Instance.IsNodeUnlocked(targetSkill.Prerequisite);
+            // 优先检查 parentSlots 列表（手动配置的父子关系）
+            if (parentSlots != null && parentSlots.Count > 0)
+            {
+                foreach (SkillSlotUI parentSlot in parentSlots)
+                {
+                    if (parentSlot != null && parentSlot.TargetSkill != null)
+                    {
+                        // 只要任意一个父技能已解锁（level > 0），就可以解锁当前技能
+                        if (UpgradeManager.Instance.IsNodeUnlocked(parentSlot.TargetSkill))
+                        {
+                            return true;
+                        }
+                    }
+                }
+            }
+
+            // 回退检查 Prerequisite（单个前置技能）
+            if (targetSkill.Prerequisite != null)
+            {
+                return UpgradeManager.Instance.IsNodeUnlocked(targetSkill.Prerequisite);
+            }
+
+            return false;
         }
 
         /// <summary>
@@ -398,6 +507,12 @@ namespace ProjectChicken.UI
             {
                 // 升级成功，立即刷新UI状态
                 UpdateUIState();
+                
+                // 刷新所有技能槽位的UI（以便子技能能立即检测到父技能已解锁）
+                if (SkillTreePanel.Instance != null)
+                {
+                    SkillTreePanel.Instance.RefreshAllSkillSlots();
+                }
                 
                 // 可以在这里添加音效、特效等反馈
                 Debug.Log($"SkillSlotUI: 成功升级技能 {targetSkill.DisplayName} 到等级 {currentLevel + 1}！");

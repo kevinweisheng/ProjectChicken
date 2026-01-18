@@ -14,14 +14,16 @@ namespace ProjectChicken.Systems
 
         [Header("生成配置")]
         [SerializeField] private ChickenUnit chickenPrefab; // 鸡的预制体
-        [SerializeField] private int baseInitialChickenCount = 5; // 基础初始鸡数量（回合开始时生成的数量）
-        [SerializeField] private int baseMaxChickens = 10; // 基础最大鸡数量（可通过技能提升，用于分裂功能上限）
+        [SerializeField] private GameConfig gameConfig; // 游戏配置（从 GameConfig 读取初始鸡数量等）
+
+        [Header("生命值配置")]
+        [SerializeField] private ChickenHealthConfig healthConfig; // 普通鸡生命值配置（6个等级的生命值）
+        [SerializeField] private GoldenChickenHealthConfig goldenChickenHealthConfig; // 金鸡生命值配置（6个等级的生命值）
 
         [Header("生成范围")]
         [SerializeField] private float spawnPadding = 1f; // 生成边界内边距（避免在屏幕边缘生成）
 
         private Camera mainCamera; // 主摄像机
-        private bool hasSpawnedInitialChickens = false; // 是否已经生成初始鸡（防止重复生成）
         
         // 跟踪所有生成的鸡（用于清理）
         private List<ChickenUnit> spawnedChickens = new List<ChickenUnit>();
@@ -85,22 +87,16 @@ namespace ProjectChicken.Systems
             switch (newState)
             {
                 case GameState.Playing:
-                    // 游戏开始时，确保清除旧状态并生成初始数量的鸡
-                    // 重置生成标志，确保每次进入 Playing 状态都会生成新鸡
-                    hasSpawnedInitialChickens = false;
-                    
-                    // 生成初始数量的鸡
+                    // 游戏开始时，生成初始数量的鸡
                     SpawnInitialChickens();
-                    hasSpawnedInitialChickens = true;
                     Debug.Log("ChickenSpawner: 游戏开始，已生成初始鸡", this);
                     break;
 
                 case GameState.Preparation:
                 case GameState.GameOver:
-                    // 准备阶段或游戏结束，重置生成标志
+                    // 准备阶段或游戏结束
                     // 注意：鸡的清除由 GameManager.ClearRoundState() 处理
-                    hasSpawnedInitialChickens = false;
-                    Debug.Log($"ChickenSpawner: 状态为 {newState}，重置生成标志", this);
+                    Debug.Log($"ChickenSpawner: 状态为 {newState}", this);
                     break;
             }
         }
@@ -116,22 +112,98 @@ namespace ProjectChicken.Systems
                 return;
             }
 
-            // 计算初始鸡数量：基础值 + 技能加成
-            int initialCount = baseInitialChickenCount;
-            if (UpgradeManager.Instance != null)
-            {
-                initialCount += UpgradeManager.Instance.ExtraInitialChickens;
-            }
+            // 计算初始鸡数量：从 GameConfig 读取基础值 + 技能加成
+            int baseInitialChickenCount = gameConfig != null ? gameConfig.InitialChickenCount : 5;
+            int extraInitialChickens = UpgradeManager.Instance != null ? UpgradeManager.Instance.ExtraInitialChickens : 0;
+            int initialCount = baseInitialChickenCount + extraInitialChickens;
 
-            Debug.Log($"ChickenSpawner: 开始生成 {initialCount} 只初始鸡", this);
+            Debug.Log($"ChickenSpawner: 开始生成初始鸡 - 基础值: {baseInitialChickenCount}, 技能加成: {extraInitialChickens}, 总计: {initialCount}", this);
 
-            // 生成指定数量的鸡
+            // 生成指定数量的鸡，并收集生成的鸡列表
+            List<ChickenUnit> generatedChickens = new List<ChickenUnit>();
+            int initialSpawnedCount = spawnedChickens.Count;
+            
             for (int i = 0; i < initialCount; i++)
             {
                 SpawnChicken();
             }
+            
+            // 收集刚刚生成的鸡（从上次的计数位置到现在的列表末尾）
+            for (int i = initialSpawnedCount; i < spawnedChickens.Count; i++)
+            {
+                if (spawnedChickens[i] != null)
+                {
+                    generatedChickens.Add(spawnedChickens[i]);
+                }
+            }
+
+            // 确保至少有一只金鸡（如果解锁了金鸡技能）
+            EnsureAtLeastOneGoldenChicken(generatedChickens);
 
             Debug.Log($"ChickenSpawner: 已生成 {initialCount} 只初始鸡", this);
+        }
+
+        /// <summary>
+        /// 确保初始生成的鸡中至少有一只金鸡（如果解锁了金鸡技能）
+        /// </summary>
+        /// <param name="chickens">生成的鸡列表</param>
+        private void EnsureAtLeastOneGoldenChicken(List<ChickenUnit> chickens)
+        {
+            // 检查是否解锁了金鸡技能
+            if (UpgradeManager.Instance == null || !UpgradeManager.Instance.IsGoldenChickenUnlocked)
+            {
+                // 如果未解锁金鸡技能，不需要确保金鸡
+                return;
+            }
+
+            if (chickens == null || chickens.Count == 0)
+            {
+                return;
+            }
+
+            // 检查是否已经有金鸡
+            bool hasGoldenChicken = false;
+            foreach (ChickenUnit chicken in chickens)
+            {
+                if (chicken != null && chicken.IsGolden)
+                {
+                    hasGoldenChicken = true;
+                    break;
+                }
+            }
+
+            // 如果没有金鸡，随机选择一只普通鸡变成金鸡
+            if (!hasGoldenChicken)
+            {
+                // 收集所有普通鸡
+                List<ChickenUnit> normalChickens = new List<ChickenUnit>();
+                foreach (ChickenUnit chicken in chickens)
+                {
+                    if (chicken != null && !chicken.IsGolden)
+                    {
+                        normalChickens.Add(chicken);
+                    }
+                }
+
+                // 随机选择一只普通鸡变成金鸡
+                if (normalChickens.Count > 0)
+                {
+                    int randomIndex = Random.Range(0, normalChickens.Count);
+                    ChickenUnit selectedChicken = normalChickens[randomIndex];
+                    
+                    // 将该鸡设置为金鸡
+                    selectedChicken.SetGolden(true);
+                    
+                    // 重新设置生命值（使用金鸡的生命值配置）
+                    SetChickenHealthByStage(selectedChicken, true);
+                    
+                    Debug.Log($"ChickenSpawner: 为了确保至少有一只金鸡，将一只普通鸡转换为金鸡", this);
+                }
+                else
+                {
+                    Debug.LogWarning("ChickenSpawner: 无法找到普通鸡转换为金鸡！", this);
+                }
+            }
         }
 
         /// <summary>
@@ -141,6 +213,7 @@ namespace ProjectChicken.Systems
         public bool CanSpawnMore()
         {
             int currentFatChickens = CountFatChickens();
+            int baseMaxChickens = gameConfig != null ? gameConfig.BaseMaxChickens : 10;
             int maxChickens = baseMaxChickens;
             if (UpgradeManager.Instance != null)
             {
@@ -172,7 +245,11 @@ namespace ProjectChicken.Systems
             if (newChicken != null)
             {
                 // 分裂生成的鸡继承原鸡的类型（普通鸡）
-                newChicken.SetGolden(false);
+                bool isGolden = false;
+                newChicken.SetGolden(isGolden);
+                
+                // 根据当前阶段的生命值等级设置鸡的生命值
+                SetChickenHealthByStage(newChicken, isGolden);
                 
                 // 为每只新生成的鸡分配唯一的排序偏移（每只鸡 +1）
                 newChicken.SetUniqueSortingOffset(sortingOrderCounter++);
@@ -218,9 +295,12 @@ namespace ProjectChicken.Systems
             // 添加到生成列表中（用于后续清理）
             if (newChicken != null)
             {
-                // 根据金鸡生成率决定是否生成金鸡
+                // 根据金鸡生成率决定是否生成金鸡（需要在设置生命值之前确定类型）
                 bool isGolden = ShouldSpawnGoldenChicken();
                 newChicken.SetGolden(isGolden);
+                
+                // 根据当前阶段的生命值等级和鸡的类型设置鸡的生命值
+                SetChickenHealthByStage(newChicken, isGolden);
                 
                 // 为每只新生成的鸡分配唯一的排序偏移（每只鸡 +1）
                 newChicken.SetUniqueSortingOffset(sortingOrderCounter++);
@@ -234,6 +314,71 @@ namespace ProjectChicken.Systems
         }
 
         /// <summary>
+        /// 根据当前阶段的生命值等级和鸡的类型设置鸡的生命值
+        /// </summary>
+        /// <param name="chicken">鸡单位</param>
+        /// <param name="isGolden">是否为金鸡</param>
+        private void SetChickenHealthByStage(ChickenUnit chicken, bool isGolden)
+        {
+            if (chicken == null)
+            {
+                return; // 如果鸡为空，使用默认生命值
+            }
+
+            // 获取当前阶段的生命值等级
+            int healthLevel = 0; // 默认等级0
+            
+            if (FractalUniverseManager.Instance != null && FractalUniverseManager.Instance.CurrentStage != null)
+            {
+                healthLevel = FractalUniverseManager.Instance.CurrentStage.ChickenHealthLevel;
+            }
+
+            float health = 0f;
+            string chickenType = isGolden ? "金鸡" : "普通鸡";
+
+            // 根据鸡的类型选择不同的配置
+            if (isGolden)
+            {
+                // 使用金鸡生命值配置
+                if (goldenChickenHealthConfig != null)
+                {
+                    health = goldenChickenHealthConfig.GetHealthByLevel(healthLevel);
+                }
+                else
+                {
+                    // 如果没有配置金鸡生命值，使用普通鸡配置的1.5倍（默认值）
+                    if (healthConfig != null)
+                    {
+                        health = healthConfig.GetHealthByLevel(healthLevel) * 1.5f;
+                    }
+                    else
+                    {
+                        health = 150f; // 最终默认值
+                    }
+                    Debug.LogWarning($"ChickenSpawner: 金鸡生命值配置未设置，使用默认值 {health}（普通鸡配置的1.5倍）", this);
+                }
+            }
+            else
+            {
+                // 使用普通鸡生命值配置
+                if (healthConfig != null)
+                {
+                    health = healthConfig.GetHealthByLevel(healthLevel);
+                }
+                else
+                {
+                    health = 100f; // 默认值
+                    Debug.LogWarning($"ChickenSpawner: 普通鸡生命值配置未设置，使用默认值 {health}", this);
+                }
+            }
+
+            // 设置生命值
+            chicken.SetMaxHP(health);
+            
+            Debug.Log($"ChickenSpawner: 设置{chickenType}的生命值为 {health}（等级 {healthLevel}）", this);
+        }
+
+        /// <summary>
         /// 判断是否应该生成金鸡
         /// </summary>
         /// <returns>是否生成金鸡</returns>
@@ -244,6 +389,13 @@ namespace ProjectChicken.Systems
                 return false;
             }
 
+            // 只有解锁了金鸡生成能力才能生成金鸡
+            if (!UpgradeManager.Instance.IsGoldenChickenUnlocked)
+            {
+                return false;
+            }
+
+            // 根据生成率随机决定
             float spawnRate = UpgradeManager.Instance.GoldenChickenSpawnRate;
             return UnityEngine.Random.value < spawnRate;
         }
@@ -279,9 +431,6 @@ namespace ProjectChicken.Systems
                     destroyedCount++;
                 }
             }
-
-            // 重置生成标志，允许下一回合重新生成
-            hasSpawnedInitialChickens = false;
             
             // 重置排序顺序计数器（每回合重新计数）
             sortingOrderCounter = 0;

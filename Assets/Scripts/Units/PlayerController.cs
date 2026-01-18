@@ -119,6 +119,12 @@ namespace ProjectChicken.Units
         {
             if (mainCamera == null || !mainCamera.orthographic) return;
 
+            // 禁止在回合内使用滑轮进行缩放
+            if (GameManager.Instance != null && GameManager.Instance.CurrentState == GameState.Playing)
+            {
+                return; // 游戏进行中时禁用滑轮缩放
+            }
+
             // 检查是否有缩放约束
             if (_minZoom <= 0f && _maxZoom <= 0f)
             {
@@ -182,16 +188,13 @@ namespace ProjectChicken.Units
             float currentDamage = GetCurrentDamage();
 
             // 检查是否触发暴击
-            bool isCrit = false;
             if (UpgradeManager.Instance != null)
             {
                 float critChance = UpgradeManager.Instance.CritChance;
                 if (critChance > 0f && UnityEngine.Random.value < critChance)
                 {
-                    isCrit = true;
                     float critMultiplier = UpgradeManager.Instance.CritMultiplier;
                     currentDamage *= critMultiplier;
-                    Debug.Log($"PlayerController: 触发暴击！伤害倍率：{critMultiplier}x，最终伤害：{currentDamage}", this);
                 }
             }
 
@@ -248,11 +251,6 @@ namespace ProjectChicken.Units
                     damageable.TakeDamage(gravityWaveDamage);
                     hitCount++;
                 }
-            }
-
-            if (hitCount > 0)
-            {
-                Debug.Log($"PlayerController: 触发引力波！范围：{gravityWaveRange}，伤害：{gravityWaveDamage}，命中：{hitCount} 个敌人", this);
             }
         }
 

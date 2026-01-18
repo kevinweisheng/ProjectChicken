@@ -20,6 +20,10 @@ namespace ProjectChicken.Core
         [SerializeField] private TMP_Text eggCountText; // 全局货币显示文本（TextMeshPro）
         [SerializeField] private TMP_Text sessionEggsText; // 局内分数显示文本（TextMeshPro，可选）
 
+        [Header("调试配置（仅在运行时可见）")]
+        [Tooltip("调试：设置总鸡蛋数量（仅在运行时可用）")]
+        [SerializeField] private int debugTotalEggs = 0;
+
         // 双货币系统
         private int totalGlobalEggs = 0; // 全局永久货币/仓库（跨局保存）
 
@@ -352,6 +356,49 @@ namespace ProjectChicken.Core
             }
             Debug.Log("ResourceManager: 游戏退出，已保存数据", this);
         }
+
+        /// <summary>
+        /// 设置总鸡蛋数量（调试用）
+        /// </summary>
+        /// <param name="amount">要设置的总鸡蛋数量</param>
+        public void SetTotalGlobalEggs(int amount)
+        {
+            if (amount < 0)
+            {
+                Debug.LogWarning($"ResourceManager: 尝试设置负数总鸡蛋数量 {amount}，将设置为 0", this);
+                amount = 0;
+            }
+
+            totalGlobalEggs = amount;
+            
+            // 立即保存
+            SaveGame();
+            
+            // 更新UI
+            UpdateUI();
+            
+            // 触发事件
+            OnGlobalEggsChanged?.Invoke(TotalGlobalEggs);
+            
+            Debug.Log($"ResourceManager: 调试 - 总鸡蛋数量已设置为 {amount}", this);
+        }
+
+        /// <summary>
+        /// 调试：应用Inspector中设置的总鸡蛋数量（仅在运行时可用）
+        /// </summary>
+        [ContextMenu("应用调试总鸡蛋数量")]
+        private void ApplyDebugTotalEggs()
+        {
+            if (Application.isPlaying)
+            {
+                SetTotalGlobalEggs(debugTotalEggs);
+            }
+            else
+            {
+                Debug.LogWarning("ResourceManager: 此功能仅在运行时可用！", this);
+            }
+        }
+
         
         /// <summary>
         /// 游戏暂停时（移动设备）立即保存

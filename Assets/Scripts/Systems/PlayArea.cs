@@ -379,7 +379,6 @@ namespace ProjectChicken.Systems
                 areaSize = sprite.bounds.size;
                 // 保持原始缩放
                 areaSpriteRenderer.transform.localScale = Vector3.one;
-                Debug.Log($"PlayArea: 根据 Sprite 自动设置场地大小为 {areaSize}", this);
             }
             // 如果禁用了自动大小，根据场地大小调整 Sprite 缩放
             else if (!autoSizeFromSprite && areaSpriteRenderer.sprite != null)
@@ -687,8 +686,6 @@ namespace ProjectChicken.Systems
 
             // 更新显示
             UpdateAreaSprite();
-
-            Debug.Log($"PlayArea: 已更新场地设置 - 大小: {areaSize}, 中心: {areaCenter}, 鸡活动范围: {ChickenMovementBounds.size}, Sprite: {(newSprite != null ? newSprite.name : "null")}", this);
         }
 
         /// <summary>

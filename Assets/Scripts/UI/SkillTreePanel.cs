@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.InputSystem;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using ProjectChicken.Core;
@@ -44,9 +45,182 @@ namespace ProjectChicken.UI
         [SerializeField] private Transform lineContainer; // 连线容器（用于存放所有连线）
         [SerializeField] private float lineWidth = 3f; // 连线宽度
 
+        [Header("缩放和拖拽系统")]
+        [SerializeField] private RectTransform skillTreeContent; // 技能树内容容器（用于缩放和拖拽）
+        [SerializeField] private float minScale = 0.5f; // 最小缩放比例
+        [SerializeField] private float maxScale = 2.0f; // 最大缩放比例
+        [SerializeField] private float zoomSpeed = 0.1f; // 缩放速度
+        [SerializeField] private float dragSpeed = 1.0f; // 拖拽速度
+
         private bool isVisible = false; // 当前是否可见
         private Dictionary<SkillNodeData, SkillSlotUI> skillSlotMap; // 技能数据到槽位的映射
         private Canvas canvas; // Canvas 引用（用于计算缩放）
+        
+        // 拖拽相关
+        private bool isDragging = false; // 是否正在拖拽
+        private Vector2 lastMousePosition; // 上次鼠标位置
+
+        /// <summary>
+        /// 编辑器模式下：当Inspector中的字段改变时自动调用（用于刷新连线显示）
+        /// </summary>
+        private void OnValidate()
+        {
+            // 只在编辑模式下执行，且不运行游戏时
+            if (!Application.isPlaying)
+            {
+                // 确保 Canvas 引用已获取
+                if (canvas == null)
+                {
+                    canvas = GetComponentInParent<Canvas>();
+                    if (canvas == null)
+                    {
+                        canvas = FindFirstObjectByType<Canvas>();
+                    }
+                }
+                
+                // 注意：不能在 OnValidate 中直接调用 DestroyImmediate
+                // 使用编辑器延迟回调来刷新连线
+                #if UNITY_EDITOR
+                UnityEditor.EditorApplication.delayCall += () =>
+                {
+                    if (this != null && !Application.isPlaying)
+                    {
+                        RefreshConnectionsInEditor();
+                    }
+                };
+                #endif
+            }
+        }
+
+        /// <summary>
+        /// 编辑器模式下刷新连线（右键菜单选项）
+        /// </summary>
+        [ContextMenu("刷新连线")]
+        private void RefreshConnectionsInEditor()
+        {
+            if (!Application.isPlaying)
+            {
+                // 编辑模式下也需要初始化 parentSlots，确保连线关系正确
+                InitializeSkillSlotsForEditor();
+                DrawConnections();
+            }
+        }
+
+        /// <summary>
+        /// 编辑器模式下自动配置所有 SkillSlotUI 的 parentSlots（右键菜单选项）
+        /// </summary>
+        [ContextMenu("自动配置父子关系")]
+        private void AutoConfigureParentSlots()
+        {
+            if (!Application.isPlaying)
+            {
+                InitializeSkillSlotsForEditor();
+                Debug.Log("SkillTreePanel: 已自动配置所有 SkillSlotUI 的 parentSlots。请在 Inspector 中查看 SkillSlotUI 组件确认。", this);
+            }
+            else
+            {
+                Debug.LogWarning("SkillTreePanel: 此功能仅在编辑模式下可用！", this);
+            }
+        }
+
+        /// <summary>
+        /// 编辑器模式下初始化技能槽位的 parentSlots（不依赖运行时系统）
+        /// </summary>
+        private void InitializeSkillSlotsForEditor()
+        {
+            #if UNITY_EDITOR
+            Dictionary<SkillNodeData, SkillSlotUI> localSkillSlotMap = new Dictionary<SkillNodeData, SkillSlotUI>();
+            SkillSlotUI[] skillSlots = GetComponentsInChildren<SkillSlotUI>(true);
+
+            Debug.Log($"SkillTreePanel: 开始初始化 {skillSlots.Length} 个技能槽位的父子关系", this);
+
+            // 第一遍：建立映射
+            foreach (SkillSlotUI slot in skillSlots)
+            {
+                if (slot != null)
+                {
+                    SkillNodeData skillData = slot.TargetSkill;
+                    if (skillData != null)
+                    {
+                        localSkillSlotMap[skillData] = slot;
+                    }
+                }
+            }
+
+            Debug.Log($"SkillTreePanel: 已建立 {localSkillSlotMap.Count} 个技能数据到槽位的映射", this);
+
+            int slotsConfigured = 0;
+            int totalParentSlotsAdded = 0;
+
+            // 第二遍：根据 SkillNodeData 的购买条件自动设置 parentSlots
+            foreach (SkillSlotUI slot in skillSlots)
+            {
+                if (slot != null)
+                {
+                    SkillNodeData skillData = slot.TargetSkill;
+                    if (skillData != null)
+                    {
+                        int beforeCount = slot.parentSlots.Count;
+                        
+                        // 清空现有的 parentSlots（如果之前手动配置过）
+                        slot.parentSlots.Clear();
+
+                        // 根据 SkillNodeData 的 prerequisite 设置父槽位
+                        if (skillData.Prerequisite != null)
+                        {
+                            if (localSkillSlotMap.TryGetValue(skillData.Prerequisite, out SkillSlotUI parentSlot))
+                            {
+                                if (!slot.parentSlots.Contains(parentSlot))
+                                {
+                                    slot.parentSlots.Add(parentSlot);
+                                    totalParentSlotsAdded++;
+                                }
+                            }
+                            else
+                            {
+                                Debug.LogWarning($"SkillTreePanel: 技能 {skillData.DisplayName} 的前置技能 {skillData.Prerequisite.DisplayName} 未在场景中找到对应的 SkillSlotUI", this);
+                            }
+                        }
+
+                        // 根据 SkillNodeData 的 prerequisites 列表设置父槽位
+                        if (skillData.Prerequisites != null && skillData.Prerequisites.Count > 0)
+                        {
+                            foreach (SkillNodeData prereq in skillData.Prerequisites)
+                            {
+                                if (prereq != null)
+                                {
+                                    if (localSkillSlotMap.TryGetValue(prereq, out SkillSlotUI parentSlot))
+                                    {
+                                        if (!slot.parentSlots.Contains(parentSlot))
+                                        {
+                                            slot.parentSlots.Add(parentSlot);
+                                            totalParentSlotsAdded++;
+                                        }
+                                    }
+                                    else
+                                    {
+                                        Debug.LogWarning($"SkillTreePanel: 技能 {skillData.DisplayName} 的前置技能 {prereq.DisplayName} 未在场景中找到对应的 SkillSlotUI", this);
+                                    }
+                                }
+                            }
+                        }
+
+                        // 标记对象为已修改，以便 Unity 保存更改并在 Inspector 中显示
+                        if (slot.parentSlots.Count != beforeCount)
+                        {
+                            UnityEditor.EditorUtility.SetDirty(slot);
+                            slotsConfigured++;
+                        }
+                    }
+                }
+            }
+
+            // 标记当前对象为已修改
+            UnityEditor.EditorUtility.SetDirty(this);
+
+            Debug.Log($"SkillTreePanel: 编辑器模式下已初始化 {slotsConfigured} 个技能槽位的父子关系，共添加 {totalParentSlotsAdded} 个父技能引用", this);
+            #endif
+        }
 
         private void Awake()
         {
@@ -103,6 +277,25 @@ namespace ProjectChicken.UI
                 canvas = FindFirstObjectByType<Canvas>();
             }
 
+            // 如果没有手动指定技能树内容容器，尝试自动查找（通常是第一个RectTransform子对象）
+            if (skillTreeContent == null)
+            {
+                skillTreeContent = GetComponent<RectTransform>();
+                // 或者查找第一个子对象的RectTransform
+                if (skillTreeContent != null && skillTreeContent.childCount > 0)
+                {
+                    Transform firstChild = skillTreeContent.GetChild(0);
+                    RectTransform childRect = firstChild.GetComponent<RectTransform>();
+                    if (childRect != null)
+                    {
+                        skillTreeContent = childRect;
+                    }
+                }
+            }
+
+            // 确保连线容器是技能树内容容器的子对象，这样连线才能跟随缩放和拖拽
+            EnsureLineContainerParentage();
+
             // 初始化技能槽位映射和订阅事件
             InitializeSkillSlots();
 
@@ -156,6 +349,13 @@ namespace ProjectChicken.UI
             {
                 Debug.Log($"SkillTreePanel: 检测到按键按下，切换面板显示状态。当前状态：{(isVisible ? "显示" : "隐藏")}", this);
                 TogglePanel();
+            }
+
+            // 如果面板可见，处理缩放和拖拽
+            if (isVisible)
+            {
+                HandleSkillTreeZoom();
+                HandleSkillTreeDrag();
             }
 
             // Tooltip 位置在显示时已确定，不需要每帧更新
@@ -243,8 +443,43 @@ namespace ProjectChicken.UI
                 Debug.LogWarning("SkillTreePanel: canvasGroup 为空，无法显示面板！", this);
             }
             
+            // 确保连线容器是激活的
+            if (lineContainer != null && !lineContainer.gameObject.activeSelf)
+            {
+                lineContainer.gameObject.SetActive(true);
+            }
+            
+            // 刷新所有技能槽位的UI状态（确保显示正确的解锁状态）
+            RefreshAllSkillSlots();
+            
+            // 强制更新 Canvas，确保所有 UI 状态已更新
+            Canvas.ForceUpdateCanvases();
+            
+            // 延迟一帧后重新绘制连线，确保所有技能槽位的状态已更新
+            if (Application.isPlaying)
+            {
+                StartCoroutine(DelayedDrawConnections());
+            }
+            else
+            {
+                // 编辑模式下直接绘制
+                DrawConnections();
+            }
+            
             // 更新剩余鸡蛋数显示
             UpdateEggsCountDisplay();
+        }
+
+        /// <summary>
+        /// 延迟绘制连线（确保技能槽位状态已更新）
+        /// </summary>
+        private IEnumerator DelayedDrawConnections()
+        {
+            // 等待一帧，确保所有技能槽位的 UpdateUIState() 已完成
+            yield return null;
+            
+            // 重新绘制连线
+            DrawConnections();
         }
 
         /// <summary>
@@ -339,6 +574,19 @@ namespace ProjectChicken.UI
         /// </summary>
         private void RefreshUI()
         {
+            RefreshAllSkillSlots();
+            
+            // 更新剩余鸡蛋数显示
+            UpdateEggsCountDisplay();
+
+            Debug.Log("SkillTreePanel: UI 已刷新", this);
+        }
+
+        /// <summary>
+        /// 刷新所有技能槽位的UI状态（供外部调用，例如技能升级后）
+        /// </summary>
+        public void RefreshAllSkillSlots()
+        {
             // 刷新所有技能按钮的 UI 状态
             SkillSlotUI[] skillSlots = GetComponentsInChildren<SkillSlotUI>(true);
             foreach (SkillSlotUI slot in skillSlots)
@@ -348,11 +596,6 @@ namespace ProjectChicken.UI
                     slot.RefreshUI();
                 }
             }
-            
-            // 更新剩余鸡蛋数显示
-            UpdateEggsCountDisplay();
-
-            Debug.Log("SkillTreePanel: UI 已刷新", this);
         }
 
         /// <summary>
@@ -378,24 +621,48 @@ namespace ProjectChicken.UI
                 if (ResourceManager.Instance != null)
                 {
                     int totalEggs = ResourceManager.Instance.TotalGlobalEggs;
-                    eggsCountText.text = $"剩余鸡蛋: {totalEggs}";
+                    eggsCountText.text = totalEggs.ToString();
                 }
                 else
                 {
-                    eggsCountText.text = "剩余鸡蛋: 0";
+                    eggsCountText.text = "0";
                     Debug.LogWarning("SkillTreePanel: ResourceManager.Instance 为空，无法读取剩余鸡蛋数！", this);
                 }
             }
         }
 
         /// <summary>
-        /// 初始化技能槽位：建立映射并订阅悬停事件
+        /// 确保连线容器是技能树内容容器的子对象，这样连线才能跟随缩放和拖拽
+        /// </summary>
+        private void EnsureLineContainerParentage()
+        {
+            if (skillTreeContent == null || lineContainer == null)
+            {
+                return; // 如果没有设置，无法处理
+            }
+
+            // 检查连线容器是否已经是技能树内容容器的子对象
+            if (lineContainer.parent != skillTreeContent)
+            {
+                // 如果不是，将其设置为子对象
+                lineContainer.SetParent(skillTreeContent, false); // false = 保持世界坐标位置不变
+                
+                // 设置连线容器在最底层（作为第一个子对象）
+                lineContainer.SetAsFirstSibling();
+                
+                Debug.Log("SkillTreePanel: 已将连线容器设置为技能树内容容器的子对象，连线现在会跟随缩放和拖拽", this);
+            }
+        }
+
+        /// <summary>
+        /// 初始化技能槽位：建立映射、自动设置父子关系并订阅悬停事件
         /// </summary>
         private void InitializeSkillSlots()
         {
             skillSlotMap = new Dictionary<SkillNodeData, SkillSlotUI>();
             SkillSlotUI[] skillSlots = GetComponentsInChildren<SkillSlotUI>(true);
 
+            // 第一遍：建立映射
             foreach (SkillSlotUI slot in skillSlots)
             {
                 if (slot != null)
@@ -404,6 +671,58 @@ namespace ProjectChicken.UI
                     if (skillData != null)
                     {
                         skillSlotMap[skillData] = slot;
+                    }
+                }
+            }
+
+            // 第二遍：根据 SkillNodeData 的购买条件自动设置 parentSlots
+            foreach (SkillSlotUI slot in skillSlots)
+            {
+                if (slot != null)
+                {
+                    SkillNodeData skillData = slot.TargetSkill;
+                    if (skillData != null)
+                    {
+                        // 清空现有的 parentSlots（如果之前手动配置过）
+                        slot.parentSlots.Clear();
+
+                        // 根据 SkillNodeData 的 prerequisite 设置父槽位
+                        if (skillData.Prerequisite != null)
+                        {
+                            if (skillSlotMap.TryGetValue(skillData.Prerequisite, out SkillSlotUI parentSlot))
+                            {
+                                if (!slot.parentSlots.Contains(parentSlot))
+                                {
+                                    slot.parentSlots.Add(parentSlot);
+                                }
+                            }
+                            else
+                            {
+                                Debug.LogWarning($"SkillTreePanel: 技能 {skillData.DisplayName} 的前置技能 {skillData.Prerequisite.DisplayName} 未在场景中找到对应的 SkillSlotUI", this);
+                            }
+                        }
+
+                        // 根据 SkillNodeData 的 prerequisites 列表设置父槽位
+                        if (skillData.Prerequisites != null && skillData.Prerequisites.Count > 0)
+                        {
+                            foreach (SkillNodeData prereq in skillData.Prerequisites)
+                            {
+                                if (prereq != null)
+                                {
+                                    if (skillSlotMap.TryGetValue(prereq, out SkillSlotUI parentSlot))
+                                    {
+                                        if (!slot.parentSlots.Contains(parentSlot))
+                                        {
+                                            slot.parentSlots.Add(parentSlot);
+                                        }
+                                    }
+                                    else
+                                    {
+                                        Debug.LogWarning($"SkillTreePanel: 技能 {skillData.DisplayName} 的前置技能 {prereq.DisplayName} 未在场景中找到对应的 SkillSlotUI", this);
+                                    }
+                                }
+                            }
+                        }
 
                         // 订阅悬停事件
                         SubscribeToHoverEvents(slot);
@@ -622,14 +941,20 @@ namespace ProjectChicken.UI
         }
 
         /// <summary>
-        /// 绘制连接线（根据 prerequisites）
+        /// 绘制连接线（根据 SkillSlotUI.parentSlots 手动引用）
         /// </summary>
         private void DrawConnections()
         {
-            if (linePrefab == null || lineContainer == null || skillSlotMap == null)
+            if (linePrefab == null || lineContainer == null)
             {
                 Debug.LogWarning("SkillTreePanel: 连线系统配置不完整，无法绘制连线", this);
                 return;
+            }
+
+            // 确保连线容器是激活的
+            if (lineContainer != null && !lineContainer.gameObject.activeSelf)
+            {
+                lineContainer.gameObject.SetActive(true);
             }
 
             // 清除现有连线
@@ -645,36 +970,187 @@ namespace ProjectChicken.UI
                 }
             }
 
-            // 为每个槽位绘制到其前置技能的连线
-            foreach (var kvp in skillSlotMap)
-            {
-                SkillNodeData childData = kvp.Key;
-                SkillSlotUI childSlot = kvp.Value;
+            // 获取所有技能槽位UI组件（包括隐藏的，用于检查连线关系）
+            SkillSlotUI[] allSkillSlots = GetComponentsInChildren<SkillSlotUI>(true);
 
-                if (childData.Prerequisites != null && childData.Prerequisites.Count > 0)
+            int linesCreated = 0;
+            int skippedHidden = 0;
+            int skippedNoParentSlots = 0;
+
+            // 遍历每个子槽位，为其绘制到所有父槽位的连线
+            foreach (SkillSlotUI childSlot in allSkillSlots)
+            {
+                if (childSlot == null)
                 {
-                    foreach (SkillNodeData prerequisiteData in childData.Prerequisites)
+                    continue;
+                }
+
+                if (childSlot.parentSlots == null || childSlot.parentSlots.Count == 0)
+                {
+                    skippedNoParentSlots++;
+                    continue;
+                }
+
+                // 编辑模式下：显示所有连线（不检查 activeInHierarchy）
+                // 运行时：只绘制可见的技能槽位之间的连线（检查 activeInHierarchy）
+                bool isEditorMode = !Application.isPlaying;
+                bool shouldDrawChild = isEditorMode || childSlot.gameObject.activeInHierarchy;
+
+                if (!shouldDrawChild)
+                {
+                    skippedHidden++;
+                    continue; // 运行时跳过隐藏的技能槽位
+                }
+
+                // 遍历该子槽位的所有父槽位
+                foreach (SkillSlotUI parentSlot in childSlot.parentSlots)
+                {
+                    if (parentSlot != null)
                     {
-                        if (prerequisiteData != null && skillSlotMap.ContainsKey(prerequisiteData))
+                        // 编辑模式下：显示所有连线（不检查 activeInHierarchy）
+                        // 运行时：只绘制可见的父技能槽位之间的连线（检查 activeInHierarchy）
+                        bool shouldDrawParent = isEditorMode || parentSlot.gameObject.activeInHierarchy;
+
+                        if (!shouldDrawParent)
                         {
-                            SkillSlotUI parentSlot = skillSlotMap[prerequisiteData];
-                            CreateLine(parentSlot.GetComponent<RectTransform>(), 
-                                      childSlot.GetComponent<RectTransform>(), 
-                                      linePrefab, 
-                                      lineContainer);
+                            skippedHidden++;
+                            continue; // 运行时跳过隐藏的父技能槽位
+                        }
+
+                        // 获取 RectTransform（如果不存在则跳过）
+                        RectTransform parentRect = parentSlot.GetComponent<RectTransform>();
+                        RectTransform childRect = childSlot.GetComponent<RectTransform>();
+
+                        if (parentRect == null || childRect == null)
+                        {
+                            Debug.LogWarning($"SkillTreePanel: 技能槽位缺少 RectTransform 组件。父: {parentSlot.name}, 子: {childSlot.name}", this);
+                            continue;
+                        }
+
+                        // 检查子槽位是否已解锁（用于设置线条颜色/材质）
+                        bool isUnlocked = IsSlotUnlocked(childSlot);
+                        
+                        // 创建连线
+                        CreateLine(
+                            parentRect, 
+                            childRect, 
+                            linePrefab, 
+                            lineContainer,
+                            isUnlocked
+                        );
+                        
+                        linesCreated++;
+                    }
+                }
+            }
+
+            Debug.Log($"SkillTreePanel: 绘制连线完成，共创建 {linesCreated} 条连线（编辑模式: {!Application.isPlaying}，跳过隐藏: {skippedHidden}，跳过无父槽位: {skippedNoParentSlots}）", this);
+            
+            // 运行时添加详细调试信息，检查连线是否真的被创建
+            if (Application.isPlaying && linesCreated > 0)
+            {
+                int activeLineCount = 0;
+                foreach (Transform child in lineContainer)
+                {
+                    if (child != null && child.gameObject.activeSelf)
+                    {
+                        activeLineCount++;
+                        Image img = child.GetComponent<Image>();
+                        if (img != null)
+                        {
+                            Debug.Log($"SkillTreePanel: 连线 {child.name} - 颜色: {img.color}, 启用: {img.enabled}, 可见: {child.gameObject.activeInHierarchy}", this);
                         }
                     }
                 }
-                // 兼容旧的单前置技能系统
-                else if (childData.Prerequisite != null && skillSlotMap.ContainsKey(childData.Prerequisite))
+                Debug.Log($"SkillTreePanel: 连线容器中共有 {lineContainer.childCount} 个子对象，其中 {activeLineCount} 个是激活的", this);
+            }
+        }
+
+        /// <summary>
+        /// 检查技能槽位是否应该隐藏（不可解锁的技能）
+        /// </summary>
+        /// <param name="slot">技能槽位</param>
+        /// <returns>是否应该隐藏</returns>
+        private bool ShouldHideSlot(SkillSlotUI slot)
+        {
+            if (slot == null || slot.TargetSkill == null)
+            {
+                return true; // 无效的槽位，应该隐藏
+            }
+
+            // 编辑模式下：不隐藏（显示所有技能以便编辑）
+            if (!Application.isPlaying || UpgradeManager.Instance == null)
+            {
+                return false;
+            }
+
+            // 检查技能是否已解锁
+            bool isUnlocked = UpgradeManager.Instance.IsNodeUnlocked(slot.TargetSkill);
+            
+            // 如果已解锁，不隐藏
+            if (isUnlocked)
+            {
+                return false;
+            }
+
+            // 检查前置条件是否满足（是否可以解锁）
+            // 只要任意一个前置技能已解锁（level > 0），就可以解锁当前技能
+            bool canUnlock = false;
+            
+            // 如果没有前置技能（既没有 Prerequisite 也没有 parentSlots），可以直接解锁
+            if (slot.TargetSkill.Prerequisite == null && (slot.parentSlots == null || slot.parentSlots.Count == 0))
+            {
+                canUnlock = true;
+            }
+            else
+            {
+                // 优先检查 parentSlots 列表（手动配置的父子关系）
+                if (slot.parentSlots != null && slot.parentSlots.Count > 0)
                 {
-                    SkillSlotUI parentSlot = skillSlotMap[childData.Prerequisite];
-                    CreateLine(parentSlot.GetComponent<RectTransform>(), 
-                              childSlot.GetComponent<RectTransform>(), 
-                              linePrefab, 
-                              lineContainer);
+                    foreach (SkillSlotUI parentSlot in slot.parentSlots)
+                    {
+                        if (parentSlot != null && parentSlot.TargetSkill != null)
+                        {
+                            // 只要任意一个父技能已解锁（level > 0），就可以解锁当前技能
+                            if (UpgradeManager.Instance.IsNodeUnlocked(parentSlot.TargetSkill))
+                            {
+                                canUnlock = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+                
+                // 如果 parentSlots 中没有已解锁的，回退检查 Prerequisite（单个前置技能）
+                if (!canUnlock && slot.TargetSkill.Prerequisite != null)
+                {
+                    canUnlock = UpgradeManager.Instance.IsNodeUnlocked(slot.TargetSkill.Prerequisite);
                 }
             }
+
+            // 如果不可解锁（未解锁且前置不满足），应该隐藏
+            return !canUnlock;
+        }
+
+        /// <summary>
+        /// 检查技能槽位是否已解锁
+        /// </summary>
+        /// <param name="slot">技能槽位</param>
+        /// <returns>是否已解锁</returns>
+        private bool IsSlotUnlocked(SkillSlotUI slot)
+        {
+            if (slot == null || slot.TargetSkill == null)
+            {
+                return false;
+            }
+
+            // 编辑模式下：默认返回 false（显示为灰色线条）
+            if (!Application.isPlaying || UpgradeManager.Instance == null)
+            {
+                return false;
+            }
+
+            return UpgradeManager.Instance.IsNodeUnlocked(slot.TargetSkill);
         }
 
         /// <summary>
@@ -684,42 +1160,274 @@ namespace ProjectChicken.UI
         /// <param name="end">结束 RectTransform</param>
         /// <param name="linePrefab">连线预制体</param>
         /// <param name="container">容器 Transform</param>
-        private void CreateLine(RectTransform start, RectTransform end, GameObject linePrefab, Transform container)
+        /// <param name="isUnlocked">是否已解锁（用于设置线条颜色）</param>
+        private void CreateLine(RectTransform start, RectTransform end, GameObject linePrefab, Transform container, bool isUnlocked = false)
         {
             if (start == null || end == null || linePrefab == null || container == null)
             {
                 return;
             }
 
-            GameObject line = Instantiate(linePrefab, container);
+            GameObject line;
+            
+            // 编辑模式下实例化并注册到场景
+            #if UNITY_EDITOR
+            if (!Application.isPlaying)
+            {
+                // 编辑模式下使用 PrefabUtility.InstantiatePrefab 以保持与预制体的连接
+                line = UnityEditor.PrefabUtility.InstantiatePrefab(linePrefab, container) as GameObject;
+                if (line != null)
+                {
+                    // 确保对象在场景中可见
+                    line.hideFlags = HideFlags.DontSave;
+                    // 标记场景为已修改
+                    UnityEditor.EditorUtility.SetDirty(container.gameObject);
+                    UnityEditor.Undo.RegisterCreatedObjectUndo(line, "Create Skill Tree Line");
+                }
+            }
+            else
+            {
+                line = Instantiate(linePrefab, container);
+            }
+            #else
+            line = Instantiate(linePrefab, container);
+            #endif
+            
+            if (line == null)
+            {
+                return;
+            }
+            
             RectTransform lineRect = line.GetComponent<RectTransform>();
             
             if (lineRect == null)
             {
                 Debug.LogWarning("SkillTreePanel: 连线预制体缺少 RectTransform 组件", this);
-                Destroy(line);
+                #if UNITY_EDITOR
+                if (!Application.isPlaying)
+                {
+                    UnityEditor.Undo.DestroyObjectImmediate(line);
+                }
+                else
+                #endif
+                {
+                    Destroy(line);
+                }
                 return;
             }
 
+            // 确保连线 GameObject 是激活的
+            line.SetActive(true);
+            
             // 设置锚点为左中，方便旋转和拉伸
             lineRect.pivot = new Vector2(0, 0.5f);
-            lineRect.position = start.position;
             
-            Vector3 diff = end.position - start.position;
-            float distance = diff.magnitude;
+            // 获取世界坐标
+            Vector3 startWorldPos = start.position;
+            Vector3 endWorldPos = end.position;
             
-            // 画布缩放校正（如果 Canvas Scaler 生效，需除以 scaleFactor）
-            if (canvas != null && canvas.scaleFactor != 0)
+            // 声明变量（用于调试日志）
+            float distance = 0f;
+            float angle = 0f;
+            
+            // 将世界坐标转换为相对于 lineContainer 的本地坐标
+            // 因为 lineContainer 可能是 skillTreeContent 的子对象，需要正确转换
+            RectTransform containerRect = container as RectTransform;
+            if (containerRect != null)
             {
-                distance = distance / canvas.scaleFactor;
+                // 使用 RectTransformUtility 进行正确的坐标转换
+                Camera uiCamera = null;
+                if (canvas != null && canvas.renderMode != RenderMode.ScreenSpaceOverlay)
+                {
+                    uiCamera = canvas.worldCamera;
+                }
+                
+                RectTransformUtility.ScreenPointToLocalPointInRectangle(
+                    containerRect, 
+                    RectTransformUtility.WorldToScreenPoint(uiCamera, startWorldPos), 
+                    uiCamera, 
+                    out Vector2 startLocal);
+                RectTransformUtility.ScreenPointToLocalPointInRectangle(
+                    containerRect, 
+                    RectTransformUtility.WorldToScreenPoint(uiCamera, endWorldPos), 
+                    uiCamera, 
+                    out Vector2 endLocal);
+                
+                lineRect.localPosition = startLocal;
+                
+                Vector2 diff = endLocal - startLocal;
+                distance = diff.magnitude;
+                
+                lineRect.sizeDelta = new Vector2(distance, lineWidth);
+                angle = Mathf.Atan2(diff.y, diff.x) * Mathf.Rad2Deg;
+                lineRect.localRotation = Quaternion.Euler(0, 0, angle);
+            }
+            else
+            {
+                // 回退到简单的世界坐标转换
+                Vector3 startLocalPos = container.InverseTransformPoint(startWorldPos);
+                Vector3 endLocalPos = container.InverseTransformPoint(endWorldPos);
+                lineRect.localPosition = startLocalPos;
+                
+                Vector3 diff = endLocalPos - startLocalPos;
+                distance = diff.magnitude;
+                
+                lineRect.sizeDelta = new Vector2(distance, lineWidth);
+                angle = Mathf.Atan2(diff.y, diff.x) * Mathf.Rad2Deg;
+                lineRect.localRotation = Quaternion.Euler(0, 0, angle);
             }
             
-            lineRect.sizeDelta = new Vector2(distance, lineWidth);
-            float angle = Mathf.Atan2(diff.y, diff.x) * Mathf.Rad2Deg;
-            lineRect.rotation = Quaternion.Euler(0, 0, angle);
+            // 确保连线在编辑模式下可见
+            #if UNITY_EDITOR
+            if (!Application.isPlaying)
+            {
+                // 确保连线容器是激活的
+                if (container != null && !container.gameObject.activeSelf)
+                {
+                    container.gameObject.SetActive(true);
+                }
+                // 确保连线本身是激活的
+                if (!line.activeSelf)
+                {
+                    line.SetActive(true);
+                }
+            }
+            #endif
+            
+            // 根据解锁状态设置线条颜色/材质
+            Image lineImage = line.GetComponent<Image>();
+            if (lineImage != null)
+            {
+                // 已解锁：使用明显的颜色（蓝色，避免与白色背景混淆）
+                // 未解锁：使用半透明灰色
+                Color unlockedColor = new Color(0.2f, 0.6f, 1.0f, 1.0f); // 亮蓝色，完全不透明
+                Color lockedColor = new Color(0.5f, 0.5f, 0.5f, 0.5f); // 半透明灰色
+                lineImage.color = isUnlocked ? unlockedColor : lockedColor;
+                
+                // 确保 Image 组件启用且可渲染
+                if (!lineImage.enabled)
+                {
+                    lineImage.enabled = true;
+                }
+                
+                // 确保 Image 的 raycastTarget 为 false，避免阻挡鼠标事件
+                lineImage.raycastTarget = false;
+            }
+            else
+            {
+                Debug.LogWarning($"SkillTreePanel: 连线预制体 {linePrefab.name} 缺少 Image 组件！", this);
+            }
             
             // 将线放到底层，避免挡住图标
+            // 但需要确保连线在背景之上，所以不使用 SetAsFirstSibling
+            // 而是将连线放在技能槽位之前，但确保它们是可见的
+            // 注意：如果需要连线在图标下方，保持 SetAsFirstSibling
+            // 如果需要连线在图标上方，使用 SetAsLastSibling 或移除此调用
             lineRect.SetAsFirstSibling();
+            
+            // 确保连线的 Renderer 或 CanvasRenderer 正常工作
+            CanvasRenderer canvasRenderer = line.GetComponent<CanvasRenderer>();
+            if (canvasRenderer != null && canvasRenderer.cullTransparentMesh)
+            {
+                // 如果启用了剔除透明网格，可能需要禁用（确保半透明线条也能显示）
+                // 但通常应该保持启用以优化性能
+            }
+            
+            // 编辑模式下添加调试信息
+            #if UNITY_EDITOR
+            if (!Application.isPlaying)
+            {
+                Debug.Log($"SkillTreePanel: 创建连线 - 从 {start.name} 到 {end.name}, 距离: {distance:F2}, 角度: {angle:F2}°, 位置: {lineRect.position}, 大小: {lineRect.sizeDelta}", this);
+            }
+            #endif
+        }
+
+        /// <summary>
+        /// 处理技能树的滑轮缩放
+        /// </summary>
+        private void HandleSkillTreeZoom()
+        {
+            if (skillTreeContent == null || !isVisible)
+            {
+                return;
+            }
+
+            // 检查鼠标是否在技能树面板区域内
+            if (Mouse.current == null)
+            {
+                return;
+            }
+
+            // 获取鼠标滚轮输入
+            float scrollDelta = Mouse.current.scroll.ReadValue().y;
+            
+            if (scrollDelta != 0f)
+            {
+                // 计算新的缩放比例
+                Vector3 currentScale = skillTreeContent.localScale;
+                float newScale = currentScale.x + scrollDelta * zoomSpeed;
+                
+                // 限制缩放范围
+                newScale = Mathf.Clamp(newScale, minScale, maxScale);
+                
+                // 应用缩放
+                skillTreeContent.localScale = new Vector3(newScale, newScale, 1f);
+            }
+        }
+
+        /// <summary>
+        /// 处理技能树的鼠标右键拖拽
+        /// </summary>
+        private void HandleSkillTreeDrag()
+        {
+            if (skillTreeContent == null || !isVisible)
+            {
+                return;
+            }
+
+            if (Mouse.current == null)
+            {
+                return;
+            }
+
+            // 检测鼠标右键按下
+            if (Mouse.current.rightButton.wasPressedThisFrame)
+            {
+                isDragging = true;
+                lastMousePosition = Mouse.current.position.ReadValue();
+            }
+
+            // 检测鼠标右键释放
+            if (Mouse.current.rightButton.wasReleasedThisFrame)
+            {
+                isDragging = false;
+            }
+
+            // 如果正在拖拽，移动内容
+            if (isDragging)
+            {
+                Vector2 currentMousePosition = Mouse.current.position.ReadValue();
+                Vector2 mouseDelta = currentMousePosition - lastMousePosition;
+                
+                // 转换为本地坐标的偏移（考虑Canvas缩放）
+                if (canvas != null)
+                {
+                    mouseDelta /= canvas.scaleFactor;
+                }
+                
+                // 应用拖拽速度
+                mouseDelta *= dragSpeed;
+                
+                // 移动内容
+                Vector3 currentPosition = skillTreeContent.localPosition;
+                skillTreeContent.localPosition = new Vector3(
+                    currentPosition.x + mouseDelta.x,
+                    currentPosition.y + mouseDelta.y,
+                    currentPosition.z
+                );
+                
+                lastMousePosition = currentMousePosition;
+            }
         }
     }
 }

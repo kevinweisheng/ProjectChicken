@@ -95,7 +95,7 @@ namespace ProjectChicken.Editor
                     // 配置文本样式
                     descText.fontSize = 14;
                     descText.alignment = TextAlignmentOptions.TopLeft;
-                    descText.enableWordWrapping = true;
+                    descText.textWrappingMode = TextWrappingModes.Normal;
                 }
             }
 

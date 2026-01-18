@@ -18,13 +18,16 @@ namespace ProjectChicken.Systems.SkillTree
         MitosisChance,   // 分裂几率提升（增加分裂的概率）
         MaxChickenCount, // 最大鸡数量提升（增加人口上限）
         InitialChickenCount, // 初始鸡数量提升（回合开始时生成的鸡数量）
+        UnlockGoldenChicken, // 解锁金鸡生成能力（初始没有金鸡）
         GoldenChickenSpawnRate, // 金鸡生成率提升
         GoldenEggMultiplier,     // 金蛋价值倍率提升
         CritChance,              // 暴击率提升（攻击时有概率造成额外伤害）
         UnlockDoubleProduction,  // 解锁双倍产出能力
         DoubleProductionChance,  // 双倍产出概率提升（产蛋时有概率产出双倍）
         UnlockGravityWave,        // 解锁引力波能力（鸡生蛋时，有概率让回合时间增加0.2秒）
-        GravityWaveChance        // 引力波概率提升（提升鸡生蛋时触发引力波的概率）
+        GravityWaveChance,        // 引力波概率提升（提升鸡生蛋时触发引力波的概率）
+        UnlockMammal,             // 解锁哺乳动物能力（每只鸡下蛋时，有概率不生鸡蛋而产生一只鸡）
+        MammalChance              // 哺乳动物概率提升（提升鸡生鸡的概率）
     }
 
     /// <summary>

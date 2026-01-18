@@ -205,6 +205,8 @@ namespace ProjectChicken.Systems
 
             // 应用新阶段设置（这会更新约束，给玩家更多缩放/平移自由度）
             ApplyStageSettings(newStage);
+
+            // 注意：已取消场地扩张时自动结束回合的功能，场地升级现在不会强制结束回合
         }
 
         /// <summary>

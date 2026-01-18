@@ -2,6 +2,7 @@ using UnityEngine;
 using System.Collections.Generic;
 using ProjectChicken.Systems.SkillTree;
 using ProjectChicken.Systems.Save;
+using ProjectChicken.Systems;
 
 namespace ProjectChicken.Core
 {
@@ -13,13 +14,9 @@ namespace ProjectChicken.Core
         public static UpgradeManager Instance { get; private set; }
 
         [Header("Data Configuration")]
-        [SerializeField] private List<SkillNodeData> skillRegistry; // Database of all skills to look up by ID during loading.
-
-        [Header("初始属性值（可在 Inspector 中配置）")]
-        [SerializeField] private float initialDamage = 10f; // 初始攻击力
-        [SerializeField] private float initialRadius = 2f; // 初始攻击范围
-        [SerializeField] private float initialAttackInterval = 1f; // 初始攻击间隔（秒，越小越快）
-        [SerializeField] private float initialSessionDuration = 60f; // 初始回合时间（秒）
+        [SerializeField] private List<SkillNodeData> skillRegistry; // Database of all skills to look up by ID during loading (auto-populated at runtime).
+        [SerializeField] private bool autoPopulateRegistry = true; // 是否自动填充注册表（运行时从技能树UI收集所有技能）
+        [SerializeField] private GameConfig gameConfig; // 游戏配置（集中管理所有初始值）
 
         [Header("当前属性值（运行时显示）")]
         [SerializeField] private float currentDamage; // 当前攻击力
@@ -30,20 +27,21 @@ namespace ProjectChicken.Core
         // 技能等级字典：存储每个技能的当前等级（key: 技能ID, value: 当前等级，0表示未解锁）
         private Dictionary<string, int> skillLevels = new Dictionary<string, int>();
 
-        // 恢复与分裂相关属性
-        private float recoveryChance = 0.5f; // 基础恢复几率（50%）
+        // 恢复与分裂相关属性（初始值从 GameConfig 读取）
+        private float recoveryChance;
         private bool isMitosisUnlocked = false; // 是否解锁分裂能力
         private float mitosisChance = 0f; // 分裂几率
         private int extraMaxChickens = 0; // 额外最大鸡数量
         private int extraInitialChickens = 0; // 额外初始鸡数量（回合开始时生成的额外数量）
 
         // 金鸡相关属性
-        private float goldenChickenSpawnRate = 0.05f; // 金鸡生成率（基础5%）
-        private int goldenEggMultiplier = 5; // 金蛋价值倍率（基础1金蛋=5普通蛋）
+        private bool isGoldenChickenUnlocked = false; // 是否解锁金鸡生成能力（初始未解锁）
+        private float goldenChickenSpawnRate = 0f; // 金鸡生成率（初始0%，需要先解锁才能生成）
+        private int goldenEggMultiplier; // 金蛋价值倍率（从 GameConfig 读取）
 
-        // 暴击相关属性
-        private float critChance = 0f; // 暴击率（0-1之间，基础0%）
-        private float critMultiplier = 2f; // 暴击倍率（暴击时伤害倍数，固定2倍）
+        // 暴击相关属性（初始值从 GameConfig 读取）
+        private float critChance;
+        private float critMultiplier;
 
         // 双倍产出相关属性
         private bool isDoubleProductionUnlocked = false; // 是否解锁双倍产出能力
@@ -52,7 +50,11 @@ namespace ProjectChicken.Core
         // 引力波相关属性
         private bool isGravityWaveUnlocked = false; // 是否解锁引力波能力
         private float gravityWaveChance = 0.01f; // 引力波触发概率（基础1%，鸡生蛋时触发引力波的概率）
-        private float gravityWaveTimeExtension = 0.2f; // 引力波触发时增加的回合时间（固定0.2秒，可配置）
+        private float gravityWaveTimeExtension; // 引力波触发时增加的回合时间（从 GameConfig 读取）
+
+        // 哺乳动物相关属性
+        private bool isMammalUnlocked = false; // 是否解锁哺乳动物能力
+        private float mammalChance = 0f; // 哺乳动物概率（0-1之间，基础0%，解锁后初始1%）
 
         /// <summary>
         /// 当前攻击力（只读属性）
@@ -100,7 +102,13 @@ namespace ProjectChicken.Core
         public int ExtraInitialChickens => extraInitialChickens;
 
         /// <summary>
+        /// 是否解锁金鸡生成能力（只读属性）
+        /// </summary>
+        public bool IsGoldenChickenUnlocked => isGoldenChickenUnlocked;
+
+        /// <summary>
         /// 金鸡生成率（只读属性，0-1之间）
+        /// 注意：只有解锁后才能生成金鸡
         /// </summary>
         public float GoldenChickenSpawnRate => goldenChickenSpawnRate;
 
@@ -146,6 +154,18 @@ namespace ProjectChicken.Core
         /// </summary>
         public float GravityWaveTimeExtension => gravityWaveTimeExtension;
 
+        /// <summary>
+        /// 是否解锁哺乳动物能力（只读属性）
+        /// 解锁后，每只鸡下蛋时，有概率不生鸡蛋而产生一只鸡
+        /// </summary>
+        public bool IsMammalUnlocked => isMammalUnlocked;
+
+        /// <summary>
+        /// 哺乳动物概率（只读属性，0-1之间）
+        /// 每只鸡下蛋时，有该概率不生鸡蛋而产生一只鸡
+        /// </summary>
+        public float MammalChance => mammalChance;
+
         private void Awake()
         {
             // 单例模式：防止重复创建
@@ -157,17 +177,23 @@ namespace ProjectChicken.Core
 
             Instance = this;
 
-            // 初始化属性值：从初始值设置当前值
-            // 注意：每次游戏开始时都会重置为初始值
-            currentDamage = initialDamage;
-            currentRadius = initialRadius;
-            currentAttackInterval = initialAttackInterval;
-            currentSessionDuration = initialSessionDuration;
+            // 初始化属性值：从 GameConfig 读取初始值（如果没有配置则使用默认值）
+            InitializeFromConfig();
+
+            // 自动填充技能注册表（如果需要）
+            if (autoPopulateRegistry)
+            {
+                PopulateSkillRegistry();
+            }
 
             // 安全检查：确保技能注册表已配置
             if (skillRegistry == null || skillRegistry.Count == 0)
             {
                 Debug.LogWarning("UpgradeManager: Skill Registry is empty! Save/Load will not restore stats.", this);
+            }
+            else
+            {
+                Debug.Log($"UpgradeManager: 技能注册表已加载，包含 {skillRegistry.Count} 个技能节点", this);
             }
 
             // 如果需要跨场景保持，取消下面这行的注释
@@ -364,6 +390,11 @@ namespace ProjectChicken.Core
                     Debug.Log($"UpgradeManager: 初始鸡数量提升 {value}，当前额外初始数量：{extraInitialChickens}", this);
                     break;
 
+                case SkillEffectType.UnlockGoldenChicken:
+                    isGoldenChickenUnlocked = true;
+                    Debug.Log($"UpgradeManager: 已解锁金鸡生成能力！", this);
+                    break;
+
                 case SkillEffectType.GoldenChickenSpawnRate:
                     goldenChickenSpawnRate = Mathf.Clamp01(goldenChickenSpawnRate + value);
                     Debug.Log($"UpgradeManager: 金鸡生成率提升 {value}，当前生成率：{goldenChickenSpawnRate * 100f}%", this);
@@ -399,9 +430,118 @@ namespace ProjectChicken.Core
                     Debug.Log($"UpgradeManager: 引力波概率提升 {value}，当前概率：{gravityWaveChance * 100f}%", this);
                     break;
 
+                case SkillEffectType.UnlockMammal:
+                    isMammalUnlocked = true;
+                    // 解锁时设置初始概率为1%（0.01）
+                    if (mammalChance <= 0f)
+                    {
+                        mammalChance = 0.01f;
+                    }
+                    Debug.Log($"UpgradeManager: 已解锁哺乳动物能力！当前概率：{mammalChance * 100f}%", this);
+                    break;
+
+                case SkillEffectType.MammalChance:
+                    mammalChance = Mathf.Clamp01(mammalChance + value);
+                    Debug.Log($"UpgradeManager: 哺乳动物概率提升 {value}，当前概率：{mammalChance * 100f}%", this);
+                    break;
+
                 default:
                     Debug.LogWarning($"UpgradeManager: 未知的技能效果类型：{node.EffectType}", this);
                     break;
+            }
+        }
+
+        /// <summary>
+        /// 从 GameConfig 初始化所有属性值（如果没有配置则使用默认值）
+        /// </summary>
+        private void InitializeFromConfig()
+        {
+            float initialDamage = gameConfig != null ? gameConfig.InitialDamage : 10f;
+            float initialRadius = gameConfig != null ? gameConfig.InitialRadius : 2f;
+            float initialAttackInterval = gameConfig != null ? gameConfig.InitialAttackInterval : 1f;
+            float initialSessionDuration = gameConfig != null ? gameConfig.InitialSessionDuration : 60f;
+            
+            // 从 GameConfig 读取其他初始值
+            recoveryChance = gameConfig != null ? gameConfig.RecoveryChance : 0.5f;
+            critChance = gameConfig != null ? gameConfig.InitialCritChance : 0f;
+            critMultiplier = gameConfig != null ? gameConfig.CritMultiplier : 2f;
+            goldenEggMultiplier = gameConfig != null ? gameConfig.GoldenEggMultiplier : 5;
+            gravityWaveTimeExtension = gameConfig != null ? gameConfig.GravityWaveTimeExtension : 0.2f;
+
+            // 设置当前属性值
+            currentDamage = initialDamage;
+            currentRadius = initialRadius;
+            currentAttackInterval = initialAttackInterval;
+            currentSessionDuration = initialSessionDuration;
+        }
+
+        /// <summary>
+        /// 自动填充技能注册表：从技能树UI中收集所有使用的 SkillNodeData
+        /// 如果 skillRegistry 为空或 autoPopulateRegistry 为 true，则会自动收集所有技能节点
+        /// </summary>
+        private void PopulateSkillRegistry()
+        {
+            // 确保 skillRegistry 已初始化
+            if (skillRegistry == null)
+            {
+                skillRegistry = new List<SkillNodeData>();
+            }
+
+            // 使用 HashSet 来避免重复添加
+            HashSet<string> existingIDs = new HashSet<string>();
+            foreach (var skill in skillRegistry)
+            {
+                if (skill != null && !string.IsNullOrEmpty(skill.ID))
+                {
+                    existingIDs.Add(skill.ID);
+                }
+            }
+
+            int addedCount = 0;
+
+            // 方法1：从技能树UI中收集所有使用的 SkillNodeData
+            // 查找场景中所有的 SkillSlotUI 组件，收集它们的 TargetSkill
+            var skillSlotUIs = FindObjectsByType<ProjectChicken.UI.SkillSlotUI>(FindObjectsSortMode.None);
+            foreach (var slotUI in skillSlotUIs)
+            {
+                if (slotUI != null)
+                {
+                    // 使用公开的 TargetSkill 属性获取技能数据
+                    SkillNodeData skill = slotUI.TargetSkill;
+                    if (skill != null && !string.IsNullOrEmpty(skill.ID))
+                    {
+                        if (!existingIDs.Contains(skill.ID))
+                        {
+                            skillRegistry.Add(skill);
+                            existingIDs.Add(skill.ID);
+                            addedCount++;
+                        }
+                    }
+                }
+            }
+
+            // 方法2：如果方法1没有收集到技能，尝试从 Resources 文件夹加载所有 SkillNodeData
+            // 注意：这需要将 SkillNodeData 放在 Resources 文件夹中
+            if (skillRegistry.Count == 0)
+            {
+                SkillNodeData[] allSkills = Resources.LoadAll<SkillNodeData>("");
+                foreach (var skill in allSkills)
+                {
+                    if (skill != null && !string.IsNullOrEmpty(skill.ID))
+                    {
+                        if (!existingIDs.Contains(skill.ID))
+                        {
+                            skillRegistry.Add(skill);
+                            existingIDs.Add(skill.ID);
+                            addedCount++;
+                        }
+                    }
+                }
+            }
+
+            if (addedCount > 0)
+            {
+                Debug.Log($"UpgradeManager: 自动收集到 {addedCount} 个技能节点，注册表中共有 {skillRegistry.Count} 个技能", this);
             }
         }
 
@@ -453,23 +593,19 @@ namespace ProjectChicken.Core
             skillLevels.Clear();
 
             // 重置属性值到初始值（重要！否则属性会无限叠加）
-            currentDamage = initialDamage;
-            currentRadius = initialRadius;
-            currentAttackInterval = initialAttackInterval;
-            currentSessionDuration = initialSessionDuration;
+            InitializeFromConfig();
 
-            // 重置恢复与分裂相关属性
-            recoveryChance = 0.5f;
+            // 重置恢复与分裂相关属性（已在 InitializeFromConfig 中设置 recoveryChance）
             isMitosisUnlocked = false;
             mitosisChance = 0f;
             extraMaxChickens = 0;
+            extraInitialChickens = 0; // 重置额外初始鸡数量（重要！否则会在加载时叠加）
 
-            // 重置金鸡相关属性
-            goldenChickenSpawnRate = 0.05f;
-            goldenEggMultiplier = 5;
+            // 重置金鸡相关属性（goldenEggMultiplier 已在 InitializeFromConfig 中设置）
+            isGoldenChickenUnlocked = false;
+            goldenChickenSpawnRate = 0f;
 
-            // 重置暴击相关属性
-            critChance = 0f;
+            // 重置暴击相关属性（已在 InitializeFromConfig 中设置 critChance 和 critMultiplier）
 
             // 重置双倍产出相关属性
             isDoubleProductionUnlocked = false;
@@ -478,6 +614,10 @@ namespace ProjectChicken.Core
             // 重置引力波相关属性
             isGravityWaveUnlocked = false;
             gravityWaveChance = 0.01f; // 引力波触发概率（基础1%）
+
+            // 重置哺乳动物相关属性
+            isMammalUnlocked = false;
+            mammalChance = 0f;
 
             Debug.Log($"UpgradeManager: 开始加载 {skillRecords.Count} 个技能记录...", this);
 
@@ -514,6 +654,7 @@ namespace ProjectChicken.Core
             }
 
             Debug.Log($"UpgradeManager: 技能加载完成，共加载 {skillLevels.Count} 个技能。", this);
+            Debug.Log($"UpgradeManager: 加载后的额外初始鸡数量: {extraInitialChickens}", this);
         }
 
         /// <summary>
@@ -583,23 +724,19 @@ namespace ProjectChicken.Core
             skillLevels.Clear();
 
             // 重置属性值到初始值
-            currentDamage = initialDamage;
-            currentRadius = initialRadius;
-            currentAttackInterval = initialAttackInterval;
-            currentSessionDuration = initialSessionDuration;
+            InitializeFromConfig();
 
-            // 重置恢复与分裂相关属性
-            recoveryChance = 0.5f;
+            // 重置恢复与分裂相关属性（已在 InitializeFromConfig 中设置 recoveryChance）
             isMitosisUnlocked = false;
             mitosisChance = 0f;
             extraMaxChickens = 0;
+            extraInitialChickens = 0; // 重置额外初始鸡数量
 
-            // 重置金鸡相关属性
-            goldenChickenSpawnRate = 0.05f;
-            goldenEggMultiplier = 5;
+            // 重置金鸡相关属性（goldenEggMultiplier 已在 InitializeFromConfig 中设置）
+            isGoldenChickenUnlocked = false;
+            goldenChickenSpawnRate = 0f;
 
-            // 重置暴击相关属性
-            critChance = 0f;
+            // 重置暴击相关属性（已在 InitializeFromConfig 中设置 critChance 和 critMultiplier）
 
             // 重置双倍产出相关属性
             isDoubleProductionUnlocked = false;
@@ -608,6 +745,10 @@ namespace ProjectChicken.Core
             // 重置引力波相关属性
             isGravityWaveUnlocked = false;
             gravityWaveChance = 0.01f; // 引力波触发概率（基础1%）
+
+            // 重置哺乳动物相关属性
+            isMammalUnlocked = false;
+            mammalChance = 0f;
 
             Debug.Log("UpgradeManager: 所有技能已重置", this);
         }

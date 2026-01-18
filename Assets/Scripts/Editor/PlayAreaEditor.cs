@@ -28,10 +28,6 @@ namespace ProjectChicken.Editor
         private SerializedProperty chickenMovementAreaSizeProperty;
         private SerializedProperty chickenMovementAreaCenterProperty;
         private SerializedProperty useCustomChickenAreaProperty;
-        
-        // Scene 视图调整相关
-        private bool isEditingChickenArea = false;
-        private int selectedHandle = -1; // -1: 无, 0-3: 四个角, 4: 中心
 
         private void OnEnable()
         {
