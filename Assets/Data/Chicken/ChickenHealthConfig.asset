@@ -13,8 +13,8 @@ MonoBehaviour:
   m_Name: ChickenHealthConfig
   m_EditorClassIdentifier: Assembly-CSharp::ProjectChicken.Systems.ChickenHealthConfig
   healthLevel0: 5
-  healthLevel1: 10
-  healthLevel2: 20
-  healthLevel3: 40
+  healthLevel1: 20
+  healthLevel2: 40
+  healthLevel3: 60
   healthLevel4: 80
-  healthLevel5: 160
+  healthLevel5: 100

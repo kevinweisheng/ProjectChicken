@@ -332,6 +332,13 @@ MonoBehaviour:
   normalColor: {r: 1, g: 1, b: 1, a: 1}
   disabledColor: {r: 1, g: 1, b: 1, a: 1}
   unlockedColor: {r: 1, g: 1, b: 1, a: 1}
+  errorColor: {r: 1, g: 0, b: 0, a: 1}
+  hoverShakeIntensity: 5
+  hoverShakeDuration: 0.3
+  upgradeShakeIntensity: 8
+  upgradeScaleAmount: 1.2
+  upgradeAnimationDuration: 0.4
+  errorFlashDuration: 0.5
   OnHoverEnter:
     m_PersistentCalls:
       m_Calls: []
@@ -555,7 +562,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 700, y: 100}
+  m_AnchoredPosition: {x: 700, y: 200}
   m_SizeDelta: {x: 80, y: 80}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &83440381
@@ -582,6 +589,13 @@ MonoBehaviour:
   normalColor: {r: 1, g: 1, b: 1, a: 1}
   disabledColor: {r: 1, g: 1, b: 1, a: 1}
   unlockedColor: {r: 1, g: 1, b: 1, a: 1}
+  errorColor: {r: 1, g: 0, b: 0, a: 1}
+  hoverShakeIntensity: 5
+  hoverShakeDuration: 0.3
+  upgradeShakeIntensity: 8
+  upgradeScaleAmount: 1.2
+  upgradeAnimationDuration: 0.4
+  errorFlashDuration: 0.5
   OnHoverEnter:
     m_PersistentCalls:
       m_Calls: []
@@ -808,6 +822,13 @@ MonoBehaviour:
   normalColor: {r: 1, g: 1, b: 1, a: 1}
   disabledColor: {r: 1, g: 1, b: 1, a: 1}
   unlockedColor: {r: 1, g: 1, b: 1, a: 1}
+  errorColor: {r: 1, g: 0, b: 0, a: 1}
+  hoverShakeIntensity: 5
+  hoverShakeDuration: 0.3
+  upgradeShakeIntensity: 8
+  upgradeScaleAmount: 1.2
+  upgradeAnimationDuration: 0.4
+  errorFlashDuration: 0.5
   OnHoverEnter:
     m_PersistentCalls:
       m_Calls: []
@@ -959,6 +980,13 @@ MonoBehaviour:
   normalColor: {r: 1, g: 1, b: 1, a: 1}
   disabledColor: {r: 1, g: 1, b: 1, a: 1}
   unlockedColor: {r: 1, g: 1, b: 1, a: 1}
+  errorColor: {r: 1, g: 0, b: 0, a: 1}
+  hoverShakeIntensity: 5
+  hoverShakeDuration: 0.3
+  upgradeShakeIntensity: 8
+  upgradeScaleAmount: 1.2
+  upgradeAnimationDuration: 0.4
+  errorFlashDuration: 0.5
   OnHoverEnter:
     m_PersistentCalls:
       m_Calls: []
@@ -1315,6 +1343,13 @@ MonoBehaviour:
   normalColor: {r: 1, g: 1, b: 1, a: 1}
   disabledColor: {r: 1, g: 1, b: 1, a: 1}
   unlockedColor: {r: 1, g: 1, b: 1, a: 1}
+  errorColor: {r: 1, g: 0, b: 0, a: 1}
+  hoverShakeIntensity: 5
+  hoverShakeDuration: 0.3
+  upgradeShakeIntensity: 8
+  upgradeScaleAmount: 1.2
+  upgradeAnimationDuration: 0.4
+  errorFlashDuration: 0.5
   OnHoverEnter:
     m_PersistentCalls:
       m_Calls: []
@@ -1466,6 +1501,13 @@ MonoBehaviour:
   normalColor: {r: 1, g: 1, b: 1, a: 1}
   disabledColor: {r: 1, g: 1, b: 1, a: 1}
   unlockedColor: {r: 1, g: 1, b: 1, a: 1}
+  errorColor: {r: 1, g: 0, b: 0, a: 1}
+  hoverShakeIntensity: 5
+  hoverShakeDuration: 0.3
+  upgradeShakeIntensity: 8
+  upgradeScaleAmount: 1.2
+  upgradeAnimationDuration: 0.4
+  errorFlashDuration: 0.5
   OnHoverEnter:
     m_PersistentCalls:
       m_Calls: []
@@ -1856,6 +1898,13 @@ MonoBehaviour:
   normalColor: {r: 1, g: 1, b: 1, a: 1}
   disabledColor: {r: 1, g: 1, b: 1, a: 1}
   unlockedColor: {r: 1, g: 1, b: 1, a: 1}
+  errorColor: {r: 1, g: 0, b: 0, a: 1}
+  hoverShakeIntensity: 5
+  hoverShakeDuration: 0.3
+  upgradeShakeIntensity: 8
+  upgradeScaleAmount: 1.2
+  upgradeAnimationDuration: 0.4
+  errorFlashDuration: 0.5
   OnHoverEnter:
     m_PersistentCalls:
       m_Calls: []
@@ -2007,6 +2056,13 @@ MonoBehaviour:
   normalColor: {r: 1, g: 1, b: 1, a: 1}
   disabledColor: {r: 1, g: 1, b: 1, a: 1}
   unlockedColor: {r: 1, g: 1, b: 1, a: 1}
+  errorColor: {r: 1, g: 0, b: 0, a: 1}
+  hoverShakeIntensity: 5
+  hoverShakeDuration: 0.3
+  upgradeShakeIntensity: 8
+  upgradeScaleAmount: 1.2
+  upgradeAnimationDuration: 0.4
+  errorFlashDuration: 0.5
   OnHoverEnter:
     m_PersistentCalls:
       m_Calls: []
@@ -2444,6 +2500,13 @@ MonoBehaviour:
   normalColor: {r: 1, g: 1, b: 1, a: 1}
   disabledColor: {r: 1, g: 1, b: 1, a: 1}
   unlockedColor: {r: 1, g: 1, b: 1, a: 1}
+  errorColor: {r: 1, g: 0, b: 0, a: 1}
+  hoverShakeIntensity: 5
+  hoverShakeDuration: 0.3
+  upgradeShakeIntensity: 8
+  upgradeScaleAmount: 1.2
+  upgradeAnimationDuration: 0.4
+  errorFlashDuration: 0.5
   OnHoverEnter:
     m_PersistentCalls:
       m_Calls: []
@@ -2559,8 +2622,7 @@ RectTransform:
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children:
-  - {fileID: 1716355842}
+  m_Children: []
   m_Father: {fileID: 365006041}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
@@ -2631,6 +2693,13 @@ MonoBehaviour:
   normalColor: {r: 1, g: 1, b: 1, a: 1}
   disabledColor: {r: 1, g: 1, b: 1, a: 1}
   unlockedColor: {r: 1, g: 1, b: 1, a: 1}
+  errorColor: {r: 1, g: 0, b: 0, a: 1}
+  hoverShakeIntensity: 5
+  hoverShakeDuration: 0.3
+  upgradeShakeIntensity: 8
+  upgradeScaleAmount: 1.2
+  upgradeAnimationDuration: 0.4
+  errorFlashDuration: 0.5
   OnHoverEnter:
     m_PersistentCalls:
       m_Calls: []
@@ -2920,6 +2989,13 @@ MonoBehaviour:
   normalColor: {r: 1, g: 1, b: 1, a: 1}
   disabledColor: {r: 1, g: 1, b: 1, a: 1}
   unlockedColor: {r: 1, g: 1, b: 1, a: 1}
+  errorColor: {r: 1, g: 0, b: 0, a: 1}
+  hoverShakeIntensity: 5
+  hoverShakeDuration: 0.3
+  upgradeShakeIntensity: 8
+  upgradeScaleAmount: 1.2
+  upgradeAnimationDuration: 0.4
+  errorFlashDuration: 0.5
   OnHoverEnter:
     m_PersistentCalls:
       m_Calls: []
@@ -3147,7 +3223,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!224 &598380253
 RectTransform:
   m_ObjectHideFlags: 0
@@ -3523,6 +3599,13 @@ MonoBehaviour:
   normalColor: {r: 1, g: 1, b: 1, a: 1}
   disabledColor: {r: 1, g: 1, b: 1, a: 1}
   unlockedColor: {r: 1, g: 1, b: 1, a: 1}
+  errorColor: {r: 1, g: 0, b: 0, a: 1}
+  hoverShakeIntensity: 5
+  hoverShakeDuration: 0.3
+  upgradeShakeIntensity: 8
+  upgradeScaleAmount: 1.2
+  upgradeAnimationDuration: 0.4
+  errorFlashDuration: 0.5
   OnHoverEnter:
     m_PersistentCalls:
       m_Calls: []
@@ -3686,119 +3769,6 @@ MonoBehaviour:
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
   m_PixelsPerUnitMultiplier: 1
---- !u!1001 &698921224
-PrefabInstance:
-  m_ObjectHideFlags: 0
-  serializedVersion: 2
-  m_Modification:
-    serializedVersion: 3
-    m_TransformParent: {fileID: 508176026}
-    m_Modifications:
-    - target: {fileID: 499290440250819103, guid: c85cff3b04e9a594f866f9d95560a7cc, type: 3}
-      propertyPath: m_Color.a
-      value: 0.5
-      objectReference: {fileID: 0}
-    - target: {fileID: 499290440250819103, guid: c85cff3b04e9a594f866f9d95560a7cc, type: 3}
-      propertyPath: m_Color.b
-      value: 0.5
-      objectReference: {fileID: 0}
-    - target: {fileID: 499290440250819103, guid: c85cff3b04e9a594f866f9d95560a7cc, type: 3}
-      propertyPath: m_Color.g
-      value: 0.5
-      objectReference: {fileID: 0}
-    - target: {fileID: 499290440250819103, guid: c85cff3b04e9a594f866f9d95560a7cc, type: 3}
-      propertyPath: m_Color.r
-      value: 0.5
-      objectReference: {fileID: 0}
-    - target: {fileID: 2752074729044251531, guid: c85cff3b04e9a594f866f9d95560a7cc, type: 3}
-      propertyPath: m_Pivot.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 2752074729044251531, guid: c85cff3b04e9a594f866f9d95560a7cc, type: 3}
-      propertyPath: m_Pivot.y
-      value: 0.5
-      objectReference: {fileID: 0}
-    - target: {fileID: 2752074729044251531, guid: c85cff3b04e9a594f866f9d95560a7cc, type: 3}
-      propertyPath: m_AnchorMax.x
-      value: 0.5
-      objectReference: {fileID: 0}
-    - target: {fileID: 2752074729044251531, guid: c85cff3b04e9a594f866f9d95560a7cc, type: 3}
-      propertyPath: m_AnchorMax.y
-      value: 0.5
-      objectReference: {fileID: 0}
-    - target: {fileID: 2752074729044251531, guid: c85cff3b04e9a594f866f9d95560a7cc, type: 3}
-      propertyPath: m_AnchorMin.x
-      value: 0.5
-      objectReference: {fileID: 0}
-    - target: {fileID: 2752074729044251531, guid: c85cff3b04e9a594f866f9d95560a7cc, type: 3}
-      propertyPath: m_AnchorMin.y
-      value: 0.5
-      objectReference: {fileID: 0}
-    - target: {fileID: 2752074729044251531, guid: c85cff3b04e9a594f866f9d95560a7cc, type: 3}
-      propertyPath: m_SizeDelta.x
-      value: 100
-      objectReference: {fileID: 0}
-    - target: {fileID: 2752074729044251531, guid: c85cff3b04e9a594f866f9d95560a7cc, type: 3}
-      propertyPath: m_SizeDelta.y
-      value: 3
-      objectReference: {fileID: 0}
-    - target: {fileID: 2752074729044251531, guid: c85cff3b04e9a594f866f9d95560a7cc, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 2752074729044251531, guid: c85cff3b04e9a594f866f9d95560a7cc, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 2752074729044251531, guid: c85cff3b04e9a594f866f9d95560a7cc, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 2752074729044251531, guid: c85cff3b04e9a594f866f9d95560a7cc, type: 3}
-      propertyPath: m_LocalRotation.w
-      value: -0.00000004371139
-      objectReference: {fileID: 0}
-    - target: {fileID: 2752074729044251531, guid: c85cff3b04e9a594f866f9d95560a7cc, type: 3}
-      propertyPath: m_LocalRotation.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 2752074729044251531, guid: c85cff3b04e9a594f866f9d95560a7cc, type: 3}
-      propertyPath: m_LocalRotation.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 2752074729044251531, guid: c85cff3b04e9a594f866f9d95560a7cc, type: 3}
-      propertyPath: m_LocalRotation.z
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 2752074729044251531, guid: c85cff3b04e9a594f866f9d95560a7cc, type: 3}
-      propertyPath: m_AnchoredPosition.x
-      value: -300
-      objectReference: {fileID: 0}
-    - target: {fileID: 2752074729044251531, guid: c85cff3b04e9a594f866f9d95560a7cc, type: 3}
-      propertyPath: m_AnchoredPosition.y
-      value: 600
-      objectReference: {fileID: 0}
-    - target: {fileID: 2752074729044251531, guid: c85cff3b04e9a594f866f9d95560a7cc, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 2752074729044251531, guid: c85cff3b04e9a594f866f9d95560a7cc, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 2752074729044251531, guid: c85cff3b04e9a594f866f9d95560a7cc, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 8538833577175969846, guid: c85cff3b04e9a594f866f9d95560a7cc, type: 3}
-      propertyPath: m_Name
-      value: SkillLinePrefab
-      objectReference: {fileID: 0}
-    m_RemovedComponents: []
-    m_RemovedGameObjects: []
-    m_AddedGameObjects: []
-    m_AddedComponents: []
-  m_SourcePrefab: {fileID: 100100000, guid: c85cff3b04e9a594f866f9d95560a7cc, type: 3}
 --- !u!1 &793957729
 GameObject:
   m_ObjectHideFlags: 0
@@ -3917,6 +3887,13 @@ MonoBehaviour:
   normalColor: {r: 1, g: 1, b: 1, a: 1}
   disabledColor: {r: 1, g: 1, b: 1, a: 1}
   unlockedColor: {r: 1, g: 1, b: 1, a: 1}
+  errorColor: {r: 1, g: 0, b: 0, a: 1}
+  hoverShakeIntensity: 5
+  hoverShakeDuration: 0.3
+  upgradeShakeIntensity: 8
+  upgradeScaleAmount: 1.2
+  upgradeAnimationDuration: 0.4
+  errorFlashDuration: 0.5
   OnHoverEnter:
     m_PersistentCalls:
       m_Calls: []
@@ -4068,6 +4045,13 @@ MonoBehaviour:
   normalColor: {r: 1, g: 1, b: 1, a: 1}
   disabledColor: {r: 1, g: 1, b: 1, a: 1}
   unlockedColor: {r: 1, g: 1, b: 1, a: 1}
+  errorColor: {r: 1, g: 0, b: 0, a: 1}
+  hoverShakeIntensity: 5
+  hoverShakeDuration: 0.3
+  upgradeShakeIntensity: 8
+  upgradeScaleAmount: 1.2
+  upgradeAnimationDuration: 0.4
+  errorFlashDuration: 0.5
   OnHoverEnter:
     m_PersistentCalls:
       m_Calls: []
@@ -4219,6 +4203,13 @@ MonoBehaviour:
   normalColor: {r: 1, g: 1, b: 1, a: 1}
   disabledColor: {r: 1, g: 1, b: 1, a: 1}
   unlockedColor: {r: 1, g: 1, b: 1, a: 1}
+  errorColor: {r: 1, g: 0, b: 0, a: 1}
+  hoverShakeIntensity: 5
+  hoverShakeDuration: 0.3
+  upgradeShakeIntensity: 8
+  upgradeScaleAmount: 1.2
+  upgradeAnimationDuration: 0.4
+  errorFlashDuration: 0.5
   OnHoverEnter:
     m_PersistentCalls:
       m_Calls: []
@@ -4370,6 +4361,13 @@ MonoBehaviour:
   normalColor: {r: 1, g: 1, b: 1, a: 1}
   disabledColor: {r: 1, g: 1, b: 1, a: 1}
   unlockedColor: {r: 1, g: 1, b: 1, a: 1}
+  errorColor: {r: 1, g: 0, b: 0, a: 1}
+  hoverShakeIntensity: 5
+  hoverShakeDuration: 0.3
+  upgradeShakeIntensity: 8
+  upgradeScaleAmount: 1.2
+  upgradeAnimationDuration: 0.4
+  errorFlashDuration: 0.5
   OnHoverEnter:
     m_PersistentCalls:
       m_Calls: []
@@ -4522,6 +4520,13 @@ MonoBehaviour:
   normalColor: {r: 1, g: 1, b: 1, a: 1}
   disabledColor: {r: 1, g: 1, b: 1, a: 1}
   unlockedColor: {r: 1, g: 1, b: 1, a: 1}
+  errorColor: {r: 1, g: 0, b: 0, a: 1}
+  hoverShakeIntensity: 5
+  hoverShakeDuration: 0.3
+  upgradeShakeIntensity: 8
+  upgradeScaleAmount: 1.2
+  upgradeAnimationDuration: 0.4
+  errorFlashDuration: 0.5
   OnHoverEnter:
     m_PersistentCalls:
       m_Calls: []
@@ -4732,6 +4737,13 @@ MonoBehaviour:
   normalColor: {r: 1, g: 1, b: 1, a: 1}
   disabledColor: {r: 1, g: 1, b: 1, a: 1}
   unlockedColor: {r: 1, g: 1, b: 1, a: 1}
+  errorColor: {r: 1, g: 0, b: 0, a: 1}
+  hoverShakeIntensity: 5
+  hoverShakeDuration: 0.3
+  upgradeShakeIntensity: 8
+  upgradeScaleAmount: 1.2
+  upgradeAnimationDuration: 0.4
+  errorFlashDuration: 0.5
   OnHoverEnter:
     m_PersistentCalls:
       m_Calls: []
@@ -4943,6 +4955,13 @@ MonoBehaviour:
   normalColor: {r: 1, g: 1, b: 1, a: 1}
   disabledColor: {r: 1, g: 1, b: 1, a: 1}
   unlockedColor: {r: 1, g: 1, b: 1, a: 1}
+  errorColor: {r: 1, g: 0, b: 0, a: 1}
+  hoverShakeIntensity: 5
+  hoverShakeDuration: 0.3
+  upgradeShakeIntensity: 8
+  upgradeScaleAmount: 1.2
+  upgradeAnimationDuration: 0.4
+  errorFlashDuration: 0.5
   OnHoverEnter:
     m_PersistentCalls:
       m_Calls: []
@@ -5094,6 +5113,13 @@ MonoBehaviour:
   normalColor: {r: 1, g: 1, b: 1, a: 1}
   disabledColor: {r: 1, g: 1, b: 1, a: 1}
   unlockedColor: {r: 1, g: 1, b: 1, a: 1}
+  errorColor: {r: 1, g: 0, b: 0, a: 1}
+  hoverShakeIntensity: 5
+  hoverShakeDuration: 0.3
+  upgradeShakeIntensity: 8
+  upgradeScaleAmount: 1.2
+  upgradeAnimationDuration: 0.4
+  errorFlashDuration: 0.5
   OnHoverEnter:
     m_PersistentCalls:
       m_Calls: []
@@ -5382,6 +5408,13 @@ MonoBehaviour:
   normalColor: {r: 1, g: 1, b: 1, a: 1}
   disabledColor: {r: 1, g: 1, b: 1, a: 1}
   unlockedColor: {r: 1, g: 1, b: 1, a: 1}
+  errorColor: {r: 1, g: 0, b: 0, a: 1}
+  hoverShakeIntensity: 5
+  hoverShakeDuration: 0.3
+  upgradeShakeIntensity: 8
+  upgradeScaleAmount: 1.2
+  upgradeAnimationDuration: 0.4
+  errorFlashDuration: 0.5
   OnHoverEnter:
     m_PersistentCalls:
       m_Calls: []
@@ -5533,6 +5566,13 @@ MonoBehaviour:
   normalColor: {r: 1, g: 1, b: 1, a: 1}
   disabledColor: {r: 1, g: 1, b: 1, a: 1}
   unlockedColor: {r: 1, g: 1, b: 1, a: 1}
+  errorColor: {r: 1, g: 0, b: 0, a: 1}
+  hoverShakeIntensity: 5
+  hoverShakeDuration: 0.3
+  upgradeShakeIntensity: 8
+  upgradeScaleAmount: 1.2
+  upgradeAnimationDuration: 0.4
+  errorFlashDuration: 0.5
   OnHoverEnter:
     m_PersistentCalls:
       m_Calls: []
@@ -5804,6 +5844,13 @@ MonoBehaviour:
   normalColor: {r: 1, g: 1, b: 1, a: 1}
   disabledColor: {r: 1, g: 1, b: 1, a: 1}
   unlockedColor: {r: 1, g: 1, b: 1, a: 1}
+  errorColor: {r: 1, g: 0, b: 0, a: 1}
+  hoverShakeIntensity: 5
+  hoverShakeDuration: 0.3
+  upgradeShakeIntensity: 8
+  upgradeScaleAmount: 1.2
+  upgradeAnimationDuration: 0.4
+  errorFlashDuration: 0.5
   OnHoverEnter:
     m_PersistentCalls:
       m_Calls: []
@@ -6075,6 +6122,13 @@ MonoBehaviour:
   normalColor: {r: 1, g: 1, b: 1, a: 1}
   disabledColor: {r: 1, g: 1, b: 1, a: 1}
   unlockedColor: {r: 1, g: 1, b: 1, a: 1}
+  errorColor: {r: 1, g: 0, b: 0, a: 1}
+  hoverShakeIntensity: 5
+  hoverShakeDuration: 0.3
+  upgradeShakeIntensity: 8
+  upgradeScaleAmount: 1.2
+  upgradeAnimationDuration: 0.4
+  errorFlashDuration: 0.5
   OnHoverEnter:
     m_PersistentCalls:
       m_Calls: []
@@ -6226,6 +6280,13 @@ MonoBehaviour:
   normalColor: {r: 1, g: 1, b: 1, a: 1}
   disabledColor: {r: 1, g: 1, b: 1, a: 1}
   unlockedColor: {r: 1, g: 1, b: 1, a: 1}
+  errorColor: {r: 1, g: 0, b: 0, a: 1}
+  hoverShakeIntensity: 5
+  hoverShakeDuration: 0.3
+  upgradeShakeIntensity: 8
+  upgradeScaleAmount: 1.2
+  upgradeAnimationDuration: 0.4
+  errorFlashDuration: 0.5
   OnHoverEnter:
     m_PersistentCalls:
       m_Calls: []
@@ -6377,6 +6438,13 @@ MonoBehaviour:
   normalColor: {r: 1, g: 1, b: 1, a: 1}
   disabledColor: {r: 1, g: 1, b: 1, a: 1}
   unlockedColor: {r: 1, g: 1, b: 1, a: 1}
+  errorColor: {r: 1, g: 0, b: 0, a: 1}
+  hoverShakeIntensity: 5
+  hoverShakeDuration: 0.3
+  upgradeShakeIntensity: 8
+  upgradeScaleAmount: 1.2
+  upgradeAnimationDuration: 0.4
+  errorFlashDuration: 0.5
   OnHoverEnter:
     m_PersistentCalls:
       m_Calls: []
@@ -6759,6 +6827,13 @@ MonoBehaviour:
   normalColor: {r: 1, g: 1, b: 1, a: 1}
   disabledColor: {r: 1, g: 1, b: 1, a: 1}
   unlockedColor: {r: 1, g: 1, b: 1, a: 1}
+  errorColor: {r: 1, g: 0, b: 0, a: 1}
+  hoverShakeIntensity: 5
+  hoverShakeDuration: 0.3
+  upgradeShakeIntensity: 8
+  upgradeScaleAmount: 1.2
+  upgradeAnimationDuration: 0.4
+  errorFlashDuration: 0.5
   OnHoverEnter:
     m_PersistentCalls:
       m_Calls: []
@@ -6910,6 +6985,13 @@ MonoBehaviour:
   normalColor: {r: 1, g: 1, b: 1, a: 1}
   disabledColor: {r: 1, g: 1, b: 1, a: 1}
   unlockedColor: {r: 1, g: 1, b: 1, a: 1}
+  errorColor: {r: 1, g: 0, b: 0, a: 1}
+  hoverShakeIntensity: 5
+  hoverShakeDuration: 0.3
+  upgradeShakeIntensity: 8
+  upgradeScaleAmount: 1.2
+  upgradeAnimationDuration: 0.4
+  errorFlashDuration: 0.5
   OnHoverEnter:
     m_PersistentCalls:
       m_Calls: []
@@ -7061,6 +7143,13 @@ MonoBehaviour:
   normalColor: {r: 1, g: 1, b: 1, a: 1}
   disabledColor: {r: 1, g: 1, b: 1, a: 1}
   unlockedColor: {r: 1, g: 1, b: 1, a: 1}
+  errorColor: {r: 1, g: 0, b: 0, a: 1}
+  hoverShakeIntensity: 5
+  hoverShakeDuration: 0.3
+  upgradeShakeIntensity: 8
+  upgradeScaleAmount: 1.2
+  upgradeAnimationDuration: 0.4
+  errorFlashDuration: 0.5
   OnHoverEnter:
     m_PersistentCalls:
       m_Calls: []
@@ -7212,6 +7301,13 @@ MonoBehaviour:
   normalColor: {r: 1, g: 1, b: 1, a: 1}
   disabledColor: {r: 1, g: 1, b: 1, a: 1}
   unlockedColor: {r: 1, g: 1, b: 1, a: 1}
+  errorColor: {r: 1, g: 0, b: 0, a: 1}
+  hoverShakeIntensity: 5
+  hoverShakeDuration: 0.3
+  upgradeShakeIntensity: 8
+  upgradeScaleAmount: 1.2
+  upgradeAnimationDuration: 0.4
+  errorFlashDuration: 0.5
   OnHoverEnter:
     m_PersistentCalls:
       m_Calls: []
@@ -7691,6 +7787,13 @@ MonoBehaviour:
   normalColor: {r: 1, g: 1, b: 1, a: 1}
   disabledColor: {r: 1, g: 1, b: 1, a: 1}
   unlockedColor: {r: 1, g: 1, b: 1, a: 1}
+  errorColor: {r: 1, g: 0, b: 0, a: 1}
+  hoverShakeIntensity: 5
+  hoverShakeDuration: 0.3
+  upgradeShakeIntensity: 8
+  upgradeScaleAmount: 1.2
+  upgradeAnimationDuration: 0.4
+  errorFlashDuration: 0.5
   OnHoverEnter:
     m_PersistentCalls:
       m_Calls: []
@@ -8071,6 +8174,13 @@ MonoBehaviour:
   normalColor: {r: 1, g: 1, b: 1, a: 1}
   disabledColor: {r: 1, g: 1, b: 1, a: 1}
   unlockedColor: {r: 1, g: 1, b: 1, a: 1}
+  errorColor: {r: 1, g: 0, b: 0, a: 1}
+  hoverShakeIntensity: 5
+  hoverShakeDuration: 0.3
+  upgradeShakeIntensity: 8
+  upgradeScaleAmount: 1.2
+  upgradeAnimationDuration: 0.4
+  errorFlashDuration: 0.5
   OnHoverEnter:
     m_PersistentCalls:
       m_Calls: []
@@ -8222,6 +8332,13 @@ MonoBehaviour:
   normalColor: {r: 1, g: 1, b: 1, a: 1}
   disabledColor: {r: 1, g: 1, b: 1, a: 1}
   unlockedColor: {r: 1, g: 1, b: 1, a: 1}
+  errorColor: {r: 1, g: 0, b: 0, a: 1}
+  hoverShakeIntensity: 5
+  hoverShakeDuration: 0.3
+  upgradeShakeIntensity: 8
+  upgradeScaleAmount: 1.2
+  upgradeAnimationDuration: 0.4
+  errorFlashDuration: 0.5
   OnHoverEnter:
     m_PersistentCalls:
       m_Calls: []
@@ -8373,6 +8490,13 @@ MonoBehaviour:
   normalColor: {r: 1, g: 1, b: 1, a: 1}
   disabledColor: {r: 1, g: 1, b: 1, a: 1}
   unlockedColor: {r: 1, g: 1, b: 1, a: 1}
+  errorColor: {r: 1, g: 0, b: 0, a: 1}
+  hoverShakeIntensity: 5
+  hoverShakeDuration: 0.3
+  upgradeShakeIntensity: 8
+  upgradeScaleAmount: 1.2
+  upgradeAnimationDuration: 0.4
+  errorFlashDuration: 0.5
   OnHoverEnter:
     m_PersistentCalls:
       m_Calls: []
@@ -8524,6 +8648,13 @@ MonoBehaviour:
   normalColor: {r: 1, g: 1, b: 1, a: 1}
   disabledColor: {r: 1, g: 1, b: 1, a: 1}
   unlockedColor: {r: 1, g: 1, b: 1, a: 1}
+  errorColor: {r: 1, g: 0, b: 0, a: 1}
+  hoverShakeIntensity: 5
+  hoverShakeDuration: 0.3
+  upgradeShakeIntensity: 8
+  upgradeScaleAmount: 1.2
+  upgradeAnimationDuration: 0.4
+  errorFlashDuration: 0.5
   OnHoverEnter:
     m_PersistentCalls:
       m_Calls: []
@@ -8711,6 +8842,13 @@ MonoBehaviour:
   normalColor: {r: 1, g: 1, b: 1, a: 1}
   disabledColor: {r: 1, g: 1, b: 1, a: 1}
   unlockedColor: {r: 1, g: 1, b: 1, a: 1}
+  errorColor: {r: 1, g: 0, b: 0, a: 1}
+  hoverShakeIntensity: 5
+  hoverShakeDuration: 0.3
+  upgradeShakeIntensity: 8
+  upgradeScaleAmount: 1.2
+  upgradeAnimationDuration: 0.4
+  errorFlashDuration: 0.5
   OnHoverEnter:
     m_PersistentCalls:
       m_Calls: []
@@ -8862,6 +9000,13 @@ MonoBehaviour:
   normalColor: {r: 1, g: 1, b: 1, a: 1}
   disabledColor: {r: 1, g: 1, b: 1, a: 1}
   unlockedColor: {r: 1, g: 1, b: 1, a: 1}
+  errorColor: {r: 1, g: 0, b: 0, a: 1}
+  hoverShakeIntensity: 5
+  hoverShakeDuration: 0.3
+  upgradeShakeIntensity: 8
+  upgradeScaleAmount: 1.2
+  upgradeAnimationDuration: 0.4
+  errorFlashDuration: 0.5
   OnHoverEnter:
     m_PersistentCalls:
       m_Calls: []
@@ -9013,6 +9158,13 @@ MonoBehaviour:
   normalColor: {r: 1, g: 1, b: 1, a: 1}
   disabledColor: {r: 1, g: 1, b: 1, a: 1}
   unlockedColor: {r: 1, g: 1, b: 1, a: 1}
+  errorColor: {r: 1, g: 0, b: 0, a: 1}
+  hoverShakeIntensity: 5
+  hoverShakeDuration: 0.3
+  upgradeShakeIntensity: 8
+  upgradeScaleAmount: 1.2
+  upgradeAnimationDuration: 0.4
+  errorFlashDuration: 0.5
   OnHoverEnter:
     m_PersistentCalls:
       m_Calls: []
@@ -9164,6 +9316,13 @@ MonoBehaviour:
   normalColor: {r: 1, g: 1, b: 1, a: 1}
   disabledColor: {r: 1, g: 1, b: 1, a: 1}
   unlockedColor: {r: 1, g: 1, b: 1, a: 1}
+  errorColor: {r: 1, g: 0, b: 0, a: 1}
+  hoverShakeIntensity: 5
+  hoverShakeDuration: 0.3
+  upgradeShakeIntensity: 8
+  upgradeScaleAmount: 1.2
+  upgradeAnimationDuration: 0.4
+  errorFlashDuration: 0.5
   OnHoverEnter:
     m_PersistentCalls:
       m_Calls: []
@@ -9372,11 +9531,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1695062833}
   m_CullTransparentMesh: 1
---- !u!224 &1716355842 stripped
-RectTransform:
-  m_CorrespondingSourceObject: {fileID: 2752074729044251531, guid: c85cff3b04e9a594f866f9d95560a7cc, type: 3}
-  m_PrefabInstance: {fileID: 698921224}
-  m_PrefabAsset: {fileID: 0}
 --- !u!1 &1750643001
 GameObject:
   m_ObjectHideFlags: 0
@@ -9440,6 +9594,13 @@ MonoBehaviour:
   normalColor: {r: 1, g: 1, b: 1, a: 1}
   disabledColor: {r: 1, g: 1, b: 1, a: 1}
   unlockedColor: {r: 1, g: 1, b: 1, a: 1}
+  errorColor: {r: 1, g: 0, b: 0, a: 1}
+  hoverShakeIntensity: 5
+  hoverShakeDuration: 0.3
+  upgradeShakeIntensity: 8
+  upgradeScaleAmount: 1.2
+  upgradeAnimationDuration: 0.4
+  errorFlashDuration: 0.5
   OnHoverEnter:
     m_PersistentCalls:
       m_Calls: []
@@ -9672,6 +9833,13 @@ MonoBehaviour:
   normalColor: {r: 1, g: 1, b: 1, a: 1}
   disabledColor: {r: 1, g: 1, b: 1, a: 1}
   unlockedColor: {r: 1, g: 1, b: 1, a: 1}
+  errorColor: {r: 1, g: 0, b: 0, a: 1}
+  hoverShakeIntensity: 5
+  hoverShakeDuration: 0.3
+  upgradeShakeIntensity: 8
+  upgradeScaleAmount: 1.2
+  upgradeAnimationDuration: 0.4
+  errorFlashDuration: 0.5
   OnHoverEnter:
     m_PersistentCalls:
       m_Calls: []
@@ -9823,6 +9991,13 @@ MonoBehaviour:
   normalColor: {r: 1, g: 1, b: 1, a: 1}
   disabledColor: {r: 1, g: 1, b: 1, a: 1}
   unlockedColor: {r: 1, g: 1, b: 1, a: 1}
+  errorColor: {r: 1, g: 0, b: 0, a: 1}
+  hoverShakeIntensity: 5
+  hoverShakeDuration: 0.3
+  upgradeShakeIntensity: 8
+  upgradeScaleAmount: 1.2
+  upgradeAnimationDuration: 0.4
+  errorFlashDuration: 0.5
   OnHoverEnter:
     m_PersistentCalls:
       m_Calls: []
@@ -10098,6 +10273,13 @@ MonoBehaviour:
   normalColor: {r: 1, g: 1, b: 1, a: 1}
   disabledColor: {r: 1, g: 1, b: 1, a: 1}
   unlockedColor: {r: 1, g: 1, b: 1, a: 1}
+  errorColor: {r: 1, g: 0, b: 0, a: 1}
+  hoverShakeIntensity: 5
+  hoverShakeDuration: 0.3
+  upgradeShakeIntensity: 8
+  upgradeScaleAmount: 1.2
+  upgradeAnimationDuration: 0.4
+  errorFlashDuration: 0.5
   OnHoverEnter:
     m_PersistentCalls:
       m_Calls: []
@@ -10429,6 +10611,13 @@ MonoBehaviour:
   normalColor: {r: 1, g: 1, b: 1, a: 1}
   disabledColor: {r: 1, g: 1, b: 1, a: 1}
   unlockedColor: {r: 1, g: 1, b: 1, a: 1}
+  errorColor: {r: 1, g: 0, b: 0, a: 1}
+  hoverShakeIntensity: 5
+  hoverShakeDuration: 0.3
+  upgradeShakeIntensity: 8
+  upgradeScaleAmount: 1.2
+  upgradeAnimationDuration: 0.4
+  errorFlashDuration: 0.5
   OnHoverEnter:
     m_PersistentCalls:
       m_Calls: []
@@ -10717,6 +10906,13 @@ MonoBehaviour:
   normalColor: {r: 1, g: 1, b: 1, a: 1}
   disabledColor: {r: 1, g: 1, b: 1, a: 1}
   unlockedColor: {r: 1, g: 1, b: 1, a: 1}
+  errorColor: {r: 1, g: 0, b: 0, a: 1}
+  hoverShakeIntensity: 5
+  hoverShakeDuration: 0.3
+  upgradeShakeIntensity: 8
+  upgradeScaleAmount: 1.2
+  upgradeAnimationDuration: 0.4
+  errorFlashDuration: 0.5
   OnHoverEnter:
     m_PersistentCalls:
       m_Calls: []
@@ -11052,7 +11248,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!224 &2091602082
 RectTransform:
   m_ObjectHideFlags: 0

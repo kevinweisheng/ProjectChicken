@@ -41,6 +41,11 @@ namespace ProjectChicken.Systems.Save
         public int currentAreaLevel;
 
         /// <summary>
+        /// 是否已展示过场地升级过渡动画（永久保存）
+        /// </summary>
+        public bool hasShownAreaTransition;
+
+        /// <summary>
         /// 最后保存时间（ISO 8601 格式字符串）
         /// </summary>
         public string lastSaveTime;
@@ -53,6 +58,7 @@ namespace ProjectChicken.Systems.Save
             totalGlobalEggs = 0;
             skillRecords = new List<SkillSaveRecord>();
             currentAreaLevel = 0;
+            hasShownAreaTransition = false;
             lastSaveTime = DateTime.Now.ToString("o"); // ISO 8601 格式
         }
     }

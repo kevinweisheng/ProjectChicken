@@ -35,18 +35,34 @@ namespace ProjectChicken.Systems
         /// <returns>该等级对应的生命值，如果等级超出范围则返回默认值</returns>
         public float GetHealthByLevel(int level)
         {
+            float health = 0f;
             switch (level)
             {
-                case 0: return healthLevel0;
-                case 1: return healthLevel1;
-                case 2: return healthLevel2;
-                case 3: return healthLevel3;
-                case 4: return healthLevel4;
-                case 5: return healthLevel5;
+                case 0: 
+                    health = healthLevel0;
+                    break;
+                case 1: 
+                    health = healthLevel1;
+                    break;
+                case 2: 
+                    health = healthLevel2;
+                    break;
+                case 3: 
+                    health = healthLevel3;
+                    break;
+                case 4: 
+                    health = healthLevel4;
+                    break;
+                case 5: 
+                    health = healthLevel5;
+                    break;
                 default:
-                    Debug.LogWarning($"ChickenHealthConfig: 无效的生命值等级 {level}，使用默认值 100", this);
+                    Debug.LogWarning($"ChickenHealthConfig: 无效的生命值等级 {level}，使用默认值 100 (配置对象: {name})", this);
                     return 100f;
             }
+            
+            Debug.Log($"ChickenHealthConfig: 获取等级 {level} 的生命值 = {health} (配置对象: {name})", this);
+            return health;
         }
 
         /// <summary>

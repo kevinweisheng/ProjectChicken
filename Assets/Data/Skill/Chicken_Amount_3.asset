@@ -23,9 +23,9 @@ MonoBehaviour:
   - {fileID: 11400000, guid: afe453d7334c66d41bddf0e2adb0a79f, type: 2}
   effectType: 9
   levels:
-  - cost: 35
+  - cost: 12
     effectValue: 1
-  - cost: 40
+  - cost: 14
     effectValue: 1
-  - cost: 50
+  - cost: 16
     effectValue: 1

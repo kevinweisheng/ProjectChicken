@@ -139,8 +139,8 @@ namespace ProjectChicken.UI
             if (scoreText != null)
             {
                 // 使用保存的 lastSessionEggs，而不是从 ResourceManager 读取（因为已经结算并重置了）
-                // 只显示数字
-                scoreText.text = lastSessionEggs.ToString();
+                // 显示格式：获得鸡蛋:鸡蛋数量
+                scoreText.text = $"获得鸡蛋:{lastSessionEggs}";
                 Debug.Log($"SettlementPanel: 显示分数 {lastSessionEggs}", this);
             }
             else

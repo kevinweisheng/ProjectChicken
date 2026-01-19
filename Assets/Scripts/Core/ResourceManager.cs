@@ -203,14 +203,16 @@ namespace ProjectChicken.Core
                 data.skillRecords = new System.Collections.Generic.List<GameSaveData.SkillSaveRecord>();
             }
 
-            // 设置场地等级
+            // 设置场地等级和过渡动画状态
             if (AreaUpgradeManager.Instance != null)
             {
                 data.currentAreaLevel = AreaUpgradeManager.Instance.CurrentAreaLevel;
+                data.hasShownAreaTransition = AreaUpgradeManager.Instance.HasShownTransition;
             }
             else
             {
                 data.currentAreaLevel = 0;
+                data.hasShownAreaTransition = false;
             }
             
             // 保存到文件
@@ -243,7 +245,9 @@ namespace ProjectChicken.Core
             // 恢复场地等级数据
             if (AreaUpgradeManager.Instance != null)
             {
-                AreaUpgradeManager.Instance.LoadAreaLevel(data.currentAreaLevel);
+                // 兼容旧存档：如果没有 hasShownAreaTransition 字段，默认为 false
+                bool hasShownTransition = data.hasShownAreaTransition;
+                AreaUpgradeManager.Instance.LoadAreaLevel(data.currentAreaLevel, hasShownTransition);
             }
             
             // 更新UI显示

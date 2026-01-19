@@ -55,6 +55,7 @@ namespace ProjectChicken.UI
         private bool isVisible = false; // 当前是否可见
         private Dictionary<SkillNodeData, SkillSlotUI> skillSlotMap; // 技能数据到槽位的映射
         private Canvas canvas; // Canvas 引用（用于计算缩放）
+        private HashSet<string> createdLines; // 已创建的连线集合（用于避免重复创建）
         
         // 拖拽相关
         private bool isDragging = false; // 是否正在拖拽
@@ -296,6 +297,9 @@ namespace ProjectChicken.UI
             // 确保连线容器是技能树内容容器的子对象，这样连线才能跟随缩放和拖拽
             EnsureLineContainerParentage();
 
+            // 初始化已创建连线集合
+            createdLines = new HashSet<string>();
+
             // 初始化技能槽位映射和订阅事件
             InitializeSkillSlots();
 
@@ -452,6 +456,13 @@ namespace ProjectChicken.UI
             // 刷新所有技能槽位的UI状态（确保显示正确的解锁状态）
             RefreshAllSkillSlots();
             
+            // 检查是否是新游戏（所有技能都未解锁）
+            // 如果是新游戏，清除所有连线
+            if (Application.isPlaying && IsNewGame())
+            {
+                ClearAllLines();
+            }
+            
             // 强制更新 Canvas，确保所有 UI 状态已更新
             Canvas.ForceUpdateCanvases();
             
@@ -468,6 +479,70 @@ namespace ProjectChicken.UI
             
             // 更新剩余鸡蛋数显示
             UpdateEggsCountDisplay();
+        }
+
+        /// <summary>
+        /// 检查是否是新游戏（所有技能都未解锁）
+        /// </summary>
+        /// <returns>是否是新游戏</returns>
+        private bool IsNewGame()
+        {
+            if (UpgradeManager.Instance == null)
+            {
+                return false;
+            }
+
+            // 检查所有技能槽位，如果所有技能都未解锁，说明是新游戏
+            SkillSlotUI[] allSkillSlots = GetComponentsInChildren<SkillSlotUI>(true);
+            foreach (SkillSlotUI slot in allSkillSlots)
+            {
+                if (slot != null && slot.TargetSkill != null)
+                {
+                    if (UpgradeManager.Instance.IsNodeUnlocked(slot.TargetSkill))
+                    {
+                        return false; // 至少有一个技能已解锁，不是新游戏
+                    }
+                }
+            }
+
+            return true; // 所有技能都未解锁，是新游戏
+        }
+
+        /// <summary>
+        /// 清除所有连线
+        /// </summary>
+        public void ClearAllLines()
+        {
+            if (lineContainer == null)
+            {
+                return;
+            }
+
+            // 清除所有连线 GameObject
+            int childCount = lineContainer.childCount;
+            for (int i = childCount - 1; i >= 0; i--)
+            {
+                Transform child = lineContainer.GetChild(i);
+                if (child != null)
+                {
+                    if (Application.isPlaying)
+                    {
+                        Destroy(child.gameObject);
+                    }
+                    else
+                    {
+                        DestroyImmediate(child.gameObject);
+                    }
+                }
+            }
+
+            // 清空已创建连线集合
+            if (createdLines != null)
+            {
+                createdLines.Clear();
+            }
+
+            Debug.Log("SkillTreePanel: 已清除所有连线", this);
         }
 
         /// <summary>
@@ -943,7 +1018,7 @@ namespace ProjectChicken.UI
         /// <summary>
         /// 绘制连接线（根据 SkillSlotUI.parentSlots 手动引用）
         /// </summary>
-        private void DrawConnections()
+        public void DrawConnections()
         {
             if (linePrefab == null || lineContainer == null)
             {
@@ -952,23 +1027,35 @@ namespace ProjectChicken.UI
             }
 
             // 确保连线容器是激活的
-            if (lineContainer != null && !lineContainer.gameObject.activeSelf)
+            if (lineContainer != null)
             {
-                lineContainer.gameObject.SetActive(true);
+                if (!lineContainer.gameObject.activeSelf)
+                {
+                    lineContainer.gameObject.SetActive(true);
+                }
+                // 确保连线容器在正确的层级（在技能槽位之前，但在背景之后）
+                if (lineContainer.parent != null)
+                {
+                    lineContainer.SetAsFirstSibling();
+                }
             }
 
-            // 清除现有连线
-            foreach (Transform child in lineContainer)
+            // 运行时：不清除现有连线，只添加新的连线
+            // 这样可以保留之前创建的灰色连线（未解锁但可解锁的子技能）
+            // 编辑模式下：清除现有连线以便重新绘制
+            if (!Application.isPlaying)
             {
-                if (Application.isPlaying)
+                int childCount = lineContainer.childCount;
+                for (int i = childCount - 1; i >= 0; i--)
                 {
-                    Destroy(child.gameObject);
-                }
-                else
-                {
-                    DestroyImmediate(child.gameObject);
+                    Transform child = lineContainer.GetChild(i);
+                    if (child != null)
+                    {
+                        DestroyImmediate(child.gameObject);
+                    }
                 }
             }
+            // 运行时不清空 createdLines，保留已创建的连线记录
 
             // 获取所有技能槽位UI组件（包括隐藏的，用于检查连线关系）
             SkillSlotUI[] allSkillSlots = GetComponentsInChildren<SkillSlotUI>(true);
@@ -991,15 +1078,20 @@ namespace ProjectChicken.UI
                     continue;
                 }
 
-                // 编辑模式下：显示所有连线（不检查 activeInHierarchy）
-                // 运行时：只绘制可见的技能槽位之间的连线（检查 activeInHierarchy）
+                // 编辑模式下：显示所有连线
+                // 运行时：只绘制已解锁的子技能的连线
+                // 未解锁但可解锁的子技能的连线应该通过 AddLinesForUnlockedSkill() 在父技能解锁时创建
                 bool isEditorMode = !Application.isPlaying;
-                bool shouldDrawChild = isEditorMode || childSlot.gameObject.activeInHierarchy;
+                bool isChildUnlocked = IsSlotUnlocked(childSlot);
+                
+                // 运行时：只绘制已解锁的子技能的连线
+                // 这样可以避免在新游戏时显示所有连线
+                bool shouldDrawChild = isEditorMode || isChildUnlocked;
 
                 if (!shouldDrawChild)
                 {
                     skippedHidden++;
-                    continue; // 运行时跳过隐藏的技能槽位
+                    continue;
                 }
 
                 // 遍历该子槽位的所有父槽位
@@ -1007,16 +1099,15 @@ namespace ProjectChicken.UI
                 {
                     if (parentSlot != null)
                     {
-                        // 编辑模式下：显示所有连线（不检查 activeInHierarchy）
-                        // 运行时：只绘制可见的父技能槽位之间的连线（检查 activeInHierarchy）
-                        bool shouldDrawParent = isEditorMode || parentSlot.gameObject.activeInHierarchy;
-
-                        if (!shouldDrawParent)
+                        // 运行时：只有当父技能也已解锁时，才创建连线
+                        // 这样可以确保连线只在父技能解锁后才显示
+                        bool isParentUnlocked = IsSlotUnlocked(parentSlot);
+                        
+                        if (!isEditorMode && !isParentUnlocked)
                         {
-                            skippedHidden++;
-                            continue; // 运行时跳过隐藏的父技能槽位
+                            continue; // 运行时，如果父技能未解锁，不创建连线
                         }
-
+                        
                         // 获取 RectTransform（如果不存在则跳过）
                         RectTransform parentRect = parentSlot.GetComponent<RectTransform>();
                         RectTransform childRect = childSlot.GetComponent<RectTransform>();
@@ -1030,8 +1121,17 @@ namespace ProjectChicken.UI
                         // 检查子槽位是否已解锁（用于设置线条颜色/材质）
                         bool isUnlocked = IsSlotUnlocked(childSlot);
                         
-                        // 创建连线
-                        CreateLine(
+                        // 生成连线的唯一标识符（父技能ID + 子技能ID）
+                        string lineKey = GetLineKey(parentSlot, childSlot);
+                        
+                        // 运行时：检查连线是否已存在（避免重复创建）
+                        if (Application.isPlaying && createdLines != null && createdLines.Contains(lineKey))
+                        {
+                            continue; // 连线已存在，跳过
+                        }
+                        
+                        // 创建连线（从父技能到子技能）
+                        GameObject lineObj = CreateLine(
                             parentRect, 
                             childRect, 
                             linePrefab, 
@@ -1039,7 +1139,15 @@ namespace ProjectChicken.UI
                             isUnlocked
                         );
                         
-                        linesCreated++;
+                        if (lineObj != null)
+                        {
+                            // 运行时：将连线标识符添加到集合中
+                            if (Application.isPlaying && createdLines != null)
+                            {
+                                createdLines.Add(lineKey);
+                            }
+                            linesCreated++;
+                        }
                     }
                 }
             }
@@ -1047,22 +1155,368 @@ namespace ProjectChicken.UI
             Debug.Log($"SkillTreePanel: 绘制连线完成，共创建 {linesCreated} 条连线（编辑模式: {!Application.isPlaying}，跳过隐藏: {skippedHidden}，跳过无父槽位: {skippedNoParentSlots}）", this);
             
             // 运行时添加详细调试信息，检查连线是否真的被创建
-            if (Application.isPlaying && linesCreated > 0)
+            if (Application.isPlaying)
             {
                 int activeLineCount = 0;
+                int totalLineCount = lineContainer.childCount;
                 foreach (Transform child in lineContainer)
                 {
                     if (child != null && child.gameObject.activeSelf)
                     {
                         activeLineCount++;
-                        Image img = child.GetComponent<Image>();
-                        if (img != null)
+                    }
+                }
+                Debug.Log($"SkillTreePanel: 连线容器中共有 {totalLineCount} 个子对象，其中 {activeLineCount} 个是激活的", this);
+                
+                if (linesCreated > 0 && activeLineCount == 0)
+                {
+                    Debug.LogWarning("SkillTreePanel: 警告！创建了连线但没有任何连线是激活的。请检查连线预制体和连线容器的配置。", this);
+                }
+            }
+        }
+
+        /// <summary>
+        /// 获取某个技能的所有子技能槽位
+        /// </summary>
+        /// <param name="parentSlot">父技能槽位</param>
+        /// <returns>子技能槽位列表</returns>
+        private List<SkillSlotUI> GetChildSlots(SkillSlotUI parentSlot)
+        {
+            List<SkillSlotUI> childSlots = new List<SkillSlotUI>();
+            
+            if (parentSlot == null || skillSlotMap == null)
+            {
+                return childSlots;
+            }
+
+            // 遍历所有技能槽位，找到那些以当前技能为父技能的槽位
+            SkillSlotUI[] allSkillSlots = GetComponentsInChildren<SkillSlotUI>(true);
+            foreach (SkillSlotUI slot in allSkillSlots)
+            {
+                if (slot != null && slot.parentSlots != null && slot.parentSlots.Contains(parentSlot))
+                {
+                    childSlots.Add(slot);
+                }
+            }
+
+            return childSlots;
+        }
+
+        /// <summary>
+        /// 检查子技能是否因为指定父技能解锁而变为可解锁
+        /// </summary>
+        /// <param name="childSlot">子技能槽位</param>
+        /// <param name="parentSlot">父技能槽位</param>
+        /// <returns>是否因为该父技能解锁而变为可解锁</returns>
+        private bool IsChildUnlockedByParent(SkillSlotUI childSlot, SkillSlotUI parentSlot)
+        {
+            if (childSlot == null || parentSlot == null || childSlot.TargetSkill == null || parentSlot.TargetSkill == null)
+            {
+                return false;
+            }
+
+            // 检查子技能是否以当前父技能为前置条件
+            bool hasParentAsPrerequisite = false;
+
+            // 检查 parentSlots 列表
+            if (childSlot.parentSlots != null && childSlot.parentSlots.Contains(parentSlot))
+            {
+                hasParentAsPrerequisite = true;
+            }
+
+            // 检查 SkillNodeData 的 Prerequisite
+            if (!hasParentAsPrerequisite && childSlot.TargetSkill.Prerequisite == parentSlot.TargetSkill)
+            {
+                hasParentAsPrerequisite = true;
+            }
+
+            // 检查 SkillNodeData 的 Prerequisites 列表
+            if (!hasParentAsPrerequisite && childSlot.TargetSkill.Prerequisites != null)
+            {
+                hasParentAsPrerequisite = childSlot.TargetSkill.Prerequisites.Contains(parentSlot.TargetSkill);
+            }
+
+            if (!hasParentAsPrerequisite)
+            {
+                return false; // 子技能不以当前父技能为前置条件
+            }
+
+            // 检查子技能是否因为该父技能解锁而变为可解锁
+            // 如果父技能已解锁，且子技能未解锁，说明子技能因为父技能解锁而变为可解锁
+            bool isParentUnlocked = IsSlotUnlocked(parentSlot);
+            bool isChildUnlocked = IsSlotUnlocked(childSlot);
+            
+            // 如果父技能已解锁，子技能未解锁，且子技能现在可以解锁（满足前置条件），说明是因为父技能解锁而变为可解锁
+            if (isParentUnlocked && !isChildUnlocked)
+            {
+                // 检查子技能是否还有其他前置条件未满足
+                // 如果子技能的所有前置条件都已满足（除了当前父技能），说明是因为当前父技能解锁而变为可解锁
+                return CanChildUnlockNow(childSlot);
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// 检查子技能现在是否可以解锁（所有前置条件是否满足）
+        /// </summary>
+        /// <param name="childSlot">子技能槽位</param>
+        /// <returns>是否可以解锁</returns>
+        private bool CanChildUnlockNow(SkillSlotUI childSlot)
+        {
+            if (childSlot == null || childSlot.TargetSkill == null || UpgradeManager.Instance == null)
+            {
+                return false;
+            }
+
+            // 如果没有前置技能，可以直接解锁
+            if (childSlot.TargetSkill.Prerequisite == null && (childSlot.parentSlots == null || childSlot.parentSlots.Count == 0))
+            {
+                return true;
+            }
+
+            // 检查 parentSlots 列表
+            if (childSlot.parentSlots != null && childSlot.parentSlots.Count > 0)
+            {
+                foreach (SkillSlotUI parentSlot in childSlot.parentSlots)
+                {
+                    if (parentSlot != null && parentSlot.TargetSkill != null)
+                    {
+                        if (UpgradeManager.Instance.IsNodeUnlocked(parentSlot.TargetSkill))
                         {
-                            Debug.Log($"SkillTreePanel: 连线 {child.name} - 颜色: {img.color}, 启用: {img.enabled}, 可见: {child.gameObject.activeInHierarchy}", this);
+                            return true; // 至少有一个父技能已解锁
                         }
                     }
                 }
-                Debug.Log($"SkillTreePanel: 连线容器中共有 {lineContainer.childCount} 个子对象，其中 {activeLineCount} 个是激活的", this);
+            }
+
+            // 检查 Prerequisite
+            if (childSlot.TargetSkill.Prerequisite != null)
+            {
+                if (UpgradeManager.Instance.IsNodeUnlocked(childSlot.TargetSkill.Prerequisite))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// 为单个技能的子技能添加连线（当技能解锁时调用）
+        /// 只为因为该父技能解锁而变为可解锁的子技能创建连线
+        /// </summary>
+        /// <param name="unlockedSlot">已解锁的技能槽位（父技能）</param>
+        public void AddLinesForUnlockedSkill(SkillSlotUI unlockedSlot)
+        {
+            if (unlockedSlot == null || linePrefab == null || lineContainer == null)
+            {
+                Debug.LogWarning("SkillTreePanel: AddLinesForUnlockedSkill 参数无效", this);
+                return;
+            }
+
+            // 确保连线容器是激活的
+            if (lineContainer != null && !lineContainer.gameObject.activeSelf)
+            {
+                lineContainer.gameObject.SetActive(true);
+            }
+
+            // 检查该技能是否已解锁
+            if (!IsSlotUnlocked(unlockedSlot))
+            {
+                Debug.Log($"SkillTreePanel: 技能 {unlockedSlot.TargetSkill?.DisplayName} 未解锁，不添加连线", this);
+                return; // 如果技能未解锁，不添加连线
+            }
+
+            // 获取该技能的所有子技能
+            List<SkillSlotUI> childSlots = GetChildSlots(unlockedSlot);
+            if (childSlots == null || childSlots.Count == 0)
+            {
+                Debug.Log($"SkillTreePanel: 技能 {unlockedSlot.TargetSkill?.DisplayName} 没有子技能", this);
+                return; // 没有子技能，不需要连线
+            }
+
+            Debug.Log($"SkillTreePanel: 技能 {unlockedSlot.TargetSkill?.DisplayName} 有 {childSlots.Count} 个子技能，检查哪些因为该技能解锁而变为可解锁", this);
+
+            // 获取父技能的 RectTransform
+            RectTransform parentRect = unlockedSlot.GetComponent<RectTransform>();
+            if (parentRect == null)
+            {
+                Debug.LogWarning($"SkillTreePanel: 技能 {unlockedSlot.TargetSkill?.DisplayName} 缺少 RectTransform", this);
+                return;
+            }
+
+            // 只为因为该父技能解锁而变为可解锁的子技能创建连线
+            int linesCreated = 0;
+            foreach (SkillSlotUI childSlot in childSlots)
+            {
+                if (childSlot != null)
+                {
+                    // 检查子技能是否因为该父技能解锁而变为可解锁
+                    if (!IsChildUnlockedByParent(childSlot, unlockedSlot))
+                    {
+                        continue; // 子技能不是因为该父技能解锁而变为可解锁，跳过
+                    }
+
+                    RectTransform childRect = childSlot.GetComponent<RectTransform>();
+                    if (childRect == null)
+                    {
+                        continue;
+                    }
+
+                    // 生成连线的唯一标识符
+                    string lineKey = GetLineKey(unlockedSlot, childSlot);
+                    
+                    // 检查连线是否已存在（避免重复创建）
+                    if (createdLines != null && createdLines.Contains(lineKey))
+                    {
+                        continue; // 连线已存在，跳过
+                    }
+                    
+                    // 检查子槽位是否已解锁（用于设置线条颜色/材质）
+                    // 已解锁：使用亮色，未解锁：使用半透明灰色
+                    bool isChildUnlocked = IsSlotUnlocked(childSlot);
+                    
+                    // 创建连线（从父技能到子技能）
+                    GameObject lineObj = CreateLine(
+                        parentRect, 
+                        childRect, 
+                        linePrefab, 
+                        lineContainer,
+                        isChildUnlocked
+                    );
+                    
+                    if (lineObj != null)
+                    {
+                        // 将连线标识符添加到集合中
+                        if (createdLines != null)
+                        {
+                            createdLines.Add(lineKey);
+                        }
+                        linesCreated++;
+                        Debug.Log($"SkillTreePanel: 为技能 {unlockedSlot.TargetSkill?.DisplayName} 到 {childSlot.TargetSkill?.DisplayName} 创建了连线（子技能因为该父技能解锁而变为可解锁，子技能已解锁: {isChildUnlocked}）", this);
+                    }
+                    else
+                    {
+                        Debug.LogWarning($"SkillTreePanel: 创建连线失败 - 从 {unlockedSlot.TargetSkill?.DisplayName} 到 {childSlot.TargetSkill?.DisplayName}", this);
+                    }
+                }
+            }
+
+            if (linesCreated > 0)
+            {
+                Debug.Log($"SkillTreePanel: 为已解锁技能 {unlockedSlot.TargetSkill?.DisplayName} 创建了 {linesCreated} 条连线（到因该技能解锁而变为可解锁的子技能）", this);
+            }
+            else
+            {
+                Debug.Log($"SkillTreePanel: 技能 {unlockedSlot.TargetSkill?.DisplayName} 没有因为该技能解锁而变为可解锁的子技能", this);
+            }
+        }
+
+        /// <summary>
+        /// 为单个技能的所有已解锁父技能添加连线（当子技能解锁时调用）
+        /// </summary>
+        /// <param name="unlockedChildSlot">已解锁的子技能槽位</param>
+        public void AddLinesForChildSkill(SkillSlotUI unlockedChildSlot)
+        {
+            if (unlockedChildSlot == null || linePrefab == null || lineContainer == null)
+            {
+                Debug.LogWarning("SkillTreePanel: AddLinesForChildSkill 参数无效", this);
+                return;
+            }
+
+            // 确保连线容器是激活的
+            if (lineContainer != null && !lineContainer.gameObject.activeSelf)
+            {
+                lineContainer.gameObject.SetActive(true);
+            }
+
+            // 检查该技能是否已解锁
+            if (!IsSlotUnlocked(unlockedChildSlot))
+            {
+                Debug.Log($"SkillTreePanel: 技能 {unlockedChildSlot.TargetSkill?.DisplayName} 未解锁，不添加连线", this);
+                return; // 如果技能未解锁，不添加连线
+            }
+
+            // 检查该技能是否有父技能
+            if (unlockedChildSlot.parentSlots == null || unlockedChildSlot.parentSlots.Count == 0)
+            {
+                Debug.Log($"SkillTreePanel: 技能 {unlockedChildSlot.TargetSkill?.DisplayName} 没有父技能", this);
+                return; // 没有父技能，不需要连线
+            }
+
+            Debug.Log($"SkillTreePanel: 技能 {unlockedChildSlot.TargetSkill?.DisplayName} 有 {unlockedChildSlot.parentSlots.Count} 个父技能", this);
+
+            // 获取子技能的 RectTransform
+            RectTransform childRect = unlockedChildSlot.GetComponent<RectTransform>();
+            if (childRect == null)
+            {
+                return;
+            }
+
+            // 为该技能的所有已解锁父技能创建连线
+            int linesCreated = 0;
+            foreach (SkillSlotUI parentSlot in unlockedChildSlot.parentSlots)
+            {
+                if (parentSlot != null)
+                {
+                    // 只对已解锁的父技能创建连线
+                    if (!IsSlotUnlocked(parentSlot))
+                    {
+                        continue; // 父技能未解锁，跳过
+                    }
+
+                    RectTransform parentRect = parentSlot.GetComponent<RectTransform>();
+                    if (parentRect == null)
+                    {
+                        continue;
+                    }
+
+                    // 生成连线的唯一标识符
+                    string lineKey = GetLineKey(parentSlot, unlockedChildSlot);
+                    
+                    // 检查连线是否已存在（避免重复创建）
+                    if (createdLines != null && createdLines.Contains(lineKey))
+                    {
+                        continue; // 连线已存在，跳过
+                    }
+                    
+                    // 检查子槽位是否已解锁（用于设置线条颜色/材质）
+                    bool isUnlocked = IsSlotUnlocked(unlockedChildSlot);
+                    
+                    // 创建连线（从父技能到子技能）
+                    GameObject lineObj = CreateLine(
+                        parentRect, 
+                        childRect, 
+                        linePrefab, 
+                        lineContainer,
+                        isUnlocked
+                    );
+                    
+                    if (lineObj != null)
+                    {
+                        // 将连线标识符添加到集合中
+                        if (createdLines != null)
+                        {
+                            createdLines.Add(lineKey);
+                        }
+                        linesCreated++;
+                        Debug.Log($"SkillTreePanel: 为技能 {parentSlot.TargetSkill?.DisplayName} 到 {unlockedChildSlot.TargetSkill?.DisplayName} 创建了连线", this);
+                    }
+                    else
+                    {
+                        Debug.LogWarning($"SkillTreePanel: 创建连线失败 - 从 {parentSlot.TargetSkill?.DisplayName} 到 {unlockedChildSlot.TargetSkill?.DisplayName}", this);
+                    }
+                }
+            }
+
+            if (linesCreated > 0)
+            {
+                Debug.Log($"SkillTreePanel: 为已解锁子技能 {unlockedChildSlot.TargetSkill?.DisplayName} 的父技能创建了 {linesCreated} 条连线", this);
+            }
+            else
+            {
+                Debug.Log($"SkillTreePanel: 技能 {unlockedChildSlot.TargetSkill?.DisplayName} 没有已解锁的父技能，或所有父技能的连线已存在", this);
             }
         }
 
@@ -1154,6 +1608,19 @@ namespace ProjectChicken.UI
         }
 
         /// <summary>
+        /// 获取连线的唯一标识符
+        /// </summary>
+        /// <param name="parentSlot">父技能槽位</param>
+        /// <param name="childSlot">子技能槽位</param>
+        /// <returns>连线的唯一标识符</returns>
+        private string GetLineKey(SkillSlotUI parentSlot, SkillSlotUI childSlot)
+        {
+            string parentId = parentSlot?.TargetSkill?.ID ?? parentSlot?.name ?? "Unknown";
+            string childId = childSlot?.TargetSkill?.ID ?? childSlot?.name ?? "Unknown";
+            return $"{parentId}->{childId}";
+        }
+
+        /// <summary>
         /// 创建连接线
         /// </summary>
         /// <param name="start">起始 RectTransform</param>
@@ -1161,11 +1628,12 @@ namespace ProjectChicken.UI
         /// <param name="linePrefab">连线预制体</param>
         /// <param name="container">容器 Transform</param>
         /// <param name="isUnlocked">是否已解锁（用于设置线条颜色）</param>
-        private void CreateLine(RectTransform start, RectTransform end, GameObject linePrefab, Transform container, bool isUnlocked = false)
+        /// <returns>创建的连线 GameObject，如果创建失败则返回 null</returns>
+        private GameObject CreateLine(RectTransform start, RectTransform end, GameObject linePrefab, Transform container, bool isUnlocked = false)
         {
             if (start == null || end == null || linePrefab == null || container == null)
             {
-                return;
+                return null;
             }
 
             GameObject line;
@@ -1195,7 +1663,7 @@ namespace ProjectChicken.UI
             
             if (line == null)
             {
-                return;
+                return null;
             }
             
             RectTransform lineRect = line.GetComponent<RectTransform>();
@@ -1213,14 +1681,33 @@ namespace ProjectChicken.UI
                 {
                     Destroy(line);
                 }
-                return;
+                return null;
             }
 
             // 确保连线 GameObject 是激活的
             line.SetActive(true);
             
+            // 运行时：确保连线在正确的层级
+            if (Application.isPlaying)
+            {
+                // 确保连线容器是激活的
+                if (container != null && !container.gameObject.activeSelf)
+                {
+                    container.gameObject.SetActive(true);
+                }
+                // 确保连线本身是激活的
+                if (!line.activeSelf)
+                {
+                    line.SetActive(true);
+                }
+            }
+            
             // 设置锚点为左中，方便旋转和拉伸
             lineRect.pivot = new Vector2(0, 0.5f);
+            
+            // 确保 RectTransform 的锚点和轴心设置正确
+            lineRect.anchorMin = new Vector2(0, 0.5f);
+            lineRect.anchorMax = new Vector2(0, 0.5f);
             
             // 获取世界坐标
             Vector3 startWorldPos = start.position;
@@ -1242,14 +1729,31 @@ namespace ProjectChicken.UI
                     uiCamera = canvas.worldCamera;
                 }
                 
+                // 对于 ScreenSpaceOverlay 模式，uiCamera 为 null，但 RectTransformUtility 可以处理
+                Vector2 startScreenPos;
+                Vector2 endScreenPos;
+                
+                if (canvas != null && canvas.renderMode == RenderMode.ScreenSpaceOverlay)
+                {
+                    // ScreenSpaceOverlay 模式：直接使用世界坐标作为屏幕坐标
+                    startScreenPos = RectTransformUtility.WorldToScreenPoint(null, startWorldPos);
+                    endScreenPos = RectTransformUtility.WorldToScreenPoint(null, endWorldPos);
+                }
+                else
+                {
+                    // 其他模式：使用相机转换
+                    startScreenPos = RectTransformUtility.WorldToScreenPoint(uiCamera, startWorldPos);
+                    endScreenPos = RectTransformUtility.WorldToScreenPoint(uiCamera, endWorldPos);
+                }
+                
                 RectTransformUtility.ScreenPointToLocalPointInRectangle(
                     containerRect, 
-                    RectTransformUtility.WorldToScreenPoint(uiCamera, startWorldPos), 
+                    startScreenPos, 
                     uiCamera, 
                     out Vector2 startLocal);
                 RectTransformUtility.ScreenPointToLocalPointInRectangle(
                     containerRect, 
-                    RectTransformUtility.WorldToScreenPoint(uiCamera, endWorldPos), 
+                    endScreenPos, 
                     uiCamera, 
                     out Vector2 endLocal);
                 
@@ -1257,6 +1761,12 @@ namespace ProjectChicken.UI
                 
                 Vector2 diff = endLocal - startLocal;
                 distance = diff.magnitude;
+                
+                // 确保连线有最小长度，避免显示问题
+                if (distance < 0.1f)
+                {
+                    distance = 0.1f;
+                }
                 
                 lineRect.sizeDelta = new Vector2(distance, lineWidth);
                 angle = Mathf.Atan2(diff.y, diff.x) * Mathf.Rad2Deg;
@@ -1271,6 +1781,12 @@ namespace ProjectChicken.UI
                 
                 Vector3 diff = endLocalPos - startLocalPos;
                 distance = diff.magnitude;
+                
+                // 确保连线有最小长度，避免显示问题
+                if (distance < 0.1f)
+                {
+                    distance = 0.1f;
+                }
                 
                 lineRect.sizeDelta = new Vector2(distance, lineWidth);
                 angle = Mathf.Atan2(diff.y, diff.x) * Mathf.Rad2Deg;
@@ -1312,6 +1828,19 @@ namespace ProjectChicken.UI
                 
                 // 确保 Image 的 raycastTarget 为 false，避免阻挡鼠标事件
                 lineImage.raycastTarget = false;
+                
+                // 运行时：确保 Image 的材质和纹理设置正确
+                if (Application.isPlaying)
+                {
+                    // 如果 Image 的材质为空，使用默认材质
+                    if (lineImage.material == null)
+                    {
+                        lineImage.material = null; // 使用默认材质
+                    }
+                    
+                    // 确保 Image 的 sprite 不为空（如果连线使用 sprite 渲染）
+                    // 如果连线使用纯色，sprite 可以为空
+                }
             }
             else
             {
@@ -1327,10 +1856,22 @@ namespace ProjectChicken.UI
             
             // 确保连线的 Renderer 或 CanvasRenderer 正常工作
             CanvasRenderer canvasRenderer = line.GetComponent<CanvasRenderer>();
-            if (canvasRenderer != null && canvasRenderer.cullTransparentMesh)
+            if (canvasRenderer != null)
             {
-                // 如果启用了剔除透明网格，可能需要禁用（确保半透明线条也能显示）
-                // 但通常应该保持启用以优化性能
+                // 运行时：确保 CanvasRenderer 正确设置
+                if (Application.isPlaying)
+                {
+                    // 如果启用了剔除透明网格，对于半透明线条可能需要禁用
+                    // 但通常应该保持启用以优化性能
+                    // 如果连线不显示，可以尝试禁用 cullTransparentMesh
+                    // canvasRenderer.cullTransparentMesh = false;
+                }
+            }
+            
+            // 运行时：强制更新 Canvas，确保连线立即显示
+            if (Application.isPlaying)
+            {
+                Canvas.ForceUpdateCanvases();
             }
             
             // 编辑模式下添加调试信息
@@ -1340,6 +1881,8 @@ namespace ProjectChicken.UI
                 Debug.Log($"SkillTreePanel: 创建连线 - 从 {start.name} 到 {end.name}, 距离: {distance:F2}, 角度: {angle:F2}°, 位置: {lineRect.position}, 大小: {lineRect.sizeDelta}", this);
             }
             #endif
+            
+            return line;
         }
 
         /// <summary>
@@ -1431,4 +1974,5 @@ namespace ProjectChicken.UI
         }
     }
 }
+
 

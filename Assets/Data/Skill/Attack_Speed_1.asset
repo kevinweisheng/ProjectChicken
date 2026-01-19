@@ -21,8 +21,8 @@ MonoBehaviour:
   effectType: 2
   levels:
   - cost: 10
-    effectValue: -0.01
-  - cost: 20
-    effectValue: -0.01
-  - cost: 30
-    effectValue: -0.01
+    effectValue: -0.05
+  - cost: 12
+    effectValue: -0.05
+  - cost: 14
+    effectValue: -0.05

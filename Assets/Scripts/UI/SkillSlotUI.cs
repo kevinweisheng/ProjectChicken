@@ -38,10 +38,24 @@ namespace ProjectChicken.UI
         [SerializeField] private Color normalColor = Color.white; // 正常颜色
         [SerializeField] private Color disabledColor = Color.gray; // 禁用颜色
         [SerializeField] private Color unlockedColor = Color.green; // 已解锁颜色
+        [SerializeField] private Color errorColor = Color.red; // 错误颜色（货币不足时）
+
+        [Header("动画配置")]
+        [SerializeField] private float hoverShakeIntensity = 5f; // 悬停晃动强度
+        [SerializeField] private float hoverShakeDuration = 0.3f; // 悬停晃动持续时间
+        [SerializeField] private float upgradeShakeIntensity = 8f; // 升级晃动强度
+        [SerializeField] private float upgradeScaleAmount = 1.2f; // 升级放大倍数
+        [SerializeField] private float upgradeAnimationDuration = 0.4f; // 升级动画持续时间
+        [SerializeField] private float errorFlashDuration = 0.5f; // 错误闪烁持续时间
 
         [Header("悬停事件")]
         [SerializeField] private UnityEvent<SkillNodeData> OnHoverEnter; // 鼠标进入事件
         [SerializeField] private UnityEvent<SkillNodeData> OnHoverExit; // 鼠标离开事件
+
+        // 动画相关
+        private Vector3 originalScale; // 原始缩放
+        private Color originalIconColor; // 原始图标颜色
+        private bool isAnimating = false; // 是否正在播放动画
 
         /// <summary>
         /// 编辑器模式下：当Inspector中的字段改变时自动调用（用于在编辑时刷新图标显示）
@@ -116,6 +130,17 @@ namespace ProjectChicken.UI
             if (buttonComp != null)
             {
                 buttonComp.onClick.AddListener(OnButtonClicked);
+            }
+
+            // 保存原始缩放和颜色
+            if (iconImage != null)
+            {
+                originalScale = iconImage.transform.localScale;
+                originalIconColor = iconImage.color;
+            }
+            else
+            {
+                originalScale = transform.localScale;
             }
         }
 
@@ -495,6 +520,13 @@ namespace ProjectChicken.UI
             if (!HasEnoughMoney())
             {
                 Debug.LogWarning($"SkillSlotUI: 全局货币不足！需要 {nextLevelCost}，当前只有 {ResourceManager.Instance?.TotalGlobalEggs ?? 0}。", this);
+                
+                // 播放错误动画：图标变红
+                if (iconImage != null)
+                {
+                    StartCoroutine(ErrorFlashAnimation());
+                }
+                
                 // 可以在这里播放错误音效
                 // AudioManager.Instance?.PlayErrorSound();
                 return;
@@ -505,6 +537,12 @@ namespace ProjectChicken.UI
 
             if (success)
             {
+                // 播放升级成功动画：图标晃动放大
+                if (iconImage != null)
+                {
+                    StartCoroutine(UpgradeShakeScaleAnimation());
+                }
+
                 // 升级成功，立即刷新UI状态
                 UpdateUIState();
                 
@@ -512,6 +550,19 @@ namespace ProjectChicken.UI
                 if (SkillTreePanel.Instance != null)
                 {
                     SkillTreePanel.Instance.RefreshAllSkillSlots();
+                    
+                    // 如果这是首次解锁（从等级0到等级1）
+                    if (currentLevel == 0)
+                    {
+                        Debug.Log($"SkillSlotUI: 技能 {targetSkill.DisplayName} 首次解锁，为其所有子技能创建连线", this);
+                        
+                        // 当父技能首次解锁时，为所有子技能创建连线（无论子技能是否已解锁）
+                        // 这样玩家可以看到哪些子技能现在可以解锁了
+                        SkillTreePanel.Instance.AddLinesForUnlockedSkill(this);
+                    }
+                    
+                    // 重新绘制所有连线，确保所有已解锁技能的连线都显示
+                    StartCoroutine(DelayedRedrawConnections());
                 }
                 
                 // 可以在这里添加音效、特效等反馈
@@ -521,6 +572,19 @@ namespace ProjectChicken.UI
             {
                 // 升级失败，刷新UI状态（可能货币不足或其他原因）
                 UpdateUIState();
+            }
+        }
+
+        /// <summary>
+        /// 延迟重新绘制连线（确保技能状态已更新）
+        /// </summary>
+        private System.Collections.IEnumerator DelayedRedrawConnections()
+        {
+            yield return null; // 等待一帧，确保所有状态已更新
+            
+            if (SkillTreePanel.Instance != null)
+            {
+                SkillTreePanel.Instance.DrawConnections();
             }
         }
 
@@ -547,6 +611,12 @@ namespace ProjectChicken.UI
             {
                 OnHoverEnter.Invoke(targetSkill);
             }
+
+            // 播放悬停晃动动画
+            if (iconImage != null && !isAnimating)
+            {
+                StartCoroutine(HoverShakeAnimation());
+            }
         }
 
         /// <summary>
@@ -559,6 +629,141 @@ namespace ProjectChicken.UI
             {
                 OnHoverExit.Invoke(targetSkill);
             }
+        }
+
+        /// <summary>
+        /// 悬停晃动动画
+        /// </summary>
+        private System.Collections.IEnumerator HoverShakeAnimation()
+        {
+            if (iconImage == null) yield break;
+
+            isAnimating = true;
+            Transform iconTransform = iconImage.transform;
+            Vector3 startPos = iconTransform.localPosition;
+            float elapsed = 0f;
+
+            while (elapsed < hoverShakeDuration)
+            {
+                elapsed += Time.deltaTime;
+                float progress = elapsed / hoverShakeDuration;
+                
+                // 使用衰减的正弦波创建晃动效果
+                float shakeAmount = hoverShakeIntensity * (1f - progress);
+                float angle = progress * Mathf.PI * 4f; // 晃动2次
+                Vector3 offset = new Vector3(
+                    Mathf.Sin(angle) * shakeAmount,
+                    Mathf.Cos(angle * 0.7f) * shakeAmount,
+                    0f
+                );
+                
+                iconTransform.localPosition = startPos + offset;
+                yield return null;
+            }
+
+            // 恢复原始位置
+            iconTransform.localPosition = startPos;
+            isAnimating = false;
+        }
+
+        /// <summary>
+        /// 升级晃动放大动画
+        /// </summary>
+        private System.Collections.IEnumerator UpgradeShakeScaleAnimation()
+        {
+            if (iconImage == null) yield break;
+
+            isAnimating = true;
+            Transform iconTransform = iconImage.transform;
+            Vector3 startPos = iconTransform.localPosition;
+            Vector3 startScale = iconTransform.localScale;
+            float elapsed = 0f;
+
+            while (elapsed < upgradeAnimationDuration)
+            {
+                elapsed += Time.deltaTime;
+                float progress = elapsed / upgradeAnimationDuration;
+                
+                // 前半段：放大并晃动
+                if (progress < 0.5f)
+                {
+                    float phase = progress * 2f; // 0 到 1
+                    float scale = Mathf.Lerp(1f, upgradeScaleAmount, phase);
+                    iconTransform.localScale = originalScale * scale;
+                    
+                    // 晃动效果
+                    float shakeAmount = upgradeShakeIntensity * (1f - phase);
+                    float angle = phase * Mathf.PI * 3f;
+                    Vector3 offset = new Vector3(
+                        Mathf.Sin(angle) * shakeAmount,
+                        Mathf.Cos(angle * 0.7f) * shakeAmount,
+                        0f
+                    );
+                    iconTransform.localPosition = startPos + offset;
+                }
+                // 后半段：恢复
+                else
+                {
+                    float phase = (progress - 0.5f) * 2f; // 0 到 1
+                    float scale = Mathf.Lerp(upgradeScaleAmount, 1f, phase);
+                    iconTransform.localScale = originalScale * scale;
+                    iconTransform.localPosition = Vector3.Lerp(startPos + new Vector3(
+                        Mathf.Sin(Mathf.PI * 1.5f) * upgradeShakeIntensity * 0.5f,
+                        Mathf.Cos(Mathf.PI * 1.5f * 0.7f) * upgradeShakeIntensity * 0.5f,
+                        0f
+                    ), startPos, phase);
+                }
+                
+                yield return null;
+            }
+
+            // 确保恢复到原始状态
+            iconTransform.localPosition = startPos;
+            iconTransform.localScale = originalScale;
+            isAnimating = false;
+        }
+
+        /// <summary>
+        /// 错误闪烁动画（货币不足时）
+        /// </summary>
+        private System.Collections.IEnumerator ErrorFlashAnimation()
+        {
+            if (iconImage == null) yield break;
+
+            isAnimating = true;
+            Color startColor = iconImage.color;
+            float elapsed = 0f;
+
+            // 闪烁2次
+            int flashCount = 2;
+            float flashDuration = errorFlashDuration / flashCount;
+
+            for (int i = 0; i < flashCount; i++)
+            {
+                elapsed = 0f;
+                while (elapsed < flashDuration)
+                {
+                    elapsed += Time.deltaTime;
+                    float progress = elapsed / flashDuration;
+                    
+                    // 前半段：变红
+                    if (progress < 0.5f)
+                    {
+                        iconImage.color = Color.Lerp(startColor, errorColor, progress * 2f);
+                    }
+                    // 后半段：恢复
+                    else
+                    {
+                        iconImage.color = Color.Lerp(errorColor, startColor, (progress - 0.5f) * 2f);
+                    }
+                    
+                    yield return null;
+                }
+            }
+
+            // 确保恢复到原始颜色
+            iconImage.color = startColor;
+            isAnimating = false;
         }
     }
 }

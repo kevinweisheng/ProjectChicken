@@ -14,15 +14,15 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ProjectChicken.Systems.SkillTree.SkillNodeData
   id: 10042
   icon: {fileID: 8741566209762793639, guid: cf546b2d04b25104bb8fdc13e6049edf, type: 3}
-  displayName: "\u56DE\u5408\u65F6\u95F4"
+  displayName: "\u80CE\u751F\u9E21\u6982\u7387"
   description: "\u9E21\u751F\u9E21\u7684\u6982\u7387:\n+1%"
   prerequisite: {fileID: 11400000, guid: 6b6755062f51a474ebdb792d1b96a0c9, type: 2}
   prerequisites: []
   effectType: 19
   levels:
-  - cost: 10000
+  - cost: 50
     effectValue: 0.01
-  - cost: 20000
+  - cost: 60
     effectValue: 0.01
-  - cost: 30000
+  - cost: 70
     effectValue: 0.01

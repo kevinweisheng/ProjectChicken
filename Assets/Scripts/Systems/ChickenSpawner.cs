@@ -299,8 +299,9 @@ namespace ProjectChicken.Systems
                 bool isGolden = ShouldSpawnGoldenChicken();
                 newChicken.SetGolden(isGolden);
                 
-                // 根据当前阶段的生命值等级和鸡的类型设置鸡的生命值
-                SetChickenHealthByStage(newChicken, isGolden);
+                // 延迟一帧后设置生命值，确保 Start() 已经执行完毕
+                // 这样可以避免 Start() 覆盖我们设置的生命值
+                StartCoroutine(DelayedSetChickenHealth(newChicken, isGolden));
                 
                 // 为每只新生成的鸡分配唯一的排序偏移（每只鸡 +1）
                 newChicken.SetUniqueSortingOffset(sortingOrderCounter++);
@@ -309,28 +310,56 @@ namespace ProjectChicken.Systems
                 
                 // 调试信息
                 string chickenType = isGolden ? "金鸡" : "普通鸡";
-                Debug.Log($"ChickenSpawner: 在位置 {spawnPosition} 生成了一只{chickenType}", this);
+                Debug.Log($"ChickenSpawner: 在位置 {spawnPosition} 生成了一只{chickenType}，将在下一帧设置生命值", this);
             }
         }
 
         /// <summary>
-        /// 根据当前阶段的生命值等级和鸡的类型设置鸡的生命值
+        /// 延迟设置鸡的生命值（确保 Start() 已经执行完毕）
+        /// </summary>
+        private System.Collections.IEnumerator DelayedSetChickenHealth(ChickenUnit chicken, bool isGolden)
+        {
+            // 等待一帧，确保 Start() 已经执行完毕
+            yield return null;
+            
+            if (chicken != null)
+            {
+                SetChickenHealthByStage(chicken, isGolden);
+            }
+        }
+
+        /// <summary>
+        /// 根据当前场地等级的生命值等级和鸡的类型设置鸡的生命值
         /// </summary>
         /// <param name="chicken">鸡单位</param>
         /// <param name="isGolden">是否为金鸡</param>
-        private void SetChickenHealthByStage(ChickenUnit chicken, bool isGolden)
+        public void SetChickenHealthByStage(ChickenUnit chicken, bool isGolden)
         {
             if (chicken == null)
             {
+                Debug.LogWarning("ChickenSpawner: SetChickenHealthByStage - chicken 为空", this);
                 return; // 如果鸡为空，使用默认生命值
             }
 
-            // 获取当前阶段的生命值等级
+            // 获取当前场地等级的生命值等级（优先使用场地等级）
             int healthLevel = 0; // 默认等级0
+            string levelSource = "默认值";
             
-            if (FractalUniverseManager.Instance != null && FractalUniverseManager.Instance.CurrentStage != null)
+            // 优先使用场地等级的生命值等级
+            if (AreaUpgradeManager.Instance != null && AreaUpgradeManager.Instance.CurrentAreaData != null)
+            {
+                healthLevel = AreaUpgradeManager.Instance.CurrentAreaData.ChickenHealthLevel;
+                levelSource = $"AreaUpgradeManager (场地等级: {AreaUpgradeManager.Instance.CurrentAreaLevel})";
+            }
+            // 如果没有场地等级，回退到阶段等级
+            else if (FractalUniverseManager.Instance != null && FractalUniverseManager.Instance.CurrentStage != null)
             {
                 healthLevel = FractalUniverseManager.Instance.CurrentStage.ChickenHealthLevel;
+                levelSource = $"FractalUniverseManager (阶段: {FractalUniverseManager.Instance.CurrentStage.StageName})";
+            }
+            else
+            {
+                Debug.LogWarning($"ChickenSpawner: 无法获取场地等级或阶段等级，使用默认生命值等级 0", this);
             }
 
             float health = 0f;
@@ -343,19 +372,22 @@ namespace ProjectChicken.Systems
                 if (goldenChickenHealthConfig != null)
                 {
                     health = goldenChickenHealthConfig.GetHealthByLevel(healthLevel);
+                    Debug.Log($"ChickenSpawner: 从金鸡配置读取生命值 - 等级 {healthLevel} = {health}", this);
                 }
                 else
                 {
                     // 如果没有配置金鸡生命值，使用普通鸡配置的1.5倍（默认值）
                     if (healthConfig != null)
                     {
-                        health = healthConfig.GetHealthByLevel(healthLevel) * 1.5f;
+                        float baseHealth = healthConfig.GetHealthByLevel(healthLevel);
+                        health = baseHealth * 1.5f;
+                        Debug.Log($"ChickenSpawner: 金鸡配置未设置，使用普通鸡配置的1.5倍 - 等级 {healthLevel}: {baseHealth} * 1.5 = {health}", this);
                     }
                     else
                     {
                         health = 150f; // 最终默认值
+                        Debug.LogWarning($"ChickenSpawner: 金鸡和普通鸡生命值配置都未设置，使用最终默认值 {health}", this);
                     }
-                    Debug.LogWarning($"ChickenSpawner: 金鸡生命值配置未设置，使用默认值 {health}（普通鸡配置的1.5倍）", this);
                 }
             }
             else
@@ -364,18 +396,19 @@ namespace ProjectChicken.Systems
                 if (healthConfig != null)
                 {
                     health = healthConfig.GetHealthByLevel(healthLevel);
+                    Debug.Log($"ChickenSpawner: 从普通鸡配置读取生命值 - 等级 {healthLevel} = {health} (配置对象: {healthConfig.name})", this);
                 }
                 else
                 {
                     health = 100f; // 默认值
-                    Debug.LogWarning($"ChickenSpawner: 普通鸡生命值配置未设置，使用默认值 {health}", this);
+                    Debug.LogWarning($"ChickenSpawner: 普通鸡生命值配置未设置 (healthConfig 为 null)，使用默认值 {health}", this);
                 }
             }
 
             // 设置生命值
             chicken.SetMaxHP(health);
             
-            Debug.Log($"ChickenSpawner: 设置{chickenType}的生命值为 {health}（等级 {healthLevel}）", this);
+            Debug.Log($"ChickenSpawner: 设置{chickenType}的生命值为 {health}（等级 {healthLevel}，来源: {levelSource}）", this);
         }
 
         /// <summary>

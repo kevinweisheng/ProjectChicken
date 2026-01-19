@@ -26,7 +26,3 @@ MonoBehaviour:
     effectValue: 1
   - cost: 25
     effectValue: 1
-  - cost: 35
-    effectValue: 1
-  - cost: 45
-    effectValue: 1

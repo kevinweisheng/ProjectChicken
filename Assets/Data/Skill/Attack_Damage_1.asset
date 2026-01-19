@@ -22,7 +22,7 @@ MonoBehaviour:
   levels:
   - cost: 5
     effectValue: 1
-  - cost: 15
+  - cost: 8
     effectValue: 1
-  - cost: 25
+  - cost: 12
     effectValue: 1

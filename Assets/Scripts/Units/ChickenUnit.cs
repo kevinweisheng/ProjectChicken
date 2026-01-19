@@ -94,8 +94,14 @@ namespace ProjectChicken.Units
         {
             if (health > 0f)
             {
+                float oldMaxHP = maxHP;
                 maxHP = health;
                 currentHP = maxHP; // 同时设置当前生命值为最大值
+                Debug.Log($"ChickenUnit: 设置最大生命值 {oldMaxHP} -> {maxHP}，当前生命值 = {currentHP} (鸡类型: {(isGolden ? "金鸡" : "普通鸡")})", this);
+            }
+            else
+            {
+                Debug.LogWarning($"ChickenUnit: 尝试设置无效的生命值 {health}，生命值必须大于0", this);
             }
         }
 
@@ -294,8 +300,18 @@ namespace ProjectChicken.Units
             }
             originalScale = transform.localScale;
 
-            // 初始化血量
-            currentHP = maxHP;
+            // 初始化血量：只在 currentHP 未设置时初始化
+            // 注意：SetMaxHP 会在生成后设置正确的生命值，所以这里只初始化 currentHP
+            // 不要重置 maxHP，因为 SetMaxHP 会在 Start() 之后被调用
+            if (currentHP <= 0f)
+            {
+                currentHP = maxHP;
+                Debug.Log($"ChickenUnit: Start() 中初始化血量 currentHP = {currentHP} (maxHP = {maxHP}，预制体默认值)", this);
+            }
+            else
+            {
+                Debug.Log($"ChickenUnit: Start() 中血量已设置，跳过初始化 (currentHP = {currentHP}, maxHP = {maxHP})", this);
+            }
             
             // 如果已经是金鸡，应用金鸡皮肤
             if (isGolden)
@@ -848,7 +864,9 @@ namespace ProjectChicken.Units
             // 保存当前状态（包括原始的最大生命值）
             Vector3 currentPosition = transform.position;
             bool wasGolden = isGolden;
-            float originalMaxHP = maxHP; // 保存原始的最大生命值（例如5），而不是预制体的默认值
+            float originalMaxHP = maxHP; // 保存当前胖鸡的最大生命值
+            
+            Debug.Log($"ChickenUnit: 产出时保存胖鸡的生命值 {originalMaxHP}，准备替换为瘦鸡", this);
 
             // 实例化瘦鸡预制体
             GameObject thinChicken = Instantiate(thinChickenPrefab, currentPosition, transform.rotation);
@@ -904,7 +922,9 @@ namespace ProjectChicken.Units
                 // 同步金鸡状态
                 thinChickenUnit.SetGolden(wasGolden);
                 
-                // 同步最大生命值：使用原始肥鸡的最大生命值（例如5），而不是瘦鸡预制体的默认值
+                // 同步最大生命值：使用原始肥鸡的最大生命值，而不是瘦鸡预制体的默认值
+                // 注意：originalMaxHP 应该是当前胖鸡的实际生命值（例如20），而不是预制体的默认值（100）
+                Debug.Log($"ChickenUnit: 替换为瘦鸡前，胖鸡的生命值 maxHP = {maxHP}, originalMaxHP = {originalMaxHP}", this);
                 thinChickenUnit.SetMaxHP(originalMaxHP);
                 
                 Debug.Log($"ChickenUnit: 替换为瘦鸡时，将生命值设置为原始值 {originalMaxHP}（而不是瘦鸡预制体的默认值）", this);
@@ -1063,12 +1083,9 @@ namespace ProjectChicken.Units
                         
                         if (fatChickenPrefab != null)
                         {
-                            // 保存当前状态（包括原始的最大生命值）
+                            // 保存当前状态
                             Vector3 currentPosition = transform.position;
                             bool wasGolden = isGolden;
-                            
-                            // 保存瘦鸡原来的最大生命值（应该在生成时通过 SetMaxHP 设置过）
-                            float originalMaxHP = maxHP;
                             
                             // 实例化肥鸡预制体
                             ChickenUnit fatChicken = Instantiate(fatChickenPrefab, currentPosition, transform.rotation);
@@ -1094,11 +1111,19 @@ namespace ProjectChicken.Units
                                     shouldPlaySpawnField.SetValue(fatChicken, true);
                                 }
                                 
-                                // 恢复血量：使用原来的最大生命值（而不是预制体的默认值）
-                                // 这样可以确保恢复后的鸡保持正确的生命值（例如5，而不是预制体的默认值100）
-                                fatChicken.SetMaxHP(originalMaxHP);
-                                
-                                Debug.Log($"ChickenUnit: 恢复肥鸡时，将生命值设置为原来的 {originalMaxHP}（而不是预制体的默认值）", this);
+                                // 根据当前场地等级重新设置生命值（而不是使用保存的原始值）
+                                // 这样可以确保恢复后的鸡使用当前场地等级的生命值
+                                if (ChickenSpawner.Instance != null)
+                                {
+                                    ChickenSpawner.Instance.SetChickenHealthByStage(fatChicken, wasGolden);
+                                    Debug.Log($"ChickenUnit: 恢复肥鸡时，根据当前场地等级重新设置生命值（金鸡: {wasGolden}）", this);
+                                }
+                                else
+                                {
+                                    // 如果 ChickenSpawner 为空，使用保存的原始值作为回退
+                                    fatChicken.SetMaxHP(maxHP);
+                                    Debug.LogWarning($"ChickenUnit: ChickenSpawner.Instance 为空，使用保存的原始生命值 {maxHP}", this);
+                                }
                                 
                                 // 将肥鸡添加到生成器列表中，并从列表中移除瘦鸡
                                 var spawnedChickensField = spawnerType.GetField("spawnedChickens", 
@@ -1180,8 +1205,19 @@ namespace ProjectChicken.Units
                 }
                 transform.localScale = originalScale; // 恢复原始大小
 
-                // 恢复血量
-                currentHP = maxHP;
+                // 根据当前场地等级重新设置生命值（而不是使用保存的原始值）
+                // 这样可以确保恢复后的鸡使用当前场地等级的生命值
+                if (ChickenSpawner.Instance != null)
+                {
+                    ChickenSpawner.Instance.SetChickenHealthByStage(this, isGolden);
+                    Debug.Log($"ChickenUnit: 恢复肥鸡时（代码方式），根据当前场地等级重新设置生命值（金鸡: {isGolden}）", this);
+                }
+                else
+                {
+                    // 如果 ChickenSpawner 为空，使用保存的原始值作为回退
+                    currentHP = maxHP;
+                    Debug.LogWarning($"ChickenUnit: ChickenSpawner.Instance 为空，使用保存的原始生命值 {maxHP}", this);
+                }
 
                 // 重置游荡计时器
                 wanderTimer = 0f;

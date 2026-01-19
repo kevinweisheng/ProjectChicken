@@ -313,20 +313,26 @@ namespace ProjectChicken.Systems
             // 更新等级
             currentAreaLevel = nextLevel;
 
+            // 先直接应用新场地，确保立即显示升级后的场景
+            ApplyAreaData(newAreaData);
+
             // 只在第一次升级时显示过渡动画，之后的升级直接应用
             if (!hasShownTransition)
             {
-                // 第一次升级：显示过渡动画
+                // 第一次升级：显示过渡动画（在后台进行，不影响场景显示）
                 if (showDebugLogs)
                 {
                     Debug.Log($"AreaUpgradeManager: 开始过渡 - 旧场地: {oldAreaData.AreaName} ({oldAreaData.AreaSize}), 新场地: {newAreaData.AreaName} ({newAreaData.AreaSize}), 过渡时间: {upgradeTransitionDuration}秒", this);
                 }
 
-                // 执行平滑过渡
-                yield return StartCoroutine(TransitionToNewArea(oldAreaData, newAreaData));
+                // 执行平滑过渡（在后台进行，场景已经显示为新场景）
+                StartCoroutine(TransitionToNewArea(oldAreaData, newAreaData));
 
                 // 标记已展示过过渡动画
                 hasShownTransition = true;
+                
+                // 保存过渡动画状态到存档
+                SaveAreaLevel();
             }
             else
             {
@@ -335,13 +341,10 @@ namespace ProjectChicken.Systems
                 {
                     Debug.Log($"AreaUpgradeManager: 直接应用新场地（已展示过过渡动画），从等级 {currentAreaLevel - 1} 升级到等级 {currentAreaLevel}: {newAreaData.AreaName}", this);
                 }
+                
+                // 保存场地等级
+                SaveAreaLevel();
             }
-
-            // 应用新场地（确保最终值正确）
-            ApplyAreaData(newAreaData);
-
-            // 保存场地等级
-            SaveAreaLevel();
 
             // 标记升级完成
             isUpgrading = false;
@@ -544,9 +547,11 @@ namespace ProjectChicken.Systems
         /// 从存档加载场地等级（由 ResourceManager 调用）
         /// </summary>
         /// <param name="savedLevel">保存的场地等级</param>
-        public void LoadAreaLevel(int savedLevel)
+        /// <param name="savedHasShownTransition">保存的过渡动画状态</param>
+        public void LoadAreaLevel(int savedLevel, bool savedHasShownTransition = false)
         {
             currentAreaLevel = savedLevel;
+            hasShownTransition = savedHasShownTransition;
             
             // 确保等级在有效范围内
             if (currentAreaLevel < 0) currentAreaLevel = 0;
@@ -557,7 +562,7 @@ namespace ProjectChicken.Systems
 
             if (showDebugLogs)
             {
-                Debug.Log($"AreaUpgradeManager: 从存档加载场地等级 {currentAreaLevel}", this);
+                Debug.Log($"AreaUpgradeManager: 从存档加载场地等级 {currentAreaLevel}，过渡动画已展示: {hasShownTransition}", this);
             }
 
             // 应用加载的场地配置
@@ -588,6 +593,11 @@ namespace ProjectChicken.Systems
         /// 获取当前场地数据（只读）
         /// </summary>
         public AreaData CurrentAreaData => currentAreaData;
+
+        /// <summary>
+        /// 是否已展示过过渡动画（只读）
+        /// </summary>
+        public bool HasShownTransition => hasShownTransition;
 
         /// <summary>
         /// 重置场地等级（用于清除存档）

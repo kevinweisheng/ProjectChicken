@@ -20,9 +20,9 @@ MonoBehaviour:
   prerequisites: []
   effectType: 1
   levels:
-  - cost: 100
-    effectValue: 0.2
-  - cost: 200
-    effectValue: 0.2
-  - cost: 500
-    effectValue: 0.2
+  - cost: 30
+    effectValue: 0.05
+  - cost: 35
+    effectValue: 0.05
+  - cost: 40
+    effectValue: 0.05
