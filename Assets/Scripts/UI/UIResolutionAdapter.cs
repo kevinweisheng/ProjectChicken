@@ -46,12 +46,6 @@ namespace ProjectChicken.UI
 
             // 配置 Canvas Scaler
             ConfigureCanvasScaler();
-
-            if (showDebugInfo)
-            {
-                Debug.Log($"UIResolutionAdapter: 已配置 Canvas Scaler - 参考分辨率: {referenceResolution}, " +
-                         $"匹配模式: {matchWidthOrHeight}, 当前屏幕分辨率: {Screen.width}x{Screen.height}", this);
-            }
         }
 
         /// <summary>
@@ -125,7 +119,6 @@ namespace ProjectChicken.UI
         private void RefreshAdapter()
         {
             ConfigureCanvasScaler();
-            Debug.Log("UIResolutionAdapter: UI适配配置已刷新", this);
         }
 
         /// <summary>
@@ -144,10 +137,6 @@ namespace ProjectChicken.UI
                 {
                     Debug.LogWarning($"  - {rt.name}: 锚点未设置为边距模式（Stretch）", this);
                 }
-            }
-            else
-            {
-                Debug.Log("UIResolutionAdapter: 所有UI元素的锚点设置看起来正常！", this);
             }
         }
 

@@ -122,8 +122,6 @@ namespace ProjectChicken.Editor
             if (titleTransform != null) EditorUtility.SetDirty(titleTransform.gameObject);
             if (descTransform != null) EditorUtility.SetDirty(descTransform.gameObject);
             if (costTransform != null) EditorUtility.SetDirty(costTransform.gameObject);
-
-            Debug.Log("SkillTreePanel Tooltip 配置完成！");
         }
     }
 }

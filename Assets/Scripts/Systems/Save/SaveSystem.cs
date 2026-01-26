@@ -34,10 +34,7 @@ namespace ProjectChicken.Systems.Save
                 // 将数据序列化为 JSON 字符串
                 string json = JsonUtility.ToJson(data, true); // true 表示格式化输出（便于阅读）
 
-                // 写入文件
                 File.WriteAllText(SaveFilePath, json);
-
-                Debug.Log($"SaveSystem: 游戏数据已保存到 {SaveFilePath}");
             }
             catch (System.Exception e)
             {
@@ -51,10 +48,8 @@ namespace ProjectChicken.Systems.Save
         /// <returns>加载的游戏数据，如果文件不存在则返回新的 GameSaveData</returns>
         public static GameSaveData Load()
         {
-            // 检查文件是否存在
             if (!File.Exists(SaveFilePath))
             {
-                Debug.Log($"SaveSystem: 保存文件不存在，返回新游戏数据。路径：{SaveFilePath}");
                 return new GameSaveData();
             }
 
@@ -85,7 +80,6 @@ namespace ProjectChicken.Systems.Save
                     data.skillRecords = new List<GameSaveData.SkillSaveRecord>();
                 }
 
-                Debug.Log($"SaveSystem: 游戏数据已从 {SaveFilePath} 加载");
                 return data;
             }
             catch (System.Exception e)
@@ -114,7 +108,6 @@ namespace ProjectChicken.Systems.Save
                 try
                 {
                     File.Delete(SaveFilePath);
-                    Debug.Log($"SaveSystem: 保存文件已删除：{SaveFilePath}");
                 }
                 catch (System.Exception e)
                 {

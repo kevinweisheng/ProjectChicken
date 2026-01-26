@@ -505,10 +505,8 @@ namespace ProjectChicken.UI
                 return;
             }
 
-            // 检查是否已达到最大等级
             if (UpgradeManager.Instance.IsMaxLevel(targetSkill))
             {
-                Debug.Log($"SkillSlotUI: 技能 {targetSkill.DisplayName} 已达到最大等级！", this);
                 return;
             }
 
@@ -551,22 +549,13 @@ namespace ProjectChicken.UI
                 {
                     SkillTreePanel.Instance.RefreshAllSkillSlots();
                     
-                    // 如果这是首次解锁（从等级0到等级1）
                     if (currentLevel == 0)
                     {
-                        Debug.Log($"SkillSlotUI: 技能 {targetSkill.DisplayName} 首次解锁，为其所有子技能创建连线", this);
-                        
-                        // 当父技能首次解锁时，为所有子技能创建连线（无论子技能是否已解锁）
-                        // 这样玩家可以看到哪些子技能现在可以解锁了
                         SkillTreePanel.Instance.AddLinesForUnlockedSkill(this);
                     }
                     
-                    // 重新绘制所有连线，确保所有已解锁技能的连线都显示
                     StartCoroutine(DelayedRedrawConnections());
                 }
-                
-                // 可以在这里添加音效、特效等反馈
-                Debug.Log($"SkillSlotUI: 成功升级技能 {targetSkill.DisplayName} 到等级 {currentLevel + 1}！");
             }
             else
             {

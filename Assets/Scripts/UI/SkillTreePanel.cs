@@ -116,7 +116,6 @@ namespace ProjectChicken.UI
             if (!Application.isPlaying)
             {
                 InitializeSkillSlotsForEditor();
-                Debug.Log("SkillTreePanel: 已自动配置所有 SkillSlotUI 的 parentSlots。请在 Inspector 中查看 SkillSlotUI 组件确认。", this);
             }
             else
             {
@@ -133,8 +132,6 @@ namespace ProjectChicken.UI
             Dictionary<SkillNodeData, SkillSlotUI> localSkillSlotMap = new Dictionary<SkillNodeData, SkillSlotUI>();
             SkillSlotUI[] skillSlots = GetComponentsInChildren<SkillSlotUI>(true);
 
-            Debug.Log($"SkillTreePanel: 开始初始化 {skillSlots.Length} 个技能槽位的父子关系", this);
-
             // 第一遍：建立映射
             foreach (SkillSlotUI slot in skillSlots)
             {
@@ -147,8 +144,6 @@ namespace ProjectChicken.UI
                     }
                 }
             }
-
-            Debug.Log($"SkillTreePanel: 已建立 {localSkillSlotMap.Count} 个技能数据到槽位的映射", this);
 
             int slotsConfigured = 0;
             int totalParentSlotsAdded = 0;
@@ -216,10 +211,7 @@ namespace ProjectChicken.UI
                 }
             }
 
-            // 标记当前对象为已修改
             UnityEditor.EditorUtility.SetDirty(this);
-
-            Debug.Log($"SkillTreePanel: 编辑器模式下已初始化 {slotsConfigured} 个技能槽位的父子关系，共添加 {totalParentSlotsAdded} 个父技能引用", this);
             #endif
         }
 
@@ -300,13 +292,8 @@ namespace ProjectChicken.UI
             // 初始化已创建连线集合
             createdLines = new HashSet<string>();
 
-            // 初始化技能槽位映射和订阅事件
             InitializeSkillSlots();
 
-            // 记录初始状态
-            Debug.Log($"SkillTreePanel: 初始化完成。初始状态: 隐藏", this);
-
-            // 初始化：默认隐藏面板
             Hide();
         }
 
@@ -351,7 +338,6 @@ namespace ProjectChicken.UI
 
             if (keyPressed)
             {
-                Debug.Log($"SkillTreePanel: 检测到按键按下，切换面板显示状态。当前状态：{(isVisible ? "显示" : "隐藏")}", this);
                 TogglePanel();
             }
 
@@ -437,10 +423,9 @@ namespace ProjectChicken.UI
             if (canvasGroup != null)
             {
                 canvasGroup.alpha = 1f; // 完全不透明
-                canvasGroup.interactable = true; // 可交互
-                canvasGroup.blocksRaycasts = true; // 阻挡射线（可以点击）
+                canvasGroup.interactable = true;
+                canvasGroup.blocksRaycasts = true;
                 isVisible = true;
-                Debug.Log("SkillTreePanel: 面板已显示", this);
             }
             else
             {
@@ -541,8 +526,6 @@ namespace ProjectChicken.UI
             {
                 createdLines.Clear();
             }
-
-            Debug.Log("SkillTreePanel: 已清除所有连线", this);
         }
 
         /// <summary>
@@ -565,10 +548,9 @@ namespace ProjectChicken.UI
             if (canvasGroup != null)
             {
                 canvasGroup.alpha = 0f; // 完全透明
-                canvasGroup.interactable = false; // 不可交互
-                canvasGroup.blocksRaycasts = false; // 不阻挡射线（不能点击）
+                canvasGroup.interactable = false;
+                canvasGroup.blocksRaycasts = false;
                 isVisible = false;
-                Debug.Log("SkillTreePanel: 面板已隐藏", this);
             }
             else
             {
@@ -605,16 +587,11 @@ namespace ProjectChicken.UI
         /// </summary>
         private void OnCloseButtonClicked()
         {
-            Debug.Log("SkillTreePanel: 点击返回按钮", this);
-
-            // 隐藏技能树面板
             Hide();
 
-            // 显示主菜单面板（游戏启动时的主菜单）
             if (mainMenuPanel != null)
             {
                 mainMenuPanel.ShowMainMenu();
-                Debug.Log("SkillTreePanel: 已返回主菜单", this);
             }
             else
             {
@@ -627,16 +604,11 @@ namespace ProjectChicken.UI
         /// </summary>
         private void OnStartGameClicked()
         {
-            Debug.Log("SkillTreePanel: 点击开始游戏按钮", this);
-
-            // 隐藏技能树面板
             Hide();
 
-            // 开始新的一局游戏
             if (GameManager.Instance != null)
             {
                 GameManager.Instance.RestartGame();
-                Debug.Log("SkillTreePanel: 已开始新一局游戏", this);
             }
             else
             {
@@ -651,10 +623,7 @@ namespace ProjectChicken.UI
         {
             RefreshAllSkillSlots();
             
-            // 更新剩余鸡蛋数显示
             UpdateEggsCountDisplay();
-
-            Debug.Log("SkillTreePanel: UI 已刷新", this);
         }
 
         /// <summary>
@@ -722,10 +691,7 @@ namespace ProjectChicken.UI
                 // 如果不是，将其设置为子对象
                 lineContainer.SetParent(skillTreeContent, false); // false = 保持世界坐标位置不变
                 
-                // 设置连线容器在最底层（作为第一个子对象）
                 lineContainer.SetAsFirstSibling();
-                
-                Debug.Log("SkillTreePanel: 已将连线容器设置为技能树内容容器的子对象，连线现在会跟随缩放和拖拽", this);
             }
         }
 
@@ -1151,28 +1117,6 @@ namespace ProjectChicken.UI
                     }
                 }
             }
-
-            Debug.Log($"SkillTreePanel: 绘制连线完成，共创建 {linesCreated} 条连线（编辑模式: {!Application.isPlaying}，跳过隐藏: {skippedHidden}，跳过无父槽位: {skippedNoParentSlots}）", this);
-            
-            // 运行时添加详细调试信息，检查连线是否真的被创建
-            if (Application.isPlaying)
-            {
-                int activeLineCount = 0;
-                int totalLineCount = lineContainer.childCount;
-                foreach (Transform child in lineContainer)
-                {
-                    if (child != null && child.gameObject.activeSelf)
-                    {
-                        activeLineCount++;
-                    }
-                }
-                Debug.Log($"SkillTreePanel: 连线容器中共有 {totalLineCount} 个子对象，其中 {activeLineCount} 个是激活的", this);
-                
-                if (linesCreated > 0 && activeLineCount == 0)
-                {
-                    Debug.LogWarning("SkillTreePanel: 警告！创建了连线但没有任何连线是激活的。请检查连线预制体和连线容器的配置。", this);
-                }
-            }
         }
 
         /// <summary>
@@ -1321,22 +1265,16 @@ namespace ProjectChicken.UI
                 lineContainer.gameObject.SetActive(true);
             }
 
-            // 检查该技能是否已解锁
             if (!IsSlotUnlocked(unlockedSlot))
             {
-                Debug.Log($"SkillTreePanel: 技能 {unlockedSlot.TargetSkill?.DisplayName} 未解锁，不添加连线", this);
-                return; // 如果技能未解锁，不添加连线
+                return;
             }
 
-            // 获取该技能的所有子技能
             List<SkillSlotUI> childSlots = GetChildSlots(unlockedSlot);
             if (childSlots == null || childSlots.Count == 0)
             {
-                Debug.Log($"SkillTreePanel: 技能 {unlockedSlot.TargetSkill?.DisplayName} 没有子技能", this);
-                return; // 没有子技能，不需要连线
+                return;
             }
-
-            Debug.Log($"SkillTreePanel: 技能 {unlockedSlot.TargetSkill?.DisplayName} 有 {childSlots.Count} 个子技能，检查哪些因为该技能解锁而变为可解锁", this);
 
             // 获取父技能的 RectTransform
             RectTransform parentRect = unlockedSlot.GetComponent<RectTransform>();
@@ -1394,22 +1332,12 @@ namespace ProjectChicken.UI
                             createdLines.Add(lineKey);
                         }
                         linesCreated++;
-                        Debug.Log($"SkillTreePanel: 为技能 {unlockedSlot.TargetSkill?.DisplayName} 到 {childSlot.TargetSkill?.DisplayName} 创建了连线（子技能因为该父技能解锁而变为可解锁，子技能已解锁: {isChildUnlocked}）", this);
                     }
                     else
                     {
                         Debug.LogWarning($"SkillTreePanel: 创建连线失败 - 从 {unlockedSlot.TargetSkill?.DisplayName} 到 {childSlot.TargetSkill?.DisplayName}", this);
                     }
                 }
-            }
-
-            if (linesCreated > 0)
-            {
-                Debug.Log($"SkillTreePanel: 为已解锁技能 {unlockedSlot.TargetSkill?.DisplayName} 创建了 {linesCreated} 条连线（到因该技能解锁而变为可解锁的子技能）", this);
-            }
-            else
-            {
-                Debug.Log($"SkillTreePanel: 技能 {unlockedSlot.TargetSkill?.DisplayName} 没有因为该技能解锁而变为可解锁的子技能", this);
             }
         }
 
@@ -1431,21 +1359,15 @@ namespace ProjectChicken.UI
                 lineContainer.gameObject.SetActive(true);
             }
 
-            // 检查该技能是否已解锁
             if (!IsSlotUnlocked(unlockedChildSlot))
             {
-                Debug.Log($"SkillTreePanel: 技能 {unlockedChildSlot.TargetSkill?.DisplayName} 未解锁，不添加连线", this);
-                return; // 如果技能未解锁，不添加连线
+                return;
             }
 
-            // 检查该技能是否有父技能
             if (unlockedChildSlot.parentSlots == null || unlockedChildSlot.parentSlots.Count == 0)
             {
-                Debug.Log($"SkillTreePanel: 技能 {unlockedChildSlot.TargetSkill?.DisplayName} 没有父技能", this);
-                return; // 没有父技能，不需要连线
+                return;
             }
-
-            Debug.Log($"SkillTreePanel: 技能 {unlockedChildSlot.TargetSkill?.DisplayName} 有 {unlockedChildSlot.parentSlots.Count} 个父技能", this);
 
             // 获取子技能的 RectTransform
             RectTransform childRect = unlockedChildSlot.GetComponent<RectTransform>();
@@ -1501,22 +1423,12 @@ namespace ProjectChicken.UI
                             createdLines.Add(lineKey);
                         }
                         linesCreated++;
-                        Debug.Log($"SkillTreePanel: 为技能 {parentSlot.TargetSkill?.DisplayName} 到 {unlockedChildSlot.TargetSkill?.DisplayName} 创建了连线", this);
                     }
                     else
                     {
                         Debug.LogWarning($"SkillTreePanel: 创建连线失败 - 从 {parentSlot.TargetSkill?.DisplayName} 到 {unlockedChildSlot.TargetSkill?.DisplayName}", this);
                     }
                 }
-            }
-
-            if (linesCreated > 0)
-            {
-                Debug.Log($"SkillTreePanel: 为已解锁子技能 {unlockedChildSlot.TargetSkill?.DisplayName} 的父技能创建了 {linesCreated} 条连线", this);
-            }
-            else
-            {
-                Debug.Log($"SkillTreePanel: 技能 {unlockedChildSlot.TargetSkill?.DisplayName} 没有已解锁的父技能，或所有父技能的连线已存在", this);
             }
         }
 
@@ -1875,13 +1787,6 @@ namespace ProjectChicken.UI
             }
             
             // 编辑模式下添加调试信息
-            #if UNITY_EDITOR
-            if (!Application.isPlaying)
-            {
-                Debug.Log($"SkillTreePanel: 创建连线 - 从 {start.name} 到 {end.name}, 距离: {distance:F2}, 角度: {angle:F2}°, 位置: {lineRect.position}, 大小: {lineRect.sizeDelta}", this);
-            }
-            #endif
-            
             return line;
         }
 

@@ -103,10 +103,6 @@ namespace ProjectChicken.Systems
                 {
                     Debug.LogError($"AreaUpgradeManager: AreaDataList 中索引 {i} 的元素为空！请确保所有元素都已正确分配。", this);
                 }
-                else if (showDebugLogs)
-                {
-                    Debug.Log($"AreaUpgradeManager: 场地 {i}: {areaDataList[i].AreaName} (阈值: {areaDataList[i].ChickenCountThreshold})", this);
-                }
             }
         }
 
@@ -156,14 +152,9 @@ namespace ProjectChicken.Systems
                 return;
             }
 
-            // 检查是否有下一个场地
             if (currentAreaLevel + 1 >= areaDataList.Count)
             {
-                if (showDebugLogs)
-                {
-                    Debug.Log($"AreaUpgradeManager: 已达到最高等级 {currentAreaLevel}（总共有 {areaDataList.Count} 个场地）", this);
-                }
-                return; // 已达到最高等级
+                return;
             }
 
             // 获取当前和下一个场地数据
@@ -221,12 +212,7 @@ namespace ProjectChicken.Systems
             if (totalFatChickens == 0) return false;
 
             float overflowRatio = (float)overflowCount / totalFatChickens;
-            bool isOverflowing = overflowRatio > 0.2f; // 20% 阈值
-
-            if (showDebugLogs && isOverflowing)
-            {
-                Debug.Log($"AreaUpgradeManager: 检测到鸡活动范围溢出 - 溢出鸡数量: {overflowCount}/{totalFatChickens} ({overflowRatio * 100:F1}%)", this);
-            }
+            bool isOverflowing = overflowRatio > 0.2f;
 
             return isOverflowing;
         }
@@ -268,10 +254,6 @@ namespace ProjectChicken.Systems
             
             if (nextLevel >= areaDataList.Count)
             {
-                if (showDebugLogs)
-                {
-                    Debug.Log($"AreaUpgradeManager: 已达到最高场地等级 {currentAreaLevel}（总共有 {areaDataList.Count} 个场地），无法继续升级。", this);
-                }
                 yield break;
             }
 
@@ -283,13 +265,7 @@ namespace ProjectChicken.Systems
                 yield break;
             }
 
-            // 标记正在升级
             isUpgrading = true;
-
-            if (showDebugLogs)
-            {
-                Debug.Log($"AreaUpgradeManager: 开始升级场地过渡动画，从等级 {currentAreaLevel} 到等级 {nextLevel}: {newAreaData.AreaName}", this);
-            }
 
             // 保存当前场地数据（用于过渡）
             // 如果 currentAreaData 为 null，尝试从 areaDataList 获取
@@ -316,33 +292,15 @@ namespace ProjectChicken.Systems
             // 先直接应用新场地，确保立即显示升级后的场景
             ApplyAreaData(newAreaData);
 
-            // 只在第一次升级时显示过渡动画，之后的升级直接应用
             if (!hasShownTransition)
             {
-                // 第一次升级：显示过渡动画（在后台进行，不影响场景显示）
-                if (showDebugLogs)
-                {
-                    Debug.Log($"AreaUpgradeManager: 开始过渡 - 旧场地: {oldAreaData.AreaName} ({oldAreaData.AreaSize}), 新场地: {newAreaData.AreaName} ({newAreaData.AreaSize}), 过渡时间: {upgradeTransitionDuration}秒", this);
-                }
-
-                // 执行平滑过渡（在后台进行，场景已经显示为新场景）
                 StartCoroutine(TransitionToNewArea(oldAreaData, newAreaData));
 
-                // 标记已展示过过渡动画
                 hasShownTransition = true;
-                
-                // 保存过渡动画状态到存档
                 SaveAreaLevel();
             }
             else
             {
-                // 之后的升级：直接应用，不显示过渡
-                if (showDebugLogs)
-                {
-                    Debug.Log($"AreaUpgradeManager: 直接应用新场地（已展示过过渡动画），从等级 {currentAreaLevel - 1} 升级到等级 {currentAreaLevel}: {newAreaData.AreaName}", this);
-                }
-                
-                // 保存场地等级
                 SaveAreaLevel();
             }
 
@@ -366,16 +324,10 @@ namespace ProjectChicken.Systems
                 yield break;
             }
 
-            // 确保过渡时间有效
             float actualTransitionDuration = Mathf.Max(0.1f, upgradeTransitionDuration);
             if (actualTransitionDuration != upgradeTransitionDuration)
             {
                 Debug.LogWarning($"AreaUpgradeManager: 过渡时间 {upgradeTransitionDuration} 秒过小，调整为 {actualTransitionDuration} 秒", this);
-            }
-
-            if (showDebugLogs)
-            {
-                Debug.Log($"AreaUpgradeManager: TransitionToNewArea 开始 - 过渡时间: {actualTransitionDuration}秒", this);
             }
 
             // 获取起始值
@@ -390,14 +342,8 @@ namespace ProjectChicken.Systems
             Vector2 targetChickenSize = newAreaData.ChickenMovementAreaSize != Vector2.zero ? newAreaData.ChickenMovementAreaSize : targetSize;
             Vector2 targetChickenCenter = newAreaData.ChickenMovementAreaCenter != Vector2.zero ? newAreaData.ChickenMovementAreaCenter : targetCenter;
 
-            // 过渡时间
             float elapsedTime = 0f;
             int frameCount = 0;
-
-            if (showDebugLogs)
-            {
-                Debug.Log($"AreaUpgradeManager: 过渡开始 - 起始大小: {startSize}, 目标大小: {targetSize}, 过渡时间: {actualTransitionDuration}秒", this);
-            }
 
             // 平滑过渡场地设置（使用实际过渡时间）
             while (elapsedTime < actualTransitionDuration)
@@ -427,12 +373,7 @@ namespace ProjectChicken.Systems
                 }
 
                 frameCount++;
-                yield return null; // 等待下一帧
-            }
-
-            if (showDebugLogs)
-            {
-                Debug.Log($"AreaUpgradeManager: 过渡循环完成 - 总帧数: {frameCount}, 总时间: {elapsedTime:F2}秒", this);
+                yield return null;
             }
 
             // 过渡完成后，更新 Sprite（如果有变化）
@@ -487,20 +428,12 @@ namespace ProjectChicken.Systems
 
             currentAreaData = areaData;
 
-            // 更新 PlayArea
             if (playArea != null)
             {
                 Sprite backgroundSprite = areaData.BackgroundSprite;
                 
                 Vector2 chickenAreaSize = areaData.ChickenMovementAreaSize;
                 Vector2 chickenAreaCenter = areaData.ChickenMovementAreaCenter;
-                
-                if (showDebugLogs)
-                {
-                    Debug.Log($"AreaUpgradeManager: 应用场地数据 - {areaData.AreaName}\n" +
-                        $"  场地大小: {areaData.AreaSize}, 场地中心: {areaData.AreaCenter}\n" +
-                        $"  鸡活动范围大小: {chickenAreaSize}, 鸡活动范围中心: {chickenAreaCenter}", this);
-                }
                 
                 playArea.UpdateAreaSettings(
                     areaData.AreaSize,
@@ -509,19 +442,12 @@ namespace ProjectChicken.Systems
                     chickenAreaSize != Vector2.zero ? chickenAreaSize : default(Vector2),
                     chickenAreaCenter != Vector2.zero ? chickenAreaCenter : default(Vector2)
                 );
-                
-                if (showDebugLogs)
-                {
-                    Bounds chickenBounds = playArea.ChickenMovementBounds;
-                    Debug.Log($"AreaUpgradeManager: 边界已更新 - 鸡活动边界: min({chickenBounds.min.x:F2}, {chickenBounds.min.y:F2}) 到 max({chickenBounds.max.x:F2}, {chickenBounds.max.y:F2})", this);
-                }
             }
             else
             {
                 Debug.LogWarning("AreaUpgradeManager: PlayArea 为空，无法更新场地设置！", this);
             }
 
-            // 更新摄像机约束（无论是什么类型，都应该应用约束）
             if (playerController != null)
             {
                 playerController.UpdateConstraints(
@@ -529,12 +455,6 @@ namespace ProjectChicken.Systems
                     areaData.MinCamSize,
                     areaData.MaxCamSize
                 );
-                Debug.Log($"AreaUpgradeManager: 已更新摄像机约束 - 平移限制: {areaData.MovementBounds}, 缩放范围: {areaData.MinCamSize} - {areaData.MaxCamSize}", this);
-            }
-
-            if (showDebugLogs)
-            {
-                Debug.Log($"AreaUpgradeManager: 已应用场地 - {areaData.AreaName} (等级 {currentAreaLevel}), Sprite: {(areaData.BackgroundSprite != null ? areaData.BackgroundSprite.name : "未设置")}", this);
             }
         }
 
@@ -543,14 +463,9 @@ namespace ProjectChicken.Systems
         /// </summary>
         private void SaveAreaLevel()
         {
-            // 通过 ResourceManager 保存
             if (ResourceManager.Instance != null)
             {
                 ResourceManager.Instance.SaveGame();
-                if (showDebugLogs)
-                {
-                    Debug.Log($"AreaUpgradeManager: 已保存场地等级 {currentAreaLevel}", this);
-                }
             }
         }
 
@@ -568,15 +483,9 @@ namespace ProjectChicken.Systems
             if (currentAreaLevel < 0) currentAreaLevel = 0;
             if (areaDataList != null && currentAreaLevel >= areaDataList.Count)
             {
-                currentAreaLevel = 0; // 如果超出范围，使用第一个场地
+                currentAreaLevel = 0;
             }
 
-            if (showDebugLogs)
-            {
-                Debug.Log($"AreaUpgradeManager: 从存档加载场地等级 {currentAreaLevel}，过渡动画已展示: {hasShownTransition}", this);
-            }
-
-            // 应用加载的场地配置
             ApplyCurrentArea();
         }
 
@@ -585,14 +494,7 @@ namespace ProjectChicken.Systems
         /// </summary>
         private void LoadAreaLevel()
         {
-            // 初始化：默认使用第一个场地（等级 0）
-            // 如果 ResourceManager 已经加载过存档，它会调用 LoadAreaLevel(int) 来覆盖这个值
             currentAreaLevel = 0;
-            
-            if (showDebugLogs)
-            {
-                Debug.Log("AreaUpgradeManager: 初始化，默认使用第一个场地（等级 0）", this);
-            }
         }
 
         /// <summary>
@@ -618,11 +520,6 @@ namespace ProjectChicken.Systems
             currentAreaLevel = 0;
             ApplyCurrentArea();
             SaveAreaLevel();
-
-            if (showDebugLogs)
-            {
-                Debug.Log("AreaUpgradeManager: 已重置场地等级为 0", this);
-            }
         }
 
         /// <summary>
@@ -657,11 +554,6 @@ namespace ProjectChicken.Systems
             {
                 SaveAreaLevel();
             }
-
-            if (showDebugLogs)
-            {
-                Debug.Log($"AreaUpgradeManager: 已手动切换到场地等级 {level}: {currentAreaData?.AreaName}", this);
-            }
         }
 
         /// <summary>
@@ -677,11 +569,6 @@ namespace ProjectChicken.Systems
             }
 
             ApplyAreaData(areaData);
-
-            if (showDebugLogs)
-            {
-                Debug.Log($"AreaUpgradeManager: 已手动应用 AreaData: {areaData.AreaName}（未保存到存档）", this);
-            }
         }
     }
 }

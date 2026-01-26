@@ -191,10 +191,6 @@ namespace ProjectChicken.Core
             {
                 Debug.LogWarning("UpgradeManager: Skill Registry is empty! Save/Load will not restore stats.", this);
             }
-            else
-            {
-                Debug.Log($"UpgradeManager: 技能注册表已加载，包含 {skillRegistry.Count} 个技能节点", this);
-            }
 
             // 如果需要跨场景保持，取消下面这行的注释
             // DontDestroyOnLoad(gameObject);
@@ -261,10 +257,8 @@ namespace ProjectChicken.Core
                 return false;
             }
 
-            // 检查是否已达到最大等级
             if (IsMaxLevel(node))
             {
-                Debug.Log($"UpgradeManager: 技能 {node.DisplayName} 已达到最大等级！", this);
                 return false;
             }
 
@@ -306,13 +300,11 @@ namespace ProjectChicken.Core
             // 更新等级
             skillLevels[node.ID] = currentLevel + 1;
 
-            // 保存游戏数据
             if (ResourceManager.Instance != null)
             {
                 ResourceManager.Instance.SaveGame();
             }
 
-            Debug.Log($"UpgradeManager: 成功升级技能 {node.DisplayName} 到等级 {currentLevel + 1}！", this);
             return true;
         }
 
@@ -337,112 +329,85 @@ namespace ProjectChicken.Core
             {
                 case SkillEffectType.AttackDamage:
                     currentDamage += value;
-                    Debug.Log($"UpgradeManager: 攻击力提升 {value}，当前攻击力：{currentDamage}", this);
                     break;
 
                 case SkillEffectType.AttackRadius:
                     currentRadius += value;
-                    Debug.Log($"UpgradeManager: 攻击范围提升 {value}，当前范围：{currentRadius}", this);
                     break;
 
                 case SkillEffectType.AttackSpeed:
-                    // 攻击速度提升：减少攻击间隔（注意：value 应该是负数或正数，取决于设计）
-                    // 如果 value 是正数，表示减少间隔（例如：-0.1 表示减少 0.1 秒）
-                    // 如果 value 是负数，表示增加速度倍数（例如：0.1 表示速度提升 10%）
-                    // 这里假设 value 是负数，表示减少间隔
-                    currentAttackInterval = Mathf.Max(0.1f, currentAttackInterval + value); // 最小间隔 0.1 秒
-                    Debug.Log($"UpgradeManager: 攻击间隔减少 {value}，当前间隔：{currentAttackInterval}", this);
+                    currentAttackInterval = Mathf.Max(0.1f, currentAttackInterval + value);
                     break;
 
                 case SkillEffectType.SessionDuration:
-                    // 回合时间提升：增加游戏时长
                     currentSessionDuration += value;
-                    Debug.Log($"UpgradeManager: 回合时间增加 {value}，当前回合时间：{currentSessionDuration}", this);
                     break;
 
                 case SkillEffectType.MoveSpeed:
-                    // 预留：移动速度提升（如果需要）
-                    Debug.Log($"UpgradeManager: 移动速度提升 {value}（功能预留）", this);
                     break;
 
                 case SkillEffectType.RecoveryChance:
                     recoveryChance = Mathf.Clamp01(recoveryChance + value);
-                    Debug.Log($"UpgradeManager: 恢复几率提升 {value}，当前恢复几率：{recoveryChance * 100f}%", this);
                     break;
 
                 case SkillEffectType.UnlockMitosis:
                     isMitosisUnlocked = true;
-                    Debug.Log($"UpgradeManager: 已解锁分裂能力！", this);
                     break;
 
                 case SkillEffectType.MitosisChance:
                     mitosisChance = Mathf.Clamp01(mitosisChance + value);
-                    Debug.Log($"UpgradeManager: 分裂几率提升 {value}，当前分裂几率：{mitosisChance * 100f}%", this);
                     break;
 
                 case SkillEffectType.MaxChickenCount:
                     extraMaxChickens += Mathf.RoundToInt(value);
-                    Debug.Log($"UpgradeManager: 最大鸡数量提升 {value}，当前额外上限：{extraMaxChickens}", this);
                     break;
 
                 case SkillEffectType.InitialChickenCount:
                     extraInitialChickens += Mathf.RoundToInt(value);
-                    Debug.Log($"UpgradeManager: 初始鸡数量提升 {value}，当前额外初始数量：{extraInitialChickens}", this);
                     break;
 
                 case SkillEffectType.UnlockGoldenChicken:
                     isGoldenChickenUnlocked = true;
-                    Debug.Log($"UpgradeManager: 已解锁金鸡生成能力！", this);
                     break;
 
                 case SkillEffectType.GoldenChickenSpawnRate:
                     goldenChickenSpawnRate = Mathf.Clamp01(goldenChickenSpawnRate + value);
-                    Debug.Log($"UpgradeManager: 金鸡生成率提升 {value}，当前生成率：{goldenChickenSpawnRate * 100f}%", this);
                     break;
 
                 case SkillEffectType.GoldenEggMultiplier:
                     goldenEggMultiplier += Mathf.RoundToInt(value);
-                    Debug.Log($"UpgradeManager: 金蛋价值倍率提升 {value}，当前倍率：{goldenEggMultiplier}", this);
                     break;
 
                 case SkillEffectType.CritChance:
                     critChance = Mathf.Clamp01(critChance + value);
-                    Debug.Log($"UpgradeManager: 暴击率提升 {value}，当前暴击率：{critChance * 100f}%", this);
                     break;
 
                 case SkillEffectType.UnlockDoubleProduction:
                     isDoubleProductionUnlocked = true;
-                    Debug.Log($"UpgradeManager: 已解锁双倍产出能力！", this);
                     break;
 
                 case SkillEffectType.DoubleProductionChance:
                     doubleProductionChance = Mathf.Clamp01(doubleProductionChance + value);
-                    Debug.Log($"UpgradeManager: 双倍产出概率提升 {value}，当前概率：{doubleProductionChance * 100f}%", this);
                     break;
 
                 case SkillEffectType.UnlockGravityWave:
                     isGravityWaveUnlocked = true;
-                    Debug.Log($"UpgradeManager: 已解锁引力波能力！", this);
                     break;
 
                 case SkillEffectType.GravityWaveChance:
                     gravityWaveChance = Mathf.Clamp01(gravityWaveChance + value);
-                    Debug.Log($"UpgradeManager: 引力波概率提升 {value}，当前概率：{gravityWaveChance * 100f}%", this);
                     break;
 
                 case SkillEffectType.UnlockMammal:
                     isMammalUnlocked = true;
-                    // 解锁时设置初始概率为1%（0.01）
                     if (mammalChance <= 0f)
                     {
                         mammalChance = 0.01f;
                     }
-                    Debug.Log($"UpgradeManager: 已解锁哺乳动物能力！当前概率：{mammalChance * 100f}%", this);
                     break;
 
                 case SkillEffectType.MammalChance:
                     mammalChance = Mathf.Clamp01(mammalChance + value);
-                    Debug.Log($"UpgradeManager: 哺乳动物概率提升 {value}，当前概率：{mammalChance * 100f}%", this);
                     break;
 
                 default:
@@ -539,10 +504,6 @@ namespace ProjectChicken.Core
                 }
             }
 
-            if (addedCount > 0)
-            {
-                Debug.Log($"UpgradeManager: 自动收集到 {addedCount} 个技能节点，注册表中共有 {skillRegistry.Count} 个技能", this);
-            }
         }
 
         /// <summary>
@@ -585,7 +546,6 @@ namespace ProjectChicken.Core
         {
             if (skillRecords == null || skillRecords.Count == 0)
             {
-                Debug.Log("UpgradeManager: 没有需要加载的技能数据。", this);
                 return;
             }
 
@@ -615,11 +575,8 @@ namespace ProjectChicken.Core
             isGravityWaveUnlocked = false;
             gravityWaveChance = 0.01f; // 引力波触发概率（基础1%）
 
-            // 重置哺乳动物相关属性
             isMammalUnlocked = false;
             mammalChance = 0f;
-
-            Debug.Log($"UpgradeManager: 开始加载 {skillRecords.Count} 个技能记录...", this);
 
             // 遍历保存的技能记录列表
             foreach (GameSaveData.SkillSaveRecord record in skillRecords)
@@ -644,17 +601,12 @@ namespace ProjectChicken.Core
                         float effectValue = skill.GetEffectValue(level);
                         ApplySkillEffect(skill, effectValue);
                     }
-
-                    Debug.Log($"UpgradeManager: 已加载技能 '{skill.DisplayName}' (ID: {record.id}, 等级: {record.level})", this);
                 }
                 else
                 {
                     Debug.LogWarning($"UpgradeManager: 无法加载技能 ID '{record.id}'，该技能可能已被删除或未添加到注册表。", this);
                 }
             }
-
-            Debug.Log($"UpgradeManager: 技能加载完成，共加载 {skillLevels.Count} 个技能。", this);
-            Debug.Log($"UpgradeManager: 加载后的额外初始鸡数量: {extraInitialChickens}", this);
         }
 
         /// <summary>
@@ -665,7 +617,6 @@ namespace ProjectChicken.Core
         {
             if (savedIDs == null || savedIDs.Count == 0)
             {
-                Debug.Log("UpgradeManager: 没有需要加载的技能数据。", this);
                 return;
             }
 
@@ -746,11 +697,8 @@ namespace ProjectChicken.Core
             isGravityWaveUnlocked = false;
             gravityWaveChance = 0.01f; // 引力波触发概率（基础1%）
 
-            // 重置哺乳动物相关属性
             isMammalUnlocked = false;
             mammalChance = 0f;
-
-            Debug.Log("UpgradeManager: 所有技能已重置", this);
         }
     }
 }

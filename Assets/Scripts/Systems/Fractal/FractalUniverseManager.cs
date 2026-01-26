@@ -64,13 +64,7 @@ namespace ProjectChicken.Systems
                     // 加载第一个阶段的环境预制体
                     LoadStageEnvironment(stages[0]);
                     
-                    // 应用阶段设置（更新约束）
                     ApplyStageSettings(stages[0]);
-                    
-                    if (showDebugLogs)
-                    {
-                        Debug.Log($"FractalUniverseManager: 初始化完成，加载阶段 0: {stages[0].StageName}", this);
-                    }
                 }
                 else
                 {
@@ -147,13 +141,8 @@ namespace ProjectChicken.Systems
         /// </summary>
         private void AttemptUpgrade()
         {
-            // 检查下一个阶段是否存在
             if (currentStageIndex + 1 >= stages.Count)
             {
-                if (showDebugLogs)
-                {
-                    Debug.Log("FractalUniverseManager: 已达到最后一个阶段，无法继续升级。", this);
-                }
                 return;
             }
 
@@ -165,11 +154,6 @@ namespace ProjectChicken.Systems
             {
                 Debug.LogError("FractalUniverseManager: 当前或下一个阶段数据为空！", this);
                 return;
-            }
-
-            if (showDebugLogs)
-            {
-                Debug.Log($"FractalUniverseManager: 尝试从阶段 {currentStageIndex} ({currentStage.StageName}) 升级到阶段 {currentStageIndex + 1} ({nextStage.StageName})", this);
             }
 
             // 根据当前阶段的过渡类型执行不同的逻辑
@@ -195,11 +179,6 @@ namespace ProjectChicken.Systems
         /// <param name="newStage">新阶段数据</param>
         private void HandleExpansionTransition(HybridStageData newStage)
         {
-            if (showDebugLogs)
-            {
-                Debug.Log($"FractalUniverseManager: 执行扩展过渡到 {newStage.StageName}", this);
-            }
-
             // 增加索引
             currentStageIndex++;
 
@@ -216,11 +195,6 @@ namespace ProjectChicken.Systems
         /// <param name="newStage">新阶段数据</param>
         private void HandleFractalZoomTransition(HybridStageData currentStage, HybridStageData newStage)
         {
-            if (showDebugLogs)
-            {
-                Debug.Log($"FractalUniverseManager: 执行分形缩放过渡，从 {currentStage.StageName} 到 {newStage.StageName}", this);
-            }
-
             // 1. 清理所有鸡
             if (chickenSpawner != null)
             {
@@ -252,18 +226,6 @@ namespace ProjectChicken.Systems
                 if (environmentRoot != null)
                 {
                     iconObject.transform.SetParent(environmentRoot);
-                }
-
-                if (showDebugLogs)
-                {
-                    Debug.Log($"FractalUniverseManager: 已在 (0,0) 位置创建前一个阶段的图标: {currentStage.StageName}", this);
-                }
-            }
-            else
-            {
-                if (showDebugLogs)
-                {
-                    Debug.Log($"FractalUniverseManager: 当前阶段 {currentStage.StageName} 没有 PreviousStageIcon，跳过图标创建。", this);
                 }
             }
 
@@ -310,17 +272,6 @@ namespace ProjectChicken.Systems
                     currentWorldInstance = Instantiate(stageData.EnvironmentPrefab);
                 }
 
-                if (showDebugLogs)
-                {
-                    Debug.Log($"FractalUniverseManager: 已加载环境预制体: {stageData.EnvironmentPrefab.name}", this);
-                }
-            }
-            else
-            {
-                if (showDebugLogs)
-                {
-                    Debug.Log($"FractalUniverseManager: 阶段 {stageData.StageName} 没有环境预制体，跳过加载。", this);
-                }
             }
 
             // 更新 PlayArea 设置
@@ -344,12 +295,7 @@ namespace ProjectChicken.Systems
                 PlayArea prefabPlayArea = currentWorldInstance.GetComponentInChildren<PlayArea>();
                 if (prefabPlayArea != null)
                 {
-                    // 如果预制体中有 PlayArea，使用它
                     playArea = prefabPlayArea;
-                    if (showDebugLogs)
-                    {
-                        Debug.Log($"FractalUniverseManager: 在环境预制体中找到 PlayArea，使用预制体中的设置", this);
-                    }
                 }
             }
 
@@ -365,26 +311,15 @@ namespace ProjectChicken.Systems
                     PlayArea prefabPlayArea = currentWorldInstance.GetComponentInChildren<PlayArea>();
                     if (prefabPlayArea != null)
                     {
-                        // 使用预制体中 PlayArea 的大小
                         targetSize = prefabPlayArea.AreaSize;
-                        if (showDebugLogs)
-                        {
-                            Debug.Log($"FractalUniverseManager: 使用环境预制体中 PlayArea 的大小: {targetSize}", this);
-                        }
                     }
                 }
 
                 // 如果还是没有大小，使用默认值（基于摄像机约束计算）
                 if (targetSize == Vector2.zero)
                 {
-                    // 根据摄像机约束估算场地大小
-                    // 假设场地大小约为摄像机最大尺寸的 2 倍
                     float estimatedSize = stageData.MaxCamSize * 2f;
                     targetSize = new Vector2(estimatedSize, estimatedSize);
-                    if (showDebugLogs)
-                    {
-                        Debug.Log($"FractalUniverseManager: 使用估算的场地大小: {targetSize}", this);
-                    }
                 }
 
                 // 更新 PlayArea 设置
@@ -393,11 +328,6 @@ namespace ProjectChicken.Systems
                     stageData.PlayAreaCenter,
                     stageData.PlayAreaSprite
                 );
-
-                if (showDebugLogs)
-                {
-                    Debug.Log($"FractalUniverseManager: 已更新 PlayArea 设置 - 大小: {targetSize}, 中心: {stageData.PlayAreaCenter}", this);
-                }
             }
             else
             {
@@ -429,13 +359,6 @@ namespace ProjectChicken.Systems
                 stageData.MinCamSize,
                 stageData.MaxCamSize
             );
-
-            if (showDebugLogs)
-            {
-                Debug.Log($"FractalUniverseManager: 已应用阶段设置 - {stageData.StageName}\n" +
-                         $"  平移限制: {stageData.MovementBounds}\n" +
-                         $"  缩放范围: {stageData.MinCamSize} - {stageData.MaxCamSize}", this);
-            }
         }
 
         /// <summary>
@@ -503,11 +426,6 @@ namespace ProjectChicken.Systems
             if (playerController != null && targetStage != null)
             {
                 playerController.ResetCamera(targetStage.MinCamSize);
-            }
-
-            if (showDebugLogs)
-            {
-                Debug.Log($"FractalUniverseManager: 手动设置阶段为 {stageIndex}: {targetStage.StageName}", this);
             }
         }
     }

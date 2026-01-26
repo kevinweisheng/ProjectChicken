@@ -91,11 +91,7 @@ namespace ProjectChicken.Systems
         /// </summary>
         private void OnArrived()
         {
-            // 计算鸡蛋价值
-            int eggValue = 1; // 默认普通蛋价值为1
-            
-            // 调试：标记蛋已到达（用于确认下蛋逻辑是否执行）
-            Debug.Log($"EggProjectile: 蛋已到达目标位置，isGoldenEgg={isGoldenEgg}", this);
+            int eggValue = 1;
             
             if (isGoldenEgg && UpgradeManager.Instance != null)
             {
@@ -115,7 +111,6 @@ namespace ProjectChicken.Systems
                 if (doubleProductionChance > 0f && UnityEngine.Random.value < doubleProductionChance)
                 {
                     eggValue *= 2;
-                    Debug.Log($"EggProjectile: 触发双倍产出！鸡蛋价值翻倍：{eggValue}", this);
                 }
             }
 
@@ -137,7 +132,6 @@ namespace ProjectChicken.Systems
                 {
                     float extensionAmount = UpgradeManager.Instance.GravityWaveTimeExtension;
                     GameManager.Instance.ExtendSessionTime(extensionAmount);
-                    Debug.Log($"EggProjectile: 触发引力波！增加 {extensionAmount} 秒回合时间", this);
                 }
             }
 
@@ -151,8 +145,6 @@ namespace ProjectChicken.Systems
         /// <returns>普通鸡下蛋数量</returns>
         private int GetNormalEggCountByStage()
         {
-            Debug.Log("EggProjectile: GetNormalEggCountByStage() 被调用", this);
-            
             // 从 GameManager 获取配置
             EggCountConfig config = null;
             if (GameManager.Instance != null)
@@ -167,10 +159,6 @@ namespace ProjectChicken.Systems
                     {
                         Debug.LogWarning("EggProjectile: 反射获取到字段，但字段值为 null。请在 GameManager 的 Inspector 中配置 eggCountConfig", this);
                     }
-                    else
-                    {
-                        Debug.Log($"EggProjectile: 成功获取 eggCountConfig: {config.name}", this);
-                    }
                 }
                 else
                 {
@@ -182,14 +170,11 @@ namespace ProjectChicken.Systems
                 Debug.LogWarning("EggProjectile: GameManager.Instance 为空", this);
             }
 
-            // 如果没有配置，返回默认值1
             if (config == null)
             {
                 Debug.LogWarning("EggProjectile: eggCountConfig 未配置，使用默认下蛋数量 1", this);
                 return 1;
             }
-
-            Debug.Log("EggProjectile: config 已获取，继续获取场地等级", this);
 
             // 获取当前场地等级（优先从 AreaUpgradeManager 获取，如果没有则从 FractalUniverseManager 获取）
             int stageLevel = 0; // 默认等级0
@@ -219,11 +204,7 @@ namespace ProjectChicken.Systems
                 Debug.LogWarning("EggProjectile: 无法获取当前场地/阶段信息，使用默认等级 0", this);
             }
 
-            // 从配置中获取该等级的下蛋数量
             int eggCount = config.GetEggCountByLevel(stageLevel);
-            
-            // 调试日志：显示当前读取到的等级和下蛋数量
-            Debug.Log($"EggProjectile: ChickenHealthLevel={stageLevel}, 下蛋数量={eggCount}, 来源={levelSource}", this);
             
             return eggCount;
         }

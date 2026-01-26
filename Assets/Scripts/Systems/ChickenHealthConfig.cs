@@ -61,7 +61,6 @@ namespace ProjectChicken.Systems
                     return 100f;
             }
             
-            Debug.Log($"ChickenHealthConfig: 获取等级 {level} 的生命值 = {health} (配置对象: {name})", this);
             return health;
         }
 

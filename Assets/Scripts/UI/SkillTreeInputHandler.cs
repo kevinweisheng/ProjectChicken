@@ -41,10 +41,8 @@ namespace ProjectChicken.UI
 
             if (keyPressed)
             {
-                // 通过静态引用调用 SkillTreePanel 的切换方法
                 if (SkillTreePanel.Instance != null)
                 {
-                    Debug.Log($"SkillTreeInputHandler: 检测到按键按下，切换技能树面板", this);
                     SkillTreePanel.Instance.TogglePanel();
                 }
                 else

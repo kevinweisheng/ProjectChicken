@@ -66,7 +66,6 @@ namespace ProjectChicken.Core
 
         private void Awake()
         {
-            Debug.Log($"存档路径: {Application.persistentDataPath}");
             // 单例模式：防止重复创建
             if (Instance != null && Instance != this)
             {
@@ -157,7 +156,6 @@ namespace ProjectChicken.Core
         {
             CurrentSessionEggs = 0;
             UpdateUI();
-            Debug.Log("ResourceManager: 单局分数已重置", this);
         }
 
         /// <summary>
@@ -169,8 +167,7 @@ namespace ProjectChicken.Core
             if (CurrentSessionEggs > 0)
             {
                 TotalGlobalEggs += CurrentSessionEggs;
-                SaveGame(); // 保存游戏数据
-                Debug.Log($"ResourceManager: 结算完成，将 {CurrentSessionEggs} 个鸡蛋存入全局仓库，当前全局货币：{TotalGlobalEggs}", this);
+                SaveGame();
                 
                 // 结算后重置局内分数
                 CurrentSessionEggs = 0;
@@ -215,10 +212,7 @@ namespace ProjectChicken.Core
                 data.hasShownAreaTransition = false;
             }
             
-            // 保存到文件
             SaveSystem.Save(data);
-            
-            Debug.Log("ResourceManager: Game Saved", this);
         }
 
         /// <summary>
@@ -250,10 +244,7 @@ namespace ProjectChicken.Core
                 AreaUpgradeManager.Instance.LoadAreaLevel(data.currentAreaLevel, hasShownTransition);
             }
             
-            // 更新UI显示
             UpdateUI();
-            
-            Debug.Log("ResourceManager: Game Loaded", this);
         }
 
         /// <summary>
@@ -289,10 +280,7 @@ namespace ProjectChicken.Core
             // 更新UI显示
             UpdateUI();
 
-            // 触发全局货币变化事件
             OnGlobalEggsChanged?.Invoke(TotalGlobalEggs);
-
-            Debug.Log("ResourceManager: 存档数据已清除，游戏已重置为初始状态", this);
         }
 
         /// <summary>
@@ -356,9 +344,8 @@ namespace ProjectChicken.Core
             }
             else
             {
-                SaveGame(); // 确保退出时保存
+                SaveGame();
             }
-            Debug.Log("ResourceManager: 游戏退出，已保存数据", this);
         }
 
         /// <summary>
@@ -381,10 +368,7 @@ namespace ProjectChicken.Core
             // 更新UI
             UpdateUI();
             
-            // 触发事件
             OnGlobalEggsChanged?.Invoke(TotalGlobalEggs);
-            
-            Debug.Log($"ResourceManager: 调试 - 总鸡蛋数量已设置为 {amount}", this);
         }
 
         /// <summary>
@@ -419,9 +403,8 @@ namespace ProjectChicken.Core
                 }
                 else
                 {
-                    SaveGame(); // 确保暂停时保存
+                    SaveGame();
                 }
-                Debug.Log("ResourceManager: 游戏暂停，已保存数据", this);
             }
         }
     }

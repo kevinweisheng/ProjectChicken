@@ -106,8 +106,7 @@ namespace ProjectChicken.Units
             {
                 float oldMaxHP = maxHP;
                 maxHP = health;
-                currentHP = maxHP; // 同时设置当前生命值为最大值
-                Debug.Log($"ChickenUnit: 设置最大生命值 {oldMaxHP} -> {maxHP}，当前生命值 = {currentHP} (鸡类型: {(isGolden ? "金鸡" : "普通鸡")})", this);
+                currentHP = maxHP;
             }
             else
             {
@@ -137,8 +136,6 @@ namespace ProjectChicken.Units
                         // 切换皮肤
                         skeletonAnimation.skeleton.SetSkin(targetSkin);
                         skeletonAnimation.skeleton.SetSlotsToSetupPose();
-                        
-                        Debug.Log($"ChickenUnit: 切换皮肤为 '{targetSkinName}'", this);
                     }
                     else
                     {
@@ -248,8 +245,6 @@ namespace ProjectChicken.Units
                         var trackEntry = skeletonAnimation.AnimationState.SetAnimation(0, spawnAnimationName, false);
                         if (trackEntry != null)
                         {
-                            Debug.Log($"ChickenUnit: 开始播放出现动画 '{spawnAnimationName}'", this);
-                            
                             // 出现动画播放完成后，恢复 Idle 动画
                             if (!string.IsNullOrEmpty(idleAnimationName))
                             {
@@ -278,11 +273,7 @@ namespace ProjectChicken.Units
                     else if (!string.IsNullOrEmpty(idleAnimationName))
                     {
                         var trackEntry = skeletonAnimation.AnimationState.SetAnimation(0, idleAnimationName, loopIdleAnimation);
-                        if (trackEntry != null)
-                        {
-                            Debug.Log($"ChickenUnit: 成功播放 Idle 动画 '{idleAnimationName}'", this);
-                        }
-                        else
+                        if (trackEntry == null)
                         {
                             Debug.LogWarning($"ChickenUnit: 无法播放 Idle 动画 '{idleAnimationName}'，trackEntry 为 null。请检查动画名称是否正确。", this);
                         }
@@ -315,17 +306,9 @@ namespace ProjectChicken.Units
             }
             originalScale = transform.localScale;
 
-            // 初始化血量：只在 currentHP 未设置时初始化
-            // 注意：SetMaxHP 会在生成后设置正确的生命值，所以这里只初始化 currentHP
-            // 不要重置 maxHP，因为 SetMaxHP 会在 Start() 之后被调用
             if (currentHP <= 0f)
             {
                 currentHP = maxHP;
-                Debug.Log($"ChickenUnit: Start() 中初始化血量 currentHP = {currentHP} (maxHP = {maxHP}，预制体默认值)", this);
-            }
-            else
-            {
-                Debug.Log($"ChickenUnit: Start() 中血量已设置，跳过初始化 (currentHP = {currentHP}, maxHP = {maxHP})", this);
             }
             
             // 如果已经是金鸡，应用金鸡皮肤
@@ -577,8 +560,6 @@ namespace ProjectChicken.Units
                         Debug.LogWarning($"ChickenUnit: 无法播放被攻击动画 '{hitAnimationName}'，trackEntry 为 null。请检查动画名称是否正确，以及 Spine 数据是否已正确加载。", this);
                         return;
                     }
-                    
-                    Debug.Log($"ChickenUnit: 开始播放被攻击动画 '{hitAnimationName}'", this);
                     
                     // 被攻击动画播放完成后，恢复 Idle 动画
                     if (!string.IsNullOrEmpty(idleAnimationName))
@@ -872,9 +853,7 @@ namespace ProjectChicken.Units
             // 保存当前状态（包括原始的最大生命值）
             Vector3 currentPosition = transform.position;
             bool wasGolden = isGolden;
-            float originalMaxHP = maxHP; // 保存当前胖鸡的最大生命值
-            
-            Debug.Log($"ChickenUnit: 产出时保存胖鸡的生命值 {originalMaxHP}，准备替换为瘦鸡", this);
+            float originalMaxHP = maxHP;
 
             // 实例化瘦鸡预制体
             GameObject thinChicken = Instantiate(thinChickenPrefab, currentPosition, transform.rotation);
@@ -930,12 +909,7 @@ namespace ProjectChicken.Units
                 // 同步金鸡状态
                 thinChickenUnit.SetGolden(wasGolden);
                 
-                // 同步最大生命值：使用原始肥鸡的最大生命值，而不是瘦鸡预制体的默认值
-                // 注意：originalMaxHP 应该是当前胖鸡的实际生命值（例如20），而不是预制体的默认值（100）
-                Debug.Log($"ChickenUnit: 替换为瘦鸡前，胖鸡的生命值 maxHP = {maxHP}, originalMaxHP = {originalMaxHP}", this);
                 thinChickenUnit.SetMaxHP(originalMaxHP);
-                
-                Debug.Log($"ChickenUnit: 替换为瘦鸡时，将生命值设置为原始值 {originalMaxHP}（而不是瘦鸡预制体的默认值）", this);
                 
                 // 确保瘦鸡播放待机动画
                 var thinSkeletonAnimation = thinChicken.GetComponent<SkeletonAnimation>();
@@ -991,8 +965,6 @@ namespace ProjectChicken.Units
                         }
                     }
                 }
-                
-                Debug.Log($"ChickenUnit: 成功替换为瘦鸡预制体，位置：{currentPosition}", this);
             }
             else
             {
@@ -1124,7 +1096,6 @@ namespace ProjectChicken.Units
                                 if (ChickenSpawner.Instance != null)
                                 {
                                     ChickenSpawner.Instance.SetChickenHealthByStage(fatChicken, wasGolden);
-                                    Debug.Log($"ChickenUnit: 恢复肥鸡时，根据当前场地等级重新设置生命值（金鸡: {wasGolden}）", this);
                                 }
                                 else
                                 {
@@ -1156,8 +1127,6 @@ namespace ProjectChicken.Units
                                     }
                                 }
                                 
-                                Debug.Log($"ChickenUnit: 瘦鸡在位置 {currentPosition} 恢复为肥鸡预制体", this);
-                                
                                 // 销毁瘦鸡对象
                                 Destroy(gameObject);
                                 return; // 提前返回，因为对象已被销毁
@@ -1178,10 +1147,7 @@ namespace ProjectChicken.Units
                     {
                         if (!string.IsNullOrEmpty(spawnAnimationName))
                         {
-                            // 播放出现动画（不循环，播放一次）
                             var trackEntry = skeletonAnimation.AnimationState.SetAnimation(0, spawnAnimationName, false);
-                            
-                            Debug.Log($"ChickenUnit: 开始播放出现动画 '{spawnAnimationName}'", this);
                             
                             // 出现动画播放完成后，恢复 Idle 动画
                             if (trackEntry != null && !string.IsNullOrEmpty(idleAnimationName))
@@ -1213,12 +1179,9 @@ namespace ProjectChicken.Units
                 }
                 transform.localScale = originalScale; // 恢复原始大小
 
-                // 根据当前场地等级重新设置生命值（而不是使用保存的原始值）
-                // 这样可以确保恢复后的鸡使用当前场地等级的生命值
                 if (ChickenSpawner.Instance != null)
                 {
                     ChickenSpawner.Instance.SetChickenHealthByStage(this, isGolden);
-                    Debug.Log($"ChickenUnit: 恢复肥鸡时（代码方式），根据当前场地等级重新设置生命值（金鸡: {isGolden}）", this);
                 }
                 else
                 {
@@ -1227,10 +1190,7 @@ namespace ProjectChicken.Units
                     Debug.LogWarning($"ChickenUnit: ChickenSpawner.Instance 为空，使用保存的原始生命值 {maxHP}", this);
                 }
 
-                // 重置游荡计时器
                 wanderTimer = 0f;
-
-                Debug.Log($"ChickenUnit: 鸡在位置 {transform.position} 恢复为肥鸡状态", this);
 
                 // 分裂检查：如果解锁了分裂能力且可以生成更多鸡
                 if (UpgradeManager.Instance != null && UpgradeManager.Instance.IsMitosisUnlocked)
@@ -1240,12 +1200,9 @@ namespace ProjectChicken.Units
                         // 获取分裂几率
                         float mitosisChance = UpgradeManager.Instance.MitosisChance;
 
-                        // 随机判定是否分裂
                         if (UnityEngine.Random.value < mitosisChance)
                         {
-                            // 分裂成功：在当前位置生成一只新鸡
                             ChickenSpawner.Instance.SpawnChickenAt(transform.position);
-                            Debug.Log($"ChickenUnit: 鸡在位置 {transform.position} 发生分裂！", this);
                         }
                     }
                 }

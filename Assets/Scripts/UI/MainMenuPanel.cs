@@ -90,10 +90,9 @@ namespace ProjectChicken.UI
         {
             if (canvasGroup != null)
             {
-                canvasGroup.alpha = 1f; // 完全不透明
-                canvasGroup.interactable = true; // 可交互
-                canvasGroup.blocksRaycasts = true; // 阻挡射线（可以点击）
-                Debug.Log("MainMenuPanel: 主菜单面板已显示", this);
+                canvasGroup.alpha = 1f;
+                canvasGroup.interactable = true;
+                canvasGroup.blocksRaycasts = true;
             }
             else
             {
@@ -127,22 +126,16 @@ namespace ProjectChicken.UI
         /// </summary>
         private void OnNewGameClicked()
         {
-            Debug.Log("MainMenuPanel: 点击新游戏按钮", this);
-
-            // 清除存档
             if (ResourceManager.Instance != null)
             {
                 ResourceManager.Instance.ClearSaveData();
             }
 
-            // 隐藏主菜单
             HidePanel();
 
-            // 显示技能树面板
             if (skillTreePanel != null)
             {
                 skillTreePanel.Show();
-                Debug.Log("MainMenuPanel: 已打开技能树面板", this);
             }
             else
             {
@@ -155,22 +148,16 @@ namespace ProjectChicken.UI
         /// </summary>
         private void OnContinueGameClicked()
         {
-            Debug.Log("MainMenuPanel: 点击继续游戏按钮", this);
-
-            // 加载存档
             if (ResourceManager.Instance != null)
             {
                 ResourceManager.Instance.LoadGame();
             }
 
-            // 隐藏主菜单
             HidePanel();
 
-            // 显示技能树面板
             if (skillTreePanel != null)
             {
                 skillTreePanel.Show();
-                Debug.Log("MainMenuPanel: 已打开技能树面板", this);
             }
             else
             {
@@ -183,9 +170,6 @@ namespace ProjectChicken.UI
         /// </summary>
         private void OnExitGameClicked()
         {
-            Debug.Log("MainMenuPanel: 点击退出游戏按钮", this);
-
-            // 保存游戏
             if (ResourceManager.Instance != null)
             {
                 ResourceManager.Instance.SaveGame();

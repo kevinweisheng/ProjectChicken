@@ -92,11 +92,9 @@ namespace ProjectChicken.UI
             switch (newState)
             {
                 case GameState.GameOver:
-                    // 游戏结束，先保存当前的局内鸡蛋数（在结算之前）
                     if (ResourceManager.Instance != null)
                     {
                         lastSessionEggs = ResourceManager.Instance.CurrentSessionEggs;
-                        Debug.Log($"SettlementPanel: 保存本局鸡蛋数 {lastSessionEggs}", this);
                     }
                     else
                     {
@@ -104,15 +102,11 @@ namespace ProjectChicken.UI
                         Debug.LogWarning("SettlementPanel: ResourceManager.Instance 为空，无法读取分数！", this);
                     }
                     
-                    // 然后显示结算面板
-                    Debug.Log("SettlementPanel: 游戏结束，显示结算面板", this);
                     ShowPanel();
                     break;
 
                 case GameState.Playing:
                 case GameState.Preparation:
-                    // 游戏开始或准备阶段，隐藏结算面板
-                    Debug.Log($"SettlementPanel: 状态为 {newState}，隐藏结算面板", this);
                     HidePanel();
                     break;
             }
@@ -125,23 +119,18 @@ namespace ProjectChicken.UI
         {
             if (canvasGroup != null)
             {
-                canvasGroup.alpha = 1f; // 完全不透明
-                canvasGroup.interactable = true; // 可交互
-                canvasGroup.blocksRaycasts = true; // 阻挡射线（可以点击）
-                Debug.Log("SettlementPanel: 面板已显示", this);
+                canvasGroup.alpha = 1f;
+                canvasGroup.interactable = true;
+                canvasGroup.blocksRaycasts = true;
             }
             else
             {
                 Debug.LogWarning("SettlementPanel: canvasGroup 为空，无法显示面板！", this);
             }
 
-            // 显示本局分数（使用保存的值，因为结算后 CurrentSessionEggs 已被重置为 0）
             if (scoreText != null)
             {
-                // 使用保存的 lastSessionEggs，而不是从 ResourceManager 读取（因为已经结算并重置了）
-                // 显示格式：获得鸡蛋:鸡蛋数量
                 scoreText.text = $"获得鸡蛋:{lastSessionEggs}";
-                Debug.Log($"SettlementPanel: 显示分数 {lastSessionEggs}", this);
             }
             else
             {
@@ -168,16 +157,11 @@ namespace ProjectChicken.UI
         /// </summary>
         private void OnClaimClicked()
         {
-            Debug.Log("SettlementPanel: 点击领取按钮", this);
-
-            // 隐藏结算面板
             HidePanel();
 
-            // 直接进入技能树界面（不再进入主菜单）
             if (skillTreePanel != null)
             {
                 skillTreePanel.Show();
-                Debug.Log("SettlementPanel: 已打开技能树面板", this);
             }
             else
             {
@@ -191,16 +175,11 @@ namespace ProjectChicken.UI
         /// </summary>
         private void OnStartNextRoundClicked()
         {
-            Debug.Log("SettlementPanel: 点击开始下一回合按钮", this);
-
-            // 隐藏结算面板
             HidePanel();
 
-            // 直接开始新的一局游戏
             if (GameManager.Instance != null)
             {
                 GameManager.Instance.RestartGame();
-                Debug.Log("SettlementPanel: 已开始下一回合", this);
             }
             else
             {
