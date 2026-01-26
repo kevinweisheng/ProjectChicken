@@ -490,20 +490,31 @@ namespace ProjectChicken.Systems
             // 更新 PlayArea
             if (playArea != null)
             {
-                // 安全地获取 Sprite（检查是否为 null）
                 Sprite backgroundSprite = areaData.BackgroundSprite;
                 
-                // 确定鸡活动范围：如果场地数据中指定了，使用它；否则使用场地大小和中心
                 Vector2 chickenAreaSize = areaData.ChickenMovementAreaSize;
                 Vector2 chickenAreaCenter = areaData.ChickenMovementAreaCenter;
+                
+                if (showDebugLogs)
+                {
+                    Debug.Log($"AreaUpgradeManager: 应用场地数据 - {areaData.AreaName}\n" +
+                        $"  场地大小: {areaData.AreaSize}, 场地中心: {areaData.AreaCenter}\n" +
+                        $"  鸡活动范围大小: {chickenAreaSize}, 鸡活动范围中心: {chickenAreaCenter}", this);
+                }
                 
                 playArea.UpdateAreaSettings(
                     areaData.AreaSize,
                     areaData.AreaCenter,
-                    backgroundSprite, // 可能为 null，但 UpdateAreaSettings 会处理
+                    backgroundSprite,
                     chickenAreaSize != Vector2.zero ? chickenAreaSize : default(Vector2),
                     chickenAreaCenter != Vector2.zero ? chickenAreaCenter : default(Vector2)
                 );
+                
+                if (showDebugLogs)
+                {
+                    Bounds chickenBounds = playArea.ChickenMovementBounds;
+                    Debug.Log($"AreaUpgradeManager: 边界已更新 - 鸡活动边界: min({chickenBounds.min.x:F2}, {chickenBounds.min.y:F2}) 到 max({chickenBounds.max.x:F2}, {chickenBounds.max.y:F2})", this);
+                }
             }
             else
             {

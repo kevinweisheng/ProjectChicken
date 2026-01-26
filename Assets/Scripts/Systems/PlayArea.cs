@@ -661,12 +661,24 @@ namespace ProjectChicken.Systems
             if (chickenMovementSize != default(Vector2))
             {
                 chickenMovementAreaSize = chickenMovementSize;
-                useCustomChickenArea = true; // 自动启用自定义鸡活动范围
+                useCustomChickenArea = true;
             }
+            else
+            {
+                // 如果传入的是 Vector2.zero，表示使用场地大小，禁用自定义鸡活动范围
+                useCustomChickenArea = false;
+                chickenMovementAreaSize = Vector2.zero;
+            }
+            
             if (chickenMovementCenter != default(Vector2))
             {
                 chickenMovementAreaCenter = chickenMovementCenter;
-                useCustomChickenArea = true; // 自动启用自定义鸡活动范围
+                useCustomChickenArea = true;
+            }
+            else
+            {
+                // 如果传入的是 Vector2.zero，表示使用场地中心
+                chickenMovementAreaCenter = Vector2.zero;
             }
 
             // 更新 Sprite（如果提供且不为空）

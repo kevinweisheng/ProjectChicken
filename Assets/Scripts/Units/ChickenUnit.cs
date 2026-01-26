@@ -13,12 +13,22 @@ namespace ProjectChicken.Units
     [RequireComponent(typeof(Rigidbody2D))]
     public class ChickenUnit : MonoBehaviour, IDamageable
     {
+        [Header("生命值配置")]
         [SerializeField] private float maxHP = 100f; // 最大血量
-        [SerializeField] private float wanderInterval = 2f; // 游荡方向改变间隔（秒）
-        [SerializeField] private float wanderSpeed = 2f; // 游荡速度
+        
+        [Header("移动配置")]
+        [Tooltip("游荡速度（世界单位/秒）")]
+        [SerializeField] private float wanderSpeed = 2f;
+        
+        [Tooltip("游荡方向改变间隔（秒）")]
+        [SerializeField] private float wanderInterval = 2f;
+        
+        [Tooltip("边界内边距（世界单位，已废弃，保留用于兼容）")]
+        [SerializeField] private float boundaryPadding = 0.5f;
+        
+        [Header("受击效果配置")]
         [SerializeField] private float hitFlashDuration = 0.1f; // 受击闪烁持续时间
         [SerializeField] private Color hitFlashColor = Color.red; // 受击闪烁颜色
-        [SerializeField] private float boundaryPadding = 0.5f; // 边界内边距（避免鸡紧贴屏幕边缘）
 
         [Header("瘦鸡预制体（可选）")]
         [SerializeField] private GameObject thinChickenPrefab; // 瘦鸡预制体（如果设置，产出时会替换为这个预制体）
@@ -114,7 +124,7 @@ namespace ProjectChicken.Units
             isGolden = golden;
             
             // 如果使用 Spine 动画，切换皮肤
-            if (skeletonAnimation != null && skeletonAnimation.skeleton != null && skeletonAnimation.skeleton.Data != null)
+            if (skeletonAnimation != null && !skeletonAnimation.Equals(null) && skeletonAnimation.skeleton != null && skeletonAnimation.skeleton.Data != null)
             {
                 string targetSkinName = golden ? goldenSkinName : normalSkinName;
                 
@@ -169,12 +179,13 @@ namespace ProjectChicken.Units
                 // 如果不是金鸡，保持原始颜色（在 Start 中已设置）
             }
         }
-        private Rigidbody2D rb; // 刚体组件
-        private SpriteRenderer spriteRenderer; // 精灵渲染器
-        private Color originalColor; // 原始颜色（用于受击反馈）
-        private Vector3 originalScale; // 原始大小（用于恢复）
-        private float hitFlashTimer = 0f; // 受击闪烁计时器
-        private MeshRenderer meshRenderer; // Spine 的 MeshRenderer（用于设置排序）
+        private Rigidbody2D rb;
+        private SpriteRenderer spriteRenderer;
+        private Collider2D chickenCollider;
+        private Color originalColor;
+        private Vector3 originalScale;
+        private float hitFlashTimer = 0f;
+        private MeshRenderer meshRenderer;
         
         // 抚摸序列帧动画相关
         private GameObject petAnimationObject = null; // 序列帧显示对象
@@ -186,11 +197,15 @@ namespace ProjectChicken.Units
 
         private void Start()
         {
-            // 初始化组件
             rb = GetComponent<Rigidbody2D>();
             spriteRenderer = GetComponent<SpriteRenderer>();
             
-            // 获取 Spine 动画组件
+            chickenCollider = GetComponent<Collider2D>();
+            if (chickenCollider == null)
+            {
+                chickenCollider = GetComponentInChildren<Collider2D>();
+            }
+            
             skeletonAnimation = GetComponent<SkeletonAnimation>();
             if (skeletonAnimation == null)
             {
@@ -240,7 +255,7 @@ namespace ProjectChicken.Units
                             {
                                 trackEntry.Complete += (entry) =>
                                 {
-                                    if (skeletonAnimation != null && skeletonAnimation.AnimationState != null)
+                                    if (this != null && skeletonAnimation != null && !skeletonAnimation.Equals(null) && skeletonAnimation.AnimationState != null)
                                     {
                                         skeletonAnimation.AnimationState.SetAnimation(0, idleAnimationName, loopIdleAnimation);
                                     }
@@ -438,68 +453,61 @@ namespace ProjectChicken.Units
         /// </summary>
         private void CheckAndAdjustBoundary()
         {
-            if (rb == null) return;
+            if (rb == null || chickenCollider == null) return;
 
-            // 优先使用场地边界，如果没有场地则使用屏幕边界（向后兼容）
+            if (!(chickenCollider is CircleCollider2D circleCollider))
+            {
+                return;
+            }
+
             float minX, maxX, minY, maxY;
 
             if (PlayArea.Instance != null)
             {
-                // 使用鸡活动范围边界（而不是场地边界）
-                minX = PlayArea.Instance.ChickenMinX + boundaryPadding;
-                maxX = PlayArea.Instance.ChickenMaxX - boundaryPadding;
-                minY = PlayArea.Instance.ChickenMinY + boundaryPadding;
-                maxY = PlayArea.Instance.ChickenMaxY - boundaryPadding;
-            }
-            else if (mainCamera != null)
-            {
-                // 回退到屏幕边界（向后兼容）
-                Vector3 bottomLeft = mainCamera.ViewportToWorldPoint(new Vector3(0f, 0f, mainCamera.nearClipPlane + 10f));
-                Vector3 topRight = mainCamera.ViewportToWorldPoint(new Vector3(1f, 1f, mainCamera.nearClipPlane + 10f));
-                minX = bottomLeft.x + boundaryPadding;
-                maxX = topRight.x - boundaryPadding;
-                minY = bottomLeft.y + boundaryPadding;
-                maxY = topRight.y - boundaryPadding;
+                minX = PlayArea.Instance.ChickenMinX;
+                maxX = PlayArea.Instance.ChickenMaxX;
+                minY = PlayArea.Instance.ChickenMinY;
+                maxY = PlayArea.Instance.ChickenMaxY;
             }
             else
             {
-                return; // 没有可用的边界
+                return;
             }
 
-            Vector3 currentPos = transform.position;
+            Vector2 colliderCenter = circleCollider.bounds.center;
+            float colliderRadius = circleCollider.radius;
+            
+            float colliderLeft = colliderCenter.x - colliderRadius;
+            float colliderRight = colliderCenter.x + colliderRadius;
+            float colliderBottom = colliderCenter.y - colliderRadius;
+            float colliderTop = colliderCenter.y + colliderRadius;
+
             Vector2 currentVelocity = rb.linearVelocity;
             bool needAdjust = false;
             Vector2 newDirection = currentVelocity.normalized;
 
-            // 检查 X 轴边界
-            if (currentPos.x < minX)
+            if (colliderLeft < minX)
             {
-                // 超出左边界，强制向右移动
-                newDirection.x = Mathf.Abs(newDirection.x); // 确保向右
+                newDirection.x = Mathf.Abs(newDirection.x);
                 needAdjust = true;
             }
-            else if (currentPos.x > maxX)
+            else if (colliderRight > maxX)
             {
-                // 超出右边界，强制向左移动
-                newDirection.x = -Mathf.Abs(newDirection.x); // 确保向左
+                newDirection.x = -Mathf.Abs(newDirection.x);
                 needAdjust = true;
             }
 
-            // 检查 Y 轴边界
-            if (currentPos.y < minY)
+            if (colliderBottom < minY)
             {
-                // 超出下边界，强制向上移动
-                newDirection.y = Mathf.Abs(newDirection.y); // 确保向上
+                newDirection.y = Mathf.Abs(newDirection.y);
                 needAdjust = true;
             }
-            else if (currentPos.y > maxY)
+            else if (colliderTop > maxY)
             {
-                // 超出上边界，强制向下移动
-                newDirection.y = -Mathf.Abs(newDirection.y); // 确保向下
+                newDirection.y = -Mathf.Abs(newDirection.y);
                 needAdjust = true;
             }
 
-            // 如果需要调整，改变移动方向
             if (needAdjust)
             {
                 newDirection.Normalize();
@@ -577,7 +585,7 @@ namespace ProjectChicken.Units
                     {
                         trackEntry.Complete += (entry) =>
                         {
-                            if (isFat && skeletonAnimation != null && skeletonAnimation.AnimationState != null)
+                            if (this != null && isFat && skeletonAnimation != null && !skeletonAnimation.Equals(null) && skeletonAnimation.AnimationState != null)
                             {
                                 skeletonAnimation.AnimationState.SetAnimation(0, idleAnimationName, loopIdleAnimation);
                             }
@@ -1180,7 +1188,7 @@ namespace ProjectChicken.Units
                             {
                                 trackEntry.Complete += (entry) =>
                                 {
-                                    if (isFat && skeletonAnimation != null && skeletonAnimation.AnimationState != null)
+                                    if (this != null && isFat && skeletonAnimation != null && !skeletonAnimation.Equals(null) && skeletonAnimation.AnimationState != null)
                                     {
                                         skeletonAnimation.AnimationState.SetAnimation(0, idleAnimationName, loopIdleAnimation);
                                     }
@@ -1242,6 +1250,16 @@ namespace ProjectChicken.Units
                     }
                 }
             }
+        }
+
+        private void OnDestroy()
+        {
+            // 清理引用，防止编辑器访问已销毁的对象
+            skeletonAnimation = null;
+            chickenCollider = null;
+            rb = null;
+            spriteRenderer = null;
+            meshRenderer = null;
         }
     }
 }

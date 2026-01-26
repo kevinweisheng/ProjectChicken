@@ -15,8 +15,8 @@ MonoBehaviour:
   areaName: 6
   areaSize: {x: 10, y: 10}
   areaCenter: {x: 0, y: 0}
-  chickenMovementAreaSize: {x: 17.56, y: 9.1}
-  chickenMovementAreaCenter: {x: 0, y: 0}
+  chickenMovementAreaSize: {x: 16.7, y: 8.7}
+  chickenMovementAreaCenter: {x: 0.05, y: 0}
   backgroundSprite: {fileID: 3465286685962602723, guid: 58722fc2bf1e17a4a9f29f70727ddcd6, type: 3}
   upgradeType: 0
   chickenCountThreshold: 50
