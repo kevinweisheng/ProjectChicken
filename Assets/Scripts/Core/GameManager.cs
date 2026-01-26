@@ -2,6 +2,7 @@ using UnityEngine;
 using System;
 using ProjectChicken.Units; // 引用鸡的命名空间
 using ProjectChicken.Systems; // 引用蛋和分形系统的命名空间
+using ProjectChicken.Visuals; // 引用视觉效果命名空间
 
 namespace ProjectChicken.Core
 {
@@ -433,19 +434,31 @@ namespace ProjectChicken.Core
             // 第三步：重新应用场地设置（确保场地配置正确）
             ApplyAreaSettingsForNewRound();
 
-            // 第四步：从 UpgradeManager 获取当前回合时间（如果可用），否则使用初始值
+            // 第四步：初始化软绳边界（如果存在）
+            InitializeRopeBoundary();
+
+            // 第五步：从 UpgradeManager 获取当前回合时间（如果可用），否则使用初始值
             float currentSessionDuration = GetCurrentSessionDuration();
             
-            // 第五步：重置倒计时
+            // 第六步：重置倒计时
             remainingTime = currentSessionDuration;
 
-            // 第六步：切换到 Playing 状态（这会触发 ChickenSpawner 生成初始鸡）
+            // 第七步：切换到 Playing 状态（这会触发 ChickenSpawner 生成初始鸡）
             ChangeGameState(GameState.Playing);
 
-            // 第七步：触发倒计时更新事件（通知UI更新）
+            // 第八步：触发倒计时更新事件（通知UI更新）
             OnTimerUpdated?.Invoke(remainingTime);
 
             Debug.Log($"GameManager: 游戏重新开始，时长 {currentSessionDuration} 秒", this);
+        }
+
+        /// <summary>
+        /// 初始化边界系统（已移除，恢复使用 PlayArea 的原始边界检测）
+        /// </summary>
+        private void InitializeRopeBoundary()
+        {
+            // 边界检测现在直接使用 PlayArea，无需额外初始化
+            Debug.Log("GameManager: 使用 PlayArea 进行边界检测", this);
         }
 
         /// <summary>
