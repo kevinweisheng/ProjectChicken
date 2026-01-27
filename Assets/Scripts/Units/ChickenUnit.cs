@@ -13,8 +13,44 @@ namespace ProjectChicken.Units
     [RequireComponent(typeof(Rigidbody2D))]
     public class ChickenUnit : MonoBehaviour, IDamageable
     {
+        [Header("系统设置")]
+        [Tooltip("是否使用充能系统（true=充能系统，false=伤害系统）")]
+        [SerializeField] private bool useChargeSystem = true;
+        
         [Header("生命值配置")]
         [SerializeField] private float maxHP = 100f; // 最大血量
+        
+        [Header("充能系统配置")]
+        [Tooltip("最大充能值")]
+        [SerializeField] private float maxCharge = 100f;
+        
+        [Tooltip("充能开始衰减前的延迟时间（秒）")]
+        [SerializeField] private float decayDelay = 1.0f;
+        
+        [Tooltip("充能衰减速率（每秒减少的充能值）")]
+        [SerializeField] private float decayRate = 5.0f;
+        
+        [Header("充能槽显示配置")]
+        [Tooltip("充能槽显示位置偏移（相对于鸡的位置，Y 轴向上为正）")]
+        [SerializeField] private Vector2 chargeBarOffset = new Vector2(0f, 1.2f);
+        
+        [Tooltip("充能槽宽度（世界单位）")]
+        [SerializeField] private float chargeBarWidth = 1f;
+        
+        [Tooltip("充能槽高度（世界单位）")]
+        [SerializeField] private float chargeBarHeight = 0.1f;
+        
+        [Tooltip("充能槽背景颜色")]
+        [SerializeField] private Color chargeBarBackgroundColor = new Color(0.2f, 0.2f, 0.2f, 0.8f);
+        
+        [Tooltip("充能槽填充颜色")]
+        [SerializeField] private Color chargeBarFillColor = new Color(0f, 1f, 0f, 1f);
+        
+        [Tooltip("充能槽排序顺序（应大于鸡的排序顺序）")]
+        [SerializeField] private int chargeBarSortingOrder = 200;
+        
+        [Tooltip("充能槽排序图层名称")]
+        [SerializeField] private string chargeBarSortingLayerName = "Default";
         
         [Header("移动配置")]
         [Tooltip("游荡速度（世界单位/秒）")]
@@ -43,6 +79,9 @@ namespace ProjectChicken.Units
         [SerializeField] private string goldenSkinName = "golden"; // 黄金鸡皮肤名称
         
         [Header("抚摸序列帧动画（可选）")]
+        [Tooltip("是否启用抚摸动画（如果为 false，抚摸时不会播放序列帧动画）")]
+        [SerializeField] private bool enablePetAnimation = true;
+        
         [Tooltip("抚摸时显示的序列帧 Sprite（按顺序排列）")]
         [SerializeField] private Sprite[] petAnimationSprites = new Sprite[0];
         [Tooltip("每帧的显示时间（秒）")]
@@ -54,6 +93,20 @@ namespace ProjectChicken.Units
         [Tooltip("序列帧的排序图层名称")]
         [SerializeField] private string petAnimationSortingLayerName = "Default";
         
+        [Header("闪电鸡设置（可选）")]
+        [Tooltip("是否为闪电鸡（闪电鸡下蛋时有概率触发闪电链）")]
+        [SerializeField] private bool isLightningChicken = false;
+        [Tooltip("闪电鸡下蛋时触发闪电链的概率（0-1）")]
+        [SerializeField, Range(0f, 1f)] private float lightningEggTriggerChance = 0.5f;
+        [Tooltip("闪电链最大目标数量（包括起始目标）")]
+        [SerializeField] private int lightningMaxTargets = 5;
+        [Tooltip("闪电链每次跳跃后的概率衰减系数（0-1）")]
+        [SerializeField, Range(0f, 1f)] private float lightningChainDecay = 0.5f;
+        [Tooltip("闪电链每次跳跃造成的伤害比例（相对于基础伤害）")]
+        [SerializeField] private float lightningDamagePercent = 0.5f;
+        [Tooltip("闪电链搜索范围（世界单位）")]
+        [SerializeField] private float lightningRange = 5f;
+
         [Header("下蛋特效（可选）")]
         [Tooltip("下蛋时播放的特效预制体（可以是粒子系统、序列帧动画等）")]
         [SerializeField] private GameObject eggEffectPrefab;
@@ -85,6 +138,10 @@ namespace ProjectChicken.Units
         // 恢复相关计时器
         private float recoveryInterval = 1f; // 固定恢复间隔（1秒）
         private float recoveryTimer = 0f; // 恢复计时器
+        
+        // 充能系统相关
+        private float currentCharge = 0f; // 当前充能值
+        private float lastInteractionTime = 0f; // 最后一次交互时间
 
         /// <summary>
         /// 是否为肥鸡状态（只读属性，供外部查询）
@@ -95,6 +152,11 @@ namespace ProjectChicken.Units
         /// 是否为金鸡（只读属性，供外部查询）
         /// </summary>
         public bool IsGolden => isGolden;
+        
+        /// <summary>
+        /// 是否为闪电鸡（只读属性，供外部查询）
+        /// </summary>
+        public bool IsLightningChicken => isLightningChicken;
 
         /// <summary>
         /// 设置最大生命值（供生成器调用，根据阶段等级设置）
@@ -176,6 +238,29 @@ namespace ProjectChicken.Units
                 // 如果不是金鸡，保持原始颜色（在 Start 中已设置）
             }
         }
+
+        /// <summary>
+        /// 设置是否为闪电鸡（供生成器调用）
+        /// </summary>
+        /// <param name="isLightning">是否为闪电鸡</param>
+        public void SetLightningChicken(bool isLightning)
+        {
+            isLightningChicken = isLightning;
+
+            // 可以在这里添加额外的视觉效果（例如改变颜色），便于在场景中区分闪电鸡
+            if (isLightningChicken)
+            {
+                if (skeletonAnimation != null && skeletonAnimation.skeleton != null)
+                {
+                    // 将闪电鸡染成蓝色调，便于区分
+                    skeletonAnimation.skeleton.SetColor(Color.cyan);
+                }
+                else if (spriteRenderer != null && spriteRenderer.enabled)
+                {
+                    spriteRenderer.color = Color.cyan;
+                }
+            }
+        }
         private Rigidbody2D rb;
         private SpriteRenderer spriteRenderer;
         private Collider2D chickenCollider;
@@ -188,6 +273,11 @@ namespace ProjectChicken.Units
         private GameObject petAnimationObject = null; // 序列帧显示对象
         private SpriteRenderer petAnimationRenderer = null; // 序列帧渲染器
         private Coroutine petAnimationCoroutine = null; // 序列帧动画协程
+        
+        // 充能槽相关
+        private GameObject chargeBarObject = null; // 充能槽对象
+        private SpriteRenderer chargeBarBackground = null; // 充能槽背景
+        private SpriteRenderer chargeBarFill = null; // 充能槽填充条
 
         // 静态事件：当鸡产出时触发（传递位置信息和是否为金鸡）
         public static event Action<Vector3, bool> OnChickenProduct;
@@ -359,6 +449,140 @@ namespace ProjectChicken.Units
 
             // 受击闪烁效果
             UpdateHitFlash();
+            
+            // 充能系统：充能衰减逻辑和UI更新
+            if (useChargeSystem)
+            {
+                UpdateChargeDecay();
+                UpdateChargeBar();
+            }
+        }
+        
+        /// <summary>
+        /// 更新充能衰减
+        /// </summary>
+        private void UpdateChargeDecay()
+        {
+            // 如果距离最后一次交互超过延迟时间，开始衰减
+            if (Time.time > lastInteractionTime + decayDelay)
+            {
+                currentCharge -= decayRate * Time.deltaTime;
+                currentCharge = Mathf.Clamp(currentCharge, 0f, maxCharge);
+            }
+        }
+        
+        /// <summary>
+        /// 更新充能槽显示
+        /// </summary>
+        private void UpdateChargeBar()
+        {
+            // 确保充能槽对象存在
+            EnsureChargeBarObject();
+            
+            if (chargeBarObject == null) return;
+            
+            // 根据充能值显示/隐藏充能槽
+            bool shouldShow = currentCharge > 0f && isFat;
+            chargeBarObject.SetActive(shouldShow);
+            
+            if (!shouldShow) return;
+            
+            // 更新充能槽位置（跟随鸡的位置）
+            chargeBarObject.transform.position = transform.position + new Vector3(chargeBarOffset.x, chargeBarOffset.y, 0f);
+            
+            // 计算充能百分比
+            float chargePercent = Mathf.Clamp01(currentCharge / maxCharge);
+            
+            // 更新填充条的宽度
+            if (chargeBarFill != null)
+            {
+                Vector3 fillScale = chargeBarFill.transform.localScale;
+                fillScale.x = chargePercent;
+                chargeBarFill.transform.localScale = fillScale;
+            }
+        }
+        
+        /// <summary>
+        /// 确保充能槽对象存在
+        /// </summary>
+        private void EnsureChargeBarObject()
+        {
+            if (chargeBarObject != null) return;
+            
+            // 创建充能槽对象
+            chargeBarObject = new GameObject("ChargeBar");
+            chargeBarObject.transform.SetParent(transform);
+            chargeBarObject.transform.localPosition = chargeBarOffset;
+            chargeBarObject.transform.localRotation = Quaternion.identity;
+            chargeBarObject.transform.localScale = Vector3.one;
+            
+            // 创建背景（中心对齐）
+            GameObject backgroundObj = new GameObject("Background");
+            backgroundObj.transform.SetParent(chargeBarObject.transform);
+            backgroundObj.transform.localPosition = Vector3.zero;
+            backgroundObj.transform.localRotation = Quaternion.identity;
+            backgroundObj.transform.localScale = Vector3.one;
+            
+            chargeBarBackground = backgroundObj.AddComponent<SpriteRenderer>();
+            chargeBarBackground.sprite = CreateChargeBarSprite(chargeBarWidth, chargeBarHeight, true); // 中心对齐
+            chargeBarBackground.color = chargeBarBackgroundColor;
+            chargeBarBackground.sortingOrder = chargeBarSortingOrder;
+            chargeBarBackground.sortingLayerName = chargeBarSortingLayerName;
+            
+            // 创建填充条（左对齐）
+            GameObject fillObj = new GameObject("Fill");
+            fillObj.transform.SetParent(chargeBarObject.transform);
+            fillObj.transform.localPosition = new Vector3(-chargeBarWidth * 0.5f, 0f, -0.01f); // 左边缘位置
+            fillObj.transform.localRotation = Quaternion.identity;
+            fillObj.transform.localScale = new Vector3(1f, 1f, 1f);
+            
+            chargeBarFill = fillObj.AddComponent<SpriteRenderer>();
+            chargeBarFill.sprite = CreateChargeBarSprite(chargeBarWidth, chargeBarHeight, false); // 左对齐
+            chargeBarFill.color = chargeBarFillColor;
+            chargeBarFill.sortingOrder = chargeBarSortingOrder + 1; // 在背景之上
+            chargeBarFill.sortingLayerName = chargeBarSortingLayerName;
+            
+            // 初始时隐藏
+            chargeBarObject.SetActive(false);
+        }
+        
+        /// <summary>
+        /// 创建充能槽Sprite（简单的矩形）
+        /// </summary>
+        /// <param name="width">宽度（世界单位）</param>
+        /// <param name="height">高度（世界单位）</param>
+        /// <param name="centerPivot">是否使用中心对齐（true=中心对齐用于背景，false=左对齐用于填充条）</param>
+        private Sprite CreateChargeBarSprite(float width, float height, bool centerPivot)
+        {
+            int textureWidth = Mathf.RoundToInt(width * 100f); // 假设 100 pixels per unit
+            int textureHeight = Mathf.RoundToInt(height * 100f);
+            
+            textureWidth = Mathf.Max(1, textureWidth);
+            textureHeight = Mathf.Max(1, textureHeight);
+            
+            Texture2D texture = new Texture2D(textureWidth, textureHeight, TextureFormat.RGBA32, false);
+            Color[] pixels = new Color[textureWidth * textureHeight];
+            
+            // 填充所有像素为白色（颜色由SpriteRenderer控制）
+            for (int i = 0; i < pixels.Length; i++)
+            {
+                pixels[i] = Color.white;
+            }
+            
+            texture.SetPixels(pixels);
+            texture.Apply();
+            
+            // 根据用途选择锚点
+            Vector2 pivot = centerPivot ? new Vector2(0.5f, 0.5f) : new Vector2(0f, 0.5f);
+            
+            Sprite sprite = Sprite.Create(
+                texture,
+                new Rect(0, 0, textureWidth, textureHeight),
+                pivot,
+                100f // pixels per unit
+            );
+            
+            return sprite;
         }
         
         private void LateUpdate()
@@ -510,17 +734,71 @@ namespace ProjectChicken.Units
                 return;
             }
 
-            // 扣血
-            currentHP -= amount;
+            // 根据系统模式选择处理方式
+            if (useChargeSystem)
+            {
+                // 充能系统：添加充能而不是扣血
+                AddCharge(amount);
+            }
+            else
+            {
+                // 伤害系统：原有逻辑
+                currentHP -= amount;
 
+                // 播放受击反馈（Sprite 变红）
+                TriggerHitFlash();
+
+                // 检查是否死亡并产出
+                if (currentHP <= 0f && isFat)
+                {
+                    OnChickenProducted();
+                }
+            }
+        }
+        
+        /// <summary>
+        /// 添加充能值
+        /// </summary>
+        /// <param name="amount">充能值</param>
+        private void AddCharge(float amount)
+        {
+            if (!isFat)
+            {
+                return;
+            }
+
+            // 增加充能
+            currentCharge += amount;
+            
+            // 更新最后交互时间
+            lastInteractionTime = Time.time;
+            
             // 播放受击反馈（Sprite 变红）
             TriggerHitFlash();
-
-            // 检查是否死亡并产出
-            if (currentHP <= 0f && isFat)
+            
+            // 检查是否达到最大充能
+            if (currentCharge >= maxCharge)
             {
-                OnChickenProducted();
+                // 确保充能值不超过最大值
+                currentCharge = maxCharge;
+                
+                // 先更新充能槽显示为100%，然后再下蛋
+                UpdateChargeBar();
+                
+                LayEgg();
+                currentCharge = 0f; // 重置充能
             }
+        }
+        
+        /// <summary>
+        /// 下蛋（充能系统专用，与伤害系统行为一致，鸡会变成瘦鸡）
+        /// </summary>
+        private void LayEgg()
+        {
+            // 调用原有的产出方法，确保行为一致（鸡会变成瘦鸡）
+            OnChickenProducted();
+            
+            Debug.Log($"ChickenUnit: 充能达到最大值，下蛋！位置: {transform.position}, 金鸡: {isGolden}", this);
         }
 
         /// <summary>
@@ -624,6 +902,12 @@ namespace ProjectChicken.Units
         /// </summary>
         private void PlayPetAnimation()
         {
+            // 如果未启用抚摸动画，不播放
+            if (!enablePetAnimation)
+            {
+                return;
+            }
+            
             // 如果没有设置序列帧，不播放
             if (petAnimationSprites == null || petAnimationSprites.Length == 0)
             {
@@ -752,6 +1036,28 @@ namespace ProjectChicken.Units
 
             // 触发静态事件，传递位置信息和是否为金鸡
             OnChickenProduct?.Invoke(transform.position, isGolden);
+
+            // 如果是闪电鸡，则在下蛋时有概率触发链式闪电
+            if (isLightningChicken && ProjectChicken.Abilities.ChainLightningEffect.Instance != null)
+            {
+                if (UnityEngine.Random.value < lightningEggTriggerChance)
+                {
+                    // 使用当前攻击力作为基础伤害（与玩家抚摸伤害保持一致）
+                    float baseDamage = ProjectChicken.Core.UpgradeManager.Instance != null 
+                        ? ProjectChicken.Core.UpgradeManager.Instance.CurrentDamage 
+                        : 10f;
+
+                    ProjectChicken.Abilities.ChainLightningEffect.Instance.Trigger(
+                        this,
+                        baseDamage,
+                        lightningMaxTargets,
+                        1.0f,                  // 第一次必定跳跃
+                        lightningChainDecay,
+                        lightningDamagePercent,
+                        lightningRange
+                    );
+                }
+            }
 
             // 切换状态为已产出
             isFat = false;

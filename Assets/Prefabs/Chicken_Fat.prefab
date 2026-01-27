@@ -76,12 +76,23 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 70d832246d0ac3c4c93440b64e802804, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ProjectChicken.Units.ChickenUnit
+  useChargeSystem: 1
   maxHP: 3
-  wanderInterval: 2
-  wanderSpeed: 2
+  maxCharge: 5
+  decayDelay: 2
+  decayRate: 1
+  chargeBarOffset: {x: 0, y: 0.8}
+  chargeBarWidth: 1
+  chargeBarHeight: 0.1
+  chargeBarBackgroundColor: {r: 0.2, g: 0.2, b: 0.2, a: 0.8}
+  chargeBarFillColor: {r: 0, g: 1, b: 0, a: 1}
+  chargeBarSortingOrder: 200
+  chargeBarSortingLayerName: Default
+  wanderSpeed: 1
+  wanderInterval: 5
+  boundaryPadding: 0.5
   hitFlashDuration: 0.1
   hitFlashColor: {r: 1, g: 0, b: 0, a: 1}
-  boundaryPadding: 0.5
   thinChickenPrefab: {fileID: 2804361130355396527, guid: d08c35a069bcab749a06f1ef05a1fd33, type: 3}
   useThinChickenPrefab: 1
   idleAnimationName: idle
@@ -90,6 +101,7 @@ MonoBehaviour:
   loopIdleAnimation: 1
   normalSkinName: 1
   goldenSkinName: 2
+  enablePetAnimation: 0
   petAnimationSprites:
   - {fileID: -723034233004139970, guid: a636017aeada63949b88f0aec62e5ba4, type: 3}
   - {fileID: 7775611303545887118, guid: 0d58612014ced9e49a333121bb1a8350, type: 3}

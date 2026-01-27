@@ -1,6 +1,9 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using System.Collections.Generic;
 using ProjectChicken.Core;
+using ProjectChicken.Abilities;
+using ProjectChicken.Units;
 
 namespace ProjectChicken.Units
 {
@@ -29,12 +32,34 @@ namespace ProjectChicken.Units
         [SerializeField] private SpriteRenderer rangeIndicator; // 攻击范围指示器（SpriteRenderer）
         [SerializeField] private float borderWidth = 3f; // 边框粗细（像素）
 
+        [Header("攻击配置")]
+        [Tooltip("攻击间隔（秒）- 仅在 UpgradeManager 未初始化时使用")]
+        [SerializeField] private float fallbackAttackInterval = 0.5f; // 备用攻击间隔（默认 0.5 秒）
+        
+        [Header("能力：链式闪电")]
+        [Tooltip("链式闪电效果组件（拖入场景中的 ChainLightningEffect 对象）")]
+        [SerializeField] private ChainLightningEffect lightningEffect;
+        
+        [Tooltip("链式闪电触发概率（0-1，例如 0.1 表示 10% 概率）")]
+        [SerializeField, Range(0f, 1f)] private float lightningTriggerChance = 0.1f;
+        
+        [Tooltip("链式闪电最大目标数量（包括起始目标）")]
+        [SerializeField] private int lightningMaxTargets = 5;
+        
+        [Tooltip("链式闪电衰减因子（每次链式后概率乘以这个值，例如 0.5 表示每次减半）")]
+        [SerializeField, Range(0f, 1f)] private float lightningChainDecay = 0.5f;
+        
+        [Tooltip("链式闪电伤害百分比（每次链式的伤害 = 基础伤害 * 此值，例如 0.5 表示 50%）")]
+        [SerializeField] private float lightningDamagePercent = 0.5f;
+        
+        [Tooltip("链式闪电搜索范围（世界单位，用于查找下一个目标）")]
+        [SerializeField] private float lightningRange = 5.0f;
+        
         [Header("调试显示（仅用于查看，实际值从 UpgradeManager 读取）")]
         [SerializeField] private float debugAttackRange = 2f; // 调试：攻击范围显示
         [SerializeField] private float debugDamageAmount = 10f; // 调试：伤害显示
-        [SerializeField] private float debugAttackInterval = 1f; // 调试：攻击间隔显示
 
-        private float attackTimer = 0f; // 攻击计时器
+        private float attackTimer = 0f; // 攻击计时器（累加 Time.deltaTime）
         private float lastRange = -1f; // 上次的攻击范围（用于检测是否需要更新圆圈大小）
         
         // 抚摸动画相关
@@ -102,9 +127,22 @@ namespace ProjectChicken.Units
             // 更新攻击范围指示器（如果范围发生变化）
             UpdateRangeIndicator();
 
-            // 攻击循环：从 UpgradeManager 获取当前攻击间隔
+            // 攻击循环：使用计时器控制攻击频率，确保不受帧率影响
+            UpdateAttackTimer();
+        }
+        
+        /// <summary>
+        /// 更新攻击计时器并执行攻击（确保攻击频率受控，不依赖帧率）
+        /// </summary>
+        private void UpdateAttackTimer()
+        {
+            // 获取当前攻击间隔（从 UpgradeManager 或使用备用值）
             float currentAttackInterval = GetCurrentAttackInterval();
+            
+            // 累加时间（与帧率无关）
             attackTimer += Time.deltaTime;
+            
+            // 当计时器达到攻击间隔时，执行攻击并重置计时器
             if (attackTimer >= currentAttackInterval)
             {
                 attackTimer = 0f;
@@ -176,7 +214,8 @@ namespace ProjectChicken.Units
         }
 
         /// <summary>
-        /// 执行攻击：检测范围内所有敌人并造成伤害
+        /// 执行攻击：检测范围内所有敌人并造成伤害/充能
+        /// 注意：此方法由计时器控制调用，不会每帧执行
         /// </summary>
         private void PerformAttack()
         {
@@ -201,6 +240,9 @@ namespace ProjectChicken.Units
             // 使用 Physics2D.OverlapCircle 检测范围内的敌人
             Collider2D[] hits = Physics2D.OverlapCircleAll(transform.position, currentAttackRange, enemyLayer);
 
+            // 存储所有被击中的鸡（用于链式闪电）
+            List<ChickenUnit> hitChickens = new List<ChickenUnit>();
+
             foreach (Collider2D hit in hits)
             {
                 // 检查是否实现了 IDamageable 接口
@@ -208,6 +250,35 @@ namespace ProjectChicken.Units
                 if (damageable != null)
                 {
                     damageable.TakeDamage(currentDamage);
+                    
+                    // 记录所有被击中的鸡（无论是否为肥鸡），用于链式闪电
+                    ChickenUnit chicken = hit.GetComponent<ChickenUnit>();
+                    if (chicken != null)
+                    {
+                        hitChickens.Add(chicken);
+                    }
+                }
+            }
+            
+            // 对每个被击中的鸡，检查是否触发链式闪电
+            if (hitChickens.Count > 0 && lightningEffect != null)
+            {
+                foreach (ChickenUnit hitChicken in hitChickens)
+                {
+                    // 检查是否触发链式闪电
+                    if (Random.value < lightningTriggerChance)
+                    {
+                        // 触发链式闪电（初始链式概率为 1.0，表示第一次链式是 100%）
+                        lightningEffect.Trigger(
+                            startTarget: hitChicken,
+                            baseDamage: currentDamage,
+                            maxTargets: lightningMaxTargets,
+                            initialChainChance: 1.0f,
+                            decayFactor: lightningChainDecay,
+                            damagePercent: lightningDamagePercent,
+                            chainRange: lightningRange
+                        );
+                    }
                 }
             }
 
@@ -297,18 +368,23 @@ namespace ProjectChicken.Units
         }
 
         /// <summary>
-        /// 获取当前攻击间隔（从 UpgradeManager 读取）
+        /// 获取当前攻击间隔（从 UpgradeManager 读取，如果未初始化则使用备用值）
         /// </summary>
         /// <returns>当前攻击间隔（秒）</returns>
         private float GetCurrentAttackInterval()
         {
             if (UpgradeManager.Instance != null)
             {
-                return UpgradeManager.Instance.CurrentAttackInterval;
+                float interval = UpgradeManager.Instance.CurrentAttackInterval;
+                // 确保攻击间隔有效（大于 0）
+                if (interval > 0f)
+                {
+                    return interval;
+                }
             }
 
-            // 如果 UpgradeManager 未初始化，返回默认值
-            return debugAttackInterval;
+            // 如果 UpgradeManager 未初始化或返回无效值，使用备用值
+            return fallbackAttackInterval;
         }
 
         /// <summary>

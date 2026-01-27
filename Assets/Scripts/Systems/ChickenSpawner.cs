@@ -23,6 +23,12 @@ namespace ProjectChicken.Systems
         [Header("生成范围")]
         [SerializeField] private float spawnPadding = 1f; // 生成边界内边距（避免在屏幕边缘生成）
 
+        [Header("闪电鸡生成配置")]
+        [Tooltip("是否启用闪电鸡生成")]
+        [SerializeField] private bool enableLightningChicken = false;
+        [Tooltip("闪电鸡生成概率（0-1），与金鸡类似的随机逻辑")]
+        [SerializeField, Range(0f, 1f)] private float lightningChickenSpawnRate = 0.05f;
+
         private Camera mainCamera; // 主摄像机
         
         // 跟踪所有生成的鸡（用于清理）
@@ -267,6 +273,7 @@ namespace ProjectChicken.Systems
         }
 
         /// <summary>
+        /// <summary>
         /// 生成一只新鸡
         /// </summary>
         private void SpawnChicken()
@@ -280,13 +287,16 @@ namespace ProjectChicken.Systems
             // 添加到生成列表中（用于后续清理）
             if (newChicken != null)
             {
-                // 根据金鸡生成率决定是否生成金鸡（需要在设置生命值之前确定类型）
+                // 根据配置决定是否生成金鸡和/或闪电鸡（在设置生命值之前确定类型）
                 bool isGolden = ShouldSpawnGoldenChicken();
+                bool isLightning = ShouldSpawnLightningChicken();
+
                 newChicken.SetGolden(isGolden);
+                newChicken.SetLightningChicken(isLightning);
                 
                 // 延迟一帧后设置生命值，确保 Start() 已经执行完毕
-                // 这样可以避免 Start() 覆盖我们设置的生命值
-                StartCoroutine(DelayedSetChickenHealth(newChicken, isGolden));
+                // 闪电鸡的生命值逻辑与金鸡相同，因此传入 (isGolden || isLightning)
+                StartCoroutine(DelayedSetChickenHealth(newChicken, isGolden || isLightning));
                 
                 newChicken.SetUniqueSortingOffset(sortingOrderCounter++);
                 
@@ -402,6 +412,21 @@ namespace ProjectChicken.Systems
             // 根据生成率随机决定
             float spawnRate = UpgradeManager.Instance.GoldenChickenSpawnRate;
             return UnityEngine.Random.value < spawnRate;
+        }
+
+        /// <summary>
+        /// 判断是否应该生成闪电鸡
+        /// </summary>
+        /// <returns>是否生成闪电鸡</returns>
+        private bool ShouldSpawnLightningChicken()
+        {
+            if (!enableLightningChicken)
+            {
+                return false;
+            }
+
+            // 根据本地配置的生成率随机决定（不依赖技能解锁，方便快速测试）
+            return UnityEngine.Random.value < lightningChickenSpawnRate;
         }
 
         /// <summary>
