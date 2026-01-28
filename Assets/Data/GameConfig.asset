@@ -18,7 +18,7 @@ MonoBehaviour:
   initialCritChance: 0
   critMultiplier: 2
   initialSessionDuration: 15
-  initialChickenCount: 100
+  initialChickenCount: 50
   baseMaxChickens: 10
   recoveryChance: 0.5
   goldenEggMultiplier: 5
