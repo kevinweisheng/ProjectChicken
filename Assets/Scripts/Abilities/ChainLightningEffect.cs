@@ -47,6 +47,10 @@ namespace ProjectChicken.Abilities
             lineRenderer = GetComponent<LineRenderer>();
         }
 
+        // 递归深度限制，防止无限循环
+        private const int MAX_RECURSION_DEPTH = 5;
+        private int currentRecursionDepth = 0;
+
         /// <summary>
         /// 触发链式闪电效果
         /// </summary>
@@ -59,17 +63,38 @@ namespace ProjectChicken.Abilities
         /// <param name="chainRange">链式范围（世界单位）</param>
         public void Trigger(ChickenUnit startTarget, float baseDamage, int maxTargets, float initialChainChance, float decayFactor, float damagePercent, float chainRange)
         {
+            TriggerInternal(startTarget, baseDamage, maxTargets, initialChainChance, decayFactor, damagePercent, chainRange);
+        }
+
+        /// <summary>
+        /// 内部触发方法，支持递归深度限制
+        /// </summary>
+        private void TriggerInternal(ChickenUnit startTarget, float baseDamage, int maxTargets, float initialChainChance, float decayFactor, float damagePercent, float chainRange)
+        {
             if (startTarget == null)
             {
                 Debug.LogWarning("ChainLightningEffect: 起始目标为空！", this);
                 return;
             }
 
+            // 检查递归深度，防止无限循环
+            if (currentRecursionDepth >= MAX_RECURSION_DEPTH)
+            {
+                Debug.LogWarning($"ChainLightningEffect: 达到最大递归深度 {MAX_RECURSION_DEPTH}，停止触发闪电链", this);
+                return;
+            }
+
+            // 增加递归深度
+            currentRecursionDepth++;
+
             // 存储所有被击中的目标位置（用于绘制闪电链）
             List<Vector3> hitPositions = new List<Vector3>();
             
             // 已访问的目标列表（防止重复击中）
             HashSet<ChickenUnit> visited = new HashSet<ChickenUnit>();
+            
+            // 收集因为闪电链而下蛋的闪电鸡（用于后续触发它们的闪电链）
+            List<ChickenUnit> triggeredLightningChickens = new List<ChickenUnit>();
             
             // 确定用于链式传播的 LayerMask：
             // 如果在 Inspector 中已经配置了 enemyLayer，则直接使用；
@@ -86,9 +111,18 @@ namespace ProjectChicken.Abilities
 
             // Step 1: 对起始目标造成伤害
             float damage = baseDamage * damagePercent;
+            bool wasFatBeforeDamage = currentTarget.IsFat;
+            bool wasLightningBeforeDamage = currentTarget.IsLightningChicken;
             currentTarget.TakeDamage(damage);
             hitPositions.Add(currentTarget.transform.position);
             visited.Add(currentTarget);
+            
+            // 检查起始目标是否因为伤害而下蛋，如果是闪电鸡，记录它
+            // 注意：需要等待一帧，让 TakeDamage 和 OnChickenProducted 完成
+            if (wasFatBeforeDamage && !currentTarget.IsFat && wasLightningBeforeDamage)
+            {
+                triggeredLightningChickens.Add(currentTarget);
+            }
 
             // Step 2 & 3: 链式传播循环
             for (int i = 1; i < maxTargets; i++)
@@ -111,8 +145,9 @@ namespace ProjectChicken.Abilities
                 foreach (Collider2D collider in nearbyColliders)
                 {
                     ChickenUnit chicken = collider.GetComponent<ChickenUnit>();
-                    // 允许链式闪电命中所有鸡（不再仅限制为肥鸡），并避免重复命中已访问的目标
-                    if (chicken != null && !visited.Contains(chicken))
+                    // 只对肥鸡（isFat == true）造成伤害，避免对已经下蛋的鸡造成伤害，防止无限循环
+                    // 并避免重复命中已访问的目标
+                    if (chicken != null && !visited.Contains(chicken) && chicken.IsFat)
                     {
                         float distance = Vector3.Distance(searchPosition, chicken.transform.position);
                         if (distance < closestDistance)
@@ -130,9 +165,18 @@ namespace ProjectChicken.Abilities
                 }
 
                 // 对找到的目标造成伤害
+                bool wasFatBeforeDamage2 = nextTarget.IsFat;
+                bool wasLightningBeforeDamage2 = nextTarget.IsLightningChicken;
                 nextTarget.TakeDamage(damage);
                 hitPositions.Add(nextTarget.transform.position);
                 visited.Add(nextTarget);
+                
+                // 检查目标是否因为伤害而下蛋，如果是闪电鸡，记录它
+                // 注意：需要等待一帧，让 TakeDamage 和 OnChickenProducted 完成
+                if (wasFatBeforeDamage2 && !nextTarget.IsFat && wasLightningBeforeDamage2)
+                {
+                    triggeredLightningChickens.Add(nextTarget);
+                }
 
                 // 衰减概率
                 currentChainChance *= decayFactor;
@@ -146,6 +190,52 @@ namespace ProjectChicken.Abilities
             {
                 DrawLightningChain(hitPositions);
             }
+
+            // 减少递归深度
+            currentRecursionDepth--;
+
+            // 延迟触发所有因为闪电链而下蛋的闪电鸡的闪电链（形成连锁反应）
+            if (triggeredLightningChickens.Count > 0)
+            {
+                StartCoroutine(TriggerDelayedLightningChains(triggeredLightningChickens, baseDamage, maxTargets, initialChainChance, decayFactor, damagePercent, chainRange));
+            }
+        }
+
+        /// <summary>
+        /// 延迟触发闪电鸡的闪电链（形成连锁反应）
+        /// </summary>
+        private IEnumerator TriggerDelayedLightningChains(List<ChickenUnit> lightningChickens, float baseDamage, int maxTargets, float initialChainChance, float decayFactor, float damagePercent, float chainRange)
+        {
+            // 等待一小段时间，确保所有鸡的下蛋逻辑都已完成
+            yield return new WaitForSeconds(0.1f);
+
+            // 触发每只闪电鸡的闪电链
+            foreach (ChickenUnit chicken in lightningChickens)
+            {
+                if (chicken != null && chicken.IsLightningChicken)
+                {
+                    // 获取这只鸡的闪电链配置
+                    float chickenTriggerChance = chicken.GetComponent<ChickenUnit>() != null ? 
+                        GetLightningEggTriggerChance(chicken) : 1.0f;
+                    
+                    if (UnityEngine.Random.value < chickenTriggerChance)
+                    {
+                        TriggerInternal(chicken, baseDamage, maxTargets, initialChainChance, decayFactor, damagePercent, chainRange);
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// 获取鸡的闪电链触发概率
+        /// </summary>
+        private float GetLightningEggTriggerChance(ChickenUnit chicken)
+        {
+            if (chicken != null)
+            {
+                return chicken.LightningEggTriggerChance;
+            }
+            return 1.0f; // 默认100%概率
         }
 
         /// <summary>

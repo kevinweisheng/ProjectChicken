@@ -6,6 +6,17 @@ using ProjectChicken.Core;
 namespace ProjectChicken.Systems
 {
     /// <summary>
+    /// 特殊鸡类型枚举
+    /// </summary>
+    public enum SpecialChickenType
+    {
+        None,       // 普通鸡
+        Golden,     // 金鸡
+        Lightning,   // 闪电鸡
+        Bomb        // 炸弹鸡
+    }
+
+    /// <summary>
     /// 鸡生成器：在回合开始时生成固定数量的鸡
     /// </summary>
     public class ChickenSpawner : MonoBehaviour
@@ -23,11 +34,9 @@ namespace ProjectChicken.Systems
         [Header("生成范围")]
         [SerializeField] private float spawnPadding = 1f; // 生成边界内边距（避免在屏幕边缘生成）
 
-        [Header("闪电鸡生成配置")]
-        [Tooltip("是否启用闪电鸡生成")]
-        [SerializeField] private bool enableLightningChicken = false;
-        [Tooltip("闪电鸡生成概率（0-1），与金鸡类似的随机逻辑")]
-        [SerializeField, Range(0f, 1f)] private float lightningChickenSpawnRate = 0.05f;
+        [Header("特殊鸡配置")]
+        [Tooltip("特殊鸡配置资源（统一管理所有特殊鸡的属性）")]
+        [SerializeField] private SpecialChickenConfig specialChickenConfig;
 
         private Camera mainCamera; // 主摄像机
         
@@ -137,6 +146,9 @@ namespace ProjectChicken.Systems
             }
 
             EnsureAtLeastOneGoldenChicken(generatedChickens);
+            
+            // 统计并输出鸡的种类信息
+            LogChickenStatistics();
         }
 
         /// <summary>
@@ -287,16 +299,48 @@ namespace ProjectChicken.Systems
             // 添加到生成列表中（用于后续清理）
             if (newChicken != null)
             {
-                // 根据配置决定是否生成金鸡和/或闪电鸡（在设置生命值之前确定类型）
-                bool isGolden = ShouldSpawnGoldenChicken();
-                bool isLightning = ShouldSpawnLightningChicken();
+                // 根据权重随机选择特殊鸡类型（一只鸡只能是一种特殊类型）
+                SpecialChickenType selectedType = SelectSpecialChickenTypeByWeight();
+                bool isGolden = selectedType == SpecialChickenType.Golden;
+                bool isLightning = selectedType == SpecialChickenType.Lightning;
+                bool isBomb = selectedType == SpecialChickenType.Bomb;
 
                 newChicken.SetGolden(isGolden);
                 newChicken.SetLightningChicken(isLightning);
+                newChicken.SetBombChicken(isBomb);
+                
+                // 如果配置存在，应用特殊鸡的属性配置
+                if (specialChickenConfig != null)
+                {
+                    if (isLightning)
+                    {
+                        ApplyLightningChickenConfig(newChicken, specialChickenConfig.lightningChicken);
+                    }
+                    if (isBomb)
+                    {
+                        ApplyBombChickenConfig(newChicken, specialChickenConfig.bombChicken);
+                    }
+                }
+                
+                // 调试信息：输出生成的鸡的类型
+                string chickenType = "普通鸡";
+                if (isGolden)
+                {
+                    chickenType = "金鸡";
+                }
+                else if (isLightning)
+                {
+                    chickenType = "闪电鸡";
+                }
+                else if (isBomb)
+                {
+                    chickenType = "炸弹鸡";
+                }
+                Debug.LogWarning($"ChickenSpawner: 生成了一只 {chickenType} (位置: {spawnPosition})", this);
                 
                 // 延迟一帧后设置生命值，确保 Start() 已经执行完毕
-                // 闪电鸡的生命值逻辑与金鸡相同，因此传入 (isGolden || isLightning)
-                StartCoroutine(DelayedSetChickenHealth(newChicken, isGolden || isLightning));
+                // 特殊鸡的生命值逻辑与金鸡相同，因此传入 (isGolden || isLightning || isBomb)
+                StartCoroutine(DelayedSetChickenHealth(newChicken, isGolden || isLightning || isBomb));
                 
                 newChicken.SetUniqueSortingOffset(sortingOrderCounter++);
                 
@@ -415,18 +459,187 @@ namespace ProjectChicken.Systems
         }
 
         /// <summary>
-        /// 判断是否应该生成闪电鸡
+        /// 根据权重随机选择特殊鸡类型
         /// </summary>
-        /// <returns>是否生成闪电鸡</returns>
-        private bool ShouldSpawnLightningChicken()
+        /// <returns>选中的特殊鸡类型</returns>
+        private SpecialChickenType SelectSpecialChickenTypeByWeight()
         {
-            if (!enableLightningChicken)
+            // 如果没有配置，返回普通鸡
+            if (specialChickenConfig == null || !specialChickenConfig.enableSpecialChickens)
             {
-                return false;
+                return SpecialChickenType.None;
             }
 
-            // 根据本地配置的生成率随机决定（不依赖技能解锁，方便快速测试）
-            return UnityEngine.Random.value < lightningChickenSpawnRate;
+            // 构建权重列表
+            List<(SpecialChickenType type, float weight)> weightedOptions = new List<(SpecialChickenType, float)>();
+
+            // 检查金鸡（使用配置中的权重，不依赖技能解锁，方便测试）
+            if (specialChickenConfig.IsEnabled(SpecialChickenType.Golden))
+            {
+                float weight = specialChickenConfig.GetWeight(SpecialChickenType.Golden);
+                if (weight > 0f)
+                {
+                    weightedOptions.Add((SpecialChickenType.Golden, weight));
+                }
+            }
+
+            // 检查闪电鸡
+            if (specialChickenConfig.IsEnabled(SpecialChickenType.Lightning))
+            {
+                float weight = specialChickenConfig.GetWeight(SpecialChickenType.Lightning);
+                if (weight > 0f)
+                {
+                    weightedOptions.Add((SpecialChickenType.Lightning, weight));
+                }
+            }
+
+            // 检查炸弹鸡
+            if (specialChickenConfig.IsEnabled(SpecialChickenType.Bomb))
+            {
+                float weight = specialChickenConfig.GetWeight(SpecialChickenType.Bomb);
+                if (weight > 0f)
+                {
+                    weightedOptions.Add((SpecialChickenType.Bomb, weight));
+                }
+            }
+
+            // 如果没有可选项，返回普通鸡
+            if (weightedOptions.Count == 0)
+            {
+                return SpecialChickenType.None;
+            }
+
+            // 计算总权重
+            float totalWeight = 0f;
+            foreach (var option in weightedOptions)
+            {
+                totalWeight += option.weight;
+            }
+
+            // 如果总权重为0，返回普通鸡
+            if (totalWeight <= 0f)
+            {
+                return SpecialChickenType.None;
+            }
+
+            // 随机选择一个值（0 到 totalWeight 之间）
+            float randomValue = UnityEngine.Random.Range(0f, totalWeight);
+
+            // 根据权重选择类型
+            float currentWeight = 0f;
+            foreach (var option in weightedOptions)
+            {
+                currentWeight += option.weight;
+                if (randomValue < currentWeight)
+                {
+                    return option.type;
+                }
+            }
+
+            // 如果出现意外情况，返回最后一个选项
+            return weightedOptions[weightedOptions.Count - 1].type;
+        }
+
+        /// <summary>
+        /// 统计并输出当前场景中所有鸡的种类信息
+        /// </summary>
+        private void LogChickenStatistics()
+        {
+            // 查找场景中所有的鸡
+            ChickenUnit[] allChickens = FindObjectsByType<ChickenUnit>(FindObjectsSortMode.None);
+            
+            int totalCount = 0;
+            int normalCount = 0;
+            int goldenCount = 0;
+            int lightningCount = 0;
+            int bombCount = 0;
+            
+            foreach (ChickenUnit chicken in allChickens)
+            {
+                if (chicken != null)
+                {
+                    totalCount++;
+                    bool isGolden = chicken.IsGolden;
+                    bool isLightning = chicken.IsLightningChicken;
+                    bool isBomb = chicken.IsBombChicken;
+                    
+                    // 一只鸡只能是一种特殊类型
+                    if (isGolden)
+                    {
+                        goldenCount++;
+                    }
+                    else if (isLightning)
+                    {
+                        lightningCount++;
+                    }
+                    else if (isBomb)
+                    {
+                        bombCount++;
+                    }
+                    else
+                    {
+                        normalCount++;
+                    }
+                }
+            }
+            
+            // 输出统计信息
+            Debug.LogWarning($"=== 鸡的种类统计 ===\n" +
+                $"总鸡数: {totalCount}\n" +
+                $"普通鸡: {normalCount}\n" +
+                $"金鸡: {goldenCount}\n" +
+                $"闪电鸡: {lightningCount}\n" +
+                $"炸弹鸡: {bombCount}\n" +
+                $"特殊鸡配置: {(specialChickenConfig != null ? "已配置" : "未配置")}", this);
+        }
+
+        /// <summary>
+        /// 应用闪电鸡配置到鸡单位
+        /// </summary>
+        private void ApplyLightningChickenConfig(ChickenUnit chicken, SpecialChickenConfig.LightningChickenSettings config)
+        {
+            if (chicken == null || config == null) return;
+
+            // 使用反射设置私有字段
+            var lightningEggTriggerChanceField = typeof(ChickenUnit).GetField("lightningEggTriggerChance", 
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            var lightningMaxTargetsField = typeof(ChickenUnit).GetField("lightningMaxTargets", 
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            var lightningChainDecayField = typeof(ChickenUnit).GetField("lightningChainDecay", 
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            var lightningDamagePercentField = typeof(ChickenUnit).GetField("lightningDamagePercent", 
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            var lightningRangeField = typeof(ChickenUnit).GetField("lightningRange", 
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+
+            if (lightningEggTriggerChanceField != null) lightningEggTriggerChanceField.SetValue(chicken, config.eggTriggerChance);
+            if (lightningMaxTargetsField != null) lightningMaxTargetsField.SetValue(chicken, config.maxTargets);
+            if (lightningChainDecayField != null) lightningChainDecayField.SetValue(chicken, config.chainDecay);
+            if (lightningDamagePercentField != null) lightningDamagePercentField.SetValue(chicken, config.damagePercent);
+            if (lightningRangeField != null) lightningRangeField.SetValue(chicken, config.range);
+        }
+
+        /// <summary>
+        /// 应用炸弹鸡配置到鸡单位
+        /// </summary>
+        private void ApplyBombChickenConfig(ChickenUnit chicken, SpecialChickenConfig.BombChickenSettings config)
+        {
+            if (chicken == null || config == null) return;
+
+            // 使用反射设置私有字段
+            var bombEggTriggerChanceField = typeof(ChickenUnit).GetField("bombEggTriggerChance", 
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            var bombExplosionRadiusField = typeof(ChickenUnit).GetField("bombExplosionRadius", 
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            var bombDamageMultiplierField = typeof(ChickenUnit).GetField("bombDamageMultiplier", 
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            var bombDamageFalloffField = typeof(ChickenUnit).GetField("bombDamageFalloff", 
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+
+            if (bombEggTriggerChanceField != null) bombEggTriggerChanceField.SetValue(chicken, config.eggTriggerChance);
+            if (bombExplosionRadiusField != null) bombExplosionRadiusField.SetValue(chicken, config.explosionRadius);
+            if (bombDamageMultiplierField != null) bombDamageMultiplierField.SetValue(chicken, config.damageMultiplier);
+            if (bombDamageFalloffField != null) bombDamageFalloffField.SetValue(chicken, config.damageFalloff);
         }
 
         /// <summary>

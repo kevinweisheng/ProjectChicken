@@ -107,6 +107,18 @@ namespace ProjectChicken.Units
         [Tooltip("闪电链搜索范围（世界单位）")]
         [SerializeField] private float lightningRange = 5f;
 
+        [Header("炸弹鸡设置（可选）")]
+        [Tooltip("是否为炸弹鸡（炸弹鸡下蛋时会发生爆炸，对周围造成伤害）")]
+        [SerializeField] private bool isBombChicken = false;
+        [Tooltip("炸弹鸡下蛋时触发爆炸的概率（0-1）")]
+        [SerializeField, Range(0f, 1f)] private float bombEggTriggerChance = 1.0f;
+        [Tooltip("爆炸范围（世界单位）")]
+        [SerializeField] private float bombExplosionRadius = 3f;
+        [Tooltip("爆炸伤害比例（相对于基础伤害，例如 1.5 表示 150%）")]
+        [SerializeField] private float bombDamageMultiplier = 1.5f;
+        [Tooltip("爆炸伤害衰减（距离越远伤害越低，0-1，0表示无衰减，1表示完全衰减）")]
+        [SerializeField, Range(0f, 1f)] private float bombDamageFalloff = 0.5f;
+
         [Header("下蛋特效（可选）")]
         [Tooltip("下蛋时播放的特效预制体（可以是粒子系统、序列帧动画等）")]
         [SerializeField] private GameObject eggEffectPrefab;
@@ -159,6 +171,16 @@ namespace ProjectChicken.Units
         public bool IsLightningChicken => isLightningChicken;
 
         /// <summary>
+        /// 获取闪电鸡下蛋时触发闪电链的概率（供外部查询）
+        /// </summary>
+        public float LightningEggTriggerChance => lightningEggTriggerChance;
+
+        /// <summary>
+        /// 是否为炸弹鸡（只读属性，供外部查询）
+        /// </summary>
+        public bool IsBombChicken => isBombChicken;
+
+        /// <summary>
         /// 设置最大生命值（供生成器调用，根据阶段等级设置）
         /// </summary>
         /// <param name="health">最大生命值</param>
@@ -183,60 +205,7 @@ namespace ProjectChicken.Units
         public void SetGolden(bool golden)
         {
             isGolden = golden;
-            
-            // 如果使用 Spine 动画，切换皮肤
-            if (skeletonAnimation != null && !skeletonAnimation.Equals(null) && skeletonAnimation.skeleton != null && skeletonAnimation.skeleton.Data != null)
-            {
-                string targetSkinName = golden ? goldenSkinName : normalSkinName;
-                
-                if (!string.IsNullOrEmpty(targetSkinName))
-                {
-                    // 查找皮肤
-                    var targetSkin = skeletonAnimation.skeleton.Data.FindSkin(targetSkinName);
-                    if (targetSkin != null)
-                    {
-                        // 切换皮肤
-                        skeletonAnimation.skeleton.SetSkin(targetSkin);
-                        skeletonAnimation.skeleton.SetSlotsToSetupPose();
-                    }
-                    else
-                    {
-                        Debug.LogWarning($"ChickenUnit: 找不到皮肤 '{targetSkinName}'，请检查皮肤名称是否正确。", this);
-                        // 回退到颜色方式
-                        if (golden)
-                        {
-                            skeletonAnimation.skeleton.SetColor(Color.yellow);
-                        }
-                        else
-                        {
-                            skeletonAnimation.skeleton.SetColor(Color.white);
-                        }
-                    }
-                }
-                else
-                {
-                    // 如果皮肤名称为空，使用颜色方式
-                    if (golden)
-                    {
-                        skeletonAnimation.skeleton.SetColor(Color.yellow);
-                    }
-                    else
-                    {
-                        skeletonAnimation.skeleton.SetColor(Color.white);
-                    }
-                }
-            }
-            // 如果没有 Spine 动画，使用 SpriteRenderer 颜色
-            else if (spriteRenderer != null && spriteRenderer.enabled)
-            {
-                if (golden)
-                {
-                    // 保存原始颜色，然后设置为金色
-                    originalColor = Color.yellow; // 金鸡使用金色作为"原始"颜色
-                    spriteRenderer.color = Color.yellow;
-                }
-                // 如果不是金鸡，保持原始颜色（在 Start 中已设置）
-            }
+            ApplySpecialChickenVisuals();
         }
 
         /// <summary>
@@ -246,18 +215,123 @@ namespace ProjectChicken.Units
         public void SetLightningChicken(bool isLightning)
         {
             isLightningChicken = isLightning;
+            ApplySpecialChickenVisuals();
+        }
 
-            // 可以在这里添加额外的视觉效果（例如改变颜色），便于在场景中区分闪电鸡
-            if (isLightningChicken)
+        /// <summary>
+        /// 设置是否为炸弹鸡（供生成器调用）
+        /// </summary>
+        /// <param name="isBomb">是否为炸弹鸡</param>
+        public void SetBombChicken(bool isBomb)
+        {
+            isBombChicken = isBomb;
+            ApplySpecialChickenVisuals();
+        }
+
+        /// <summary>
+        /// 应用特殊鸡的视觉效果（统一管理所有特殊鸡的视觉设置）
+        /// </summary>
+        private void ApplySpecialChickenVisuals()
+        {
+            // 确保组件已初始化
+            if (spriteRenderer == null)
             {
-                if (skeletonAnimation != null && skeletonAnimation.skeleton != null)
+                spriteRenderer = GetComponent<SpriteRenderer>();
+            }
+            if (skeletonAnimation == null)
+            {
+                skeletonAnimation = GetComponent<SkeletonAnimation>();
+                if (skeletonAnimation == null)
                 {
-                    // 将闪电鸡染成蓝色调，便于区分
-                    skeletonAnimation.skeleton.SetColor(Color.cyan);
+                    skeletonAnimation = GetComponentInChildren<SkeletonAnimation>();
                 }
-                else if (spriteRenderer != null && spriteRenderer.enabled)
+            }
+
+            // 优先级：金鸡皮肤 > 特殊鸡颜色
+            // 先处理金鸡的皮肤设置
+            if (skeletonAnimation != null && !skeletonAnimation.Equals(null) && skeletonAnimation.skeleton != null && skeletonAnimation.skeleton.Data != null)
+            {
+                if (isGolden)
                 {
-                    spriteRenderer.color = Color.cyan;
+                    // 金鸡：优先使用皮肤，如果没有皮肤则使用颜色
+                    string targetSkinName = goldenSkinName;
+                    
+                    if (!string.IsNullOrEmpty(targetSkinName))
+                    {
+                        var targetSkin = skeletonAnimation.skeleton.Data.FindSkin(targetSkinName);
+                        if (targetSkin != null)
+                        {
+                            skeletonAnimation.skeleton.SetSkin(targetSkin);
+                            skeletonAnimation.skeleton.SetSlotsToSetupPose();
+                        }
+                        else
+                        {
+                            Debug.LogWarning($"ChickenUnit: 找不到金鸡皮肤 '{targetSkinName}'，使用颜色方式。", this);
+                            skeletonAnimation.skeleton.SetColor(Color.yellow);
+                        }
+                    }
+                    else
+                    {
+                        skeletonAnimation.skeleton.SetColor(Color.yellow);
+                    }
+                }
+                else
+                {
+                    // 不是金鸡，使用普通皮肤
+                    string targetSkinName = normalSkinName;
+                    
+                    if (!string.IsNullOrEmpty(targetSkinName))
+                    {
+                        var targetSkin = skeletonAnimation.skeleton.Data.FindSkin(targetSkinName);
+                        if (targetSkin != null)
+                        {
+                            skeletonAnimation.skeleton.SetSkin(targetSkin);
+                            skeletonAnimation.skeleton.SetSlotsToSetupPose();
+                        }
+                    }
+                }
+
+                // 然后应用特殊鸡的颜色（闪电鸡蓝色，炸弹鸡红色）
+                // 注意：一只鸡只能是一种特殊类型，所以不会同时是金鸡和闪电鸡
+                if (isLightningChicken)
+                {
+                    // 闪电鸡：蓝色
+                    skeletonAnimation.skeleton.SetColor(Color.blue);
+                }
+                else if (isBombChicken)
+                {
+                    // 炸弹鸡：红色
+                    skeletonAnimation.skeleton.SetColor(Color.red);
+                }
+                else if (isGolden)
+                {
+                    // 金鸡：如果使用皮肤，保持白色（皮肤会显示金色）；如果没有皮肤，已经是黄色
+                    // 不需要额外设置，因为上面已经处理了
+                }
+                else
+                {
+                    // 普通鸡：白色
+                    skeletonAnimation.skeleton.SetColor(Color.white);
+                }
+            }
+            // 如果没有 Spine 动画，使用 SpriteRenderer 颜色
+            else if (spriteRenderer != null && spriteRenderer.enabled)
+            {
+                if (isGolden)
+                {
+                    spriteRenderer.color = Color.yellow;
+                }
+                else if (isLightningChicken)
+                {
+                    spriteRenderer.color = Color.blue;
+                }
+                else if (isBombChicken)
+                {
+                    spriteRenderer.color = Color.red;
+                }
+                else
+                {
+                    spriteRenderer.color = originalColor;
                 }
             }
         }
@@ -382,6 +456,15 @@ namespace ProjectChicken.Units
             {
                 Debug.LogWarning("ChickenUnit: 未找到 SkeletonAnimation 组件。如果使用 Spine 动画，请确保已添加 SkeletonAnimation 组件。", this);
             }
+
+            // 保存原始颜色（用于 SpriteRenderer）
+            if (spriteRenderer != null)
+            {
+                originalColor = spriteRenderer.color;
+            }
+
+            // 在 Start() 结束后重新应用所有特殊鸡的设置，确保组件已初始化
+            ApplySpecialChickenVisuals();
             
             // 获取主摄像机
             if (mainCamera == null)
@@ -1037,30 +1120,78 @@ namespace ProjectChicken.Units
             // 触发静态事件，传递位置信息和是否为金鸡
             OnChickenProduct?.Invoke(transform.position, isGolden);
 
-            // 如果是闪电鸡，则在下蛋时有概率触发链式闪电
-            if (isLightningChicken && ProjectChicken.Abilities.ChainLightningEffect.Instance != null)
-            {
-                if (UnityEngine.Random.value < lightningEggTriggerChance)
-                {
-                    // 使用当前攻击力作为基础伤害（与玩家抚摸伤害保持一致）
-                    float baseDamage = ProjectChicken.Core.UpgradeManager.Instance != null 
-                        ? ProjectChicken.Core.UpgradeManager.Instance.CurrentDamage 
-                        : 10f;
+            // 先切换状态为已产出，防止在触发闪电链时形成无限循环
+            // 注意：必须在触发闪电链之前设置，避免闪电链击中其他闪电鸡时再次触发下蛋
+            isFat = false;
 
-                    ProjectChicken.Abilities.ChainLightningEffect.Instance.Trigger(
-                        this,
-                        baseDamage,
-                        lightningMaxTargets,
-                        1.0f,                  // 第一次必定跳跃
-                        lightningChainDecay,
-                        lightningDamagePercent,
-                        lightningRange
-                    );
+            // 如果是闪电鸡，则在下蛋时有概率触发链式闪电
+            if (isLightningChicken)
+            {
+                if (ProjectChicken.Abilities.ChainLightningEffect.Instance == null)
+                {
+                    Debug.LogWarning($"ChickenUnit: ChainLightningEffect.Instance 为空！鸡位置: {transform.position}，触发概率: {lightningEggTriggerChance}，请确保场景中存在 ChainLightningEffect 组件。", this);
+                }
+                else
+                {
+                    float randomValue = UnityEngine.Random.value;
+                    if (randomValue < lightningEggTriggerChance)
+                    {
+                        // 使用当前攻击力作为基础伤害（与玩家抚摸伤害保持一致）
+                        float baseDamage = ProjectChicken.Core.UpgradeManager.Instance != null 
+                            ? ProjectChicken.Core.UpgradeManager.Instance.CurrentDamage 
+                            : 10f;
+
+                        ProjectChicken.Abilities.ChainLightningEffect.Instance.Trigger(
+                            this,
+                            baseDamage,
+                            lightningMaxTargets,
+                            1.0f,                  // 第一次必定跳跃
+                            lightningChainDecay,
+                            lightningDamagePercent,
+                            lightningRange
+                        );
+                    }
+                    else
+                    {
+                        Debug.LogWarning($"ChickenUnit: 闪电鸡下蛋但未触发闪电链（随机值 {randomValue:F3} >= 触发概率 {lightningEggTriggerChance:F3}）", this);
+                    }
                 }
             }
 
-            // 切换状态为已产出
-            isFat = false;
+            // 如果是炸弹鸡，则在下蛋时有概率触发爆炸
+            if (isBombChicken)
+            {
+                if (ProjectChicken.Abilities.ExplosionEffect.Instance == null)
+                {
+                    Debug.LogWarning($"ChickenUnit: ExplosionEffect.Instance 为空！鸡位置: {transform.position}，触发概率: {bombEggTriggerChance}，请确保场景中存在 ExplosionEffect 组件。", this);
+                }
+                else
+                {
+                    float randomValue = UnityEngine.Random.value;
+                    if (randomValue < bombEggTriggerChance)
+                    {
+                        // 使用当前攻击力作为基础伤害（与玩家抚摸伤害保持一致）
+                        float baseDamage = ProjectChicken.Core.UpgradeManager.Instance != null 
+                            ? ProjectChicken.Core.UpgradeManager.Instance.CurrentDamage 
+                            : 10f;
+
+                        // 计算爆炸伤害（应用伤害倍率）
+                        float explosionDamage = baseDamage * bombDamageMultiplier;
+
+                        // 触发爆炸效果
+                        ProjectChicken.Abilities.ExplosionEffect.Instance.Trigger(
+                            transform.position,
+                            explosionDamage,
+                            bombExplosionRadius,
+                            bombDamageFalloff
+                        );
+                    }
+                    else
+                    {
+                        Debug.LogWarning($"ChickenUnit: 炸弹鸡下蛋但未触发爆炸（随机值 {randomValue:F3} >= 触发概率 {bombEggTriggerChance:F3}）", this);
+                    }
+                }
+            }
 
             // 保存当前速度（用于瘦鸡继承移动行为）
             Vector2 currentVelocity = Vector2.zero;

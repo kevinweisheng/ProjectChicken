@@ -112,6 +112,17 @@ MonoBehaviour:
   petAnimationOffset: {x: 0.25, y: 0.25}
   petAnimationSortingOrder: 100
   petAnimationSortingLayerName: Animation
+  isLightningChicken: 1
+  lightningEggTriggerChance: 1
+  lightningMaxTargets: 5
+  lightningChainDecay: 1
+  lightningDamagePercent: 0.5
+  lightningRange: 5
+  isBombChicken: 1
+  bombEggTriggerChance: 1
+  bombExplosionRadius: 3
+  bombDamageMultiplier: 1.5
+  bombDamageFalloff: 0.5
   eggEffectPrefab: {fileID: 7494254314386391344, guid: 3ca483f7917b9c84eae5cacde359cf7c, type: 3}
   eggEffectOffset: {x: 0, y: 0}
   eggEffectDuration: 0

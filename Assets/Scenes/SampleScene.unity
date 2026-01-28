@@ -4661,6 +4661,7 @@ MonoBehaviour:
   rangeIndicator: {fileID: 2065761073}
   borderWidth: 6
   fallbackAttackInterval: 0.5
+  enableMouseChainLightning: 0
   lightningEffect: {fileID: 1498608000}
   lightningTriggerChance: 1
   lightningMaxTargets: 5
@@ -10102,6 +10103,57 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1787226151}
   m_CullTransparentMesh: 1
+--- !u!1 &1849045451
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1849045453}
+  - component: {fileID: 1849045452}
+  m_Layer: 0
+  m_Name: ExposionEffect
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1849045452
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1849045451}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c37dd31b936f7644790ae3081d1e069a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ProjectChicken.Abilities.ExplosionEffect
+  visualDuration: 1
+  explosionColor: {r: 1, g: 0, b: 0, a: 1}
+  explosionRangeIndicator: {fileID: 0}
+  explosionParticlePrefab: {fileID: 0}
+  enemyLayer:
+    serializedVersion: 2
+    m_Bits: 64
+--- !u!4 &1849045453
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1849045451}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1873186753
 GameObject:
   m_ObjectHideFlags: 0
@@ -10309,8 +10361,7 @@ MonoBehaviour:
   healthConfig: {fileID: 11400000, guid: bd827db79a5575d48baec6a5b98cf614, type: 2}
   goldenChickenHealthConfig: {fileID: 11400000, guid: 1c5fd1fb004880a4eb65e7b9e54c74d3, type: 2}
   spawnPadding: 1
-  enableLightningChicken: 0
-  lightningChickenSpawnRate: 0.05
+  specialChickenConfig: {fileID: 11400000, guid: a38dbabe91a77f049886f59c6526db6f, type: 2}
 --- !u!1 &1896377404
 GameObject:
   m_ObjectHideFlags: 0
@@ -11603,3 +11654,4 @@ SceneRoots:
   - {fileID: 1624541694}
   - {fileID: 998682746}
   - {fileID: 1498608002}
+  - {fileID: 1849045453}

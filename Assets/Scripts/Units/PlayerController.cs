@@ -36,7 +36,10 @@ namespace ProjectChicken.Units
         [Tooltip("攻击间隔（秒）- 仅在 UpgradeManager 未初始化时使用")]
         [SerializeField] private float fallbackAttackInterval = 0.5f; // 备用攻击间隔（默认 0.5 秒）
         
-        [Header("能力：链式闪电")]
+        [Header("能力：链式闪电（鼠标攻击）")]
+        [Tooltip("是否启用鼠标攻击的链式闪电（如果只想用闪电鸡下蛋触发闪电，请关闭此选项）")]
+        [SerializeField] private bool enableMouseChainLightning = false;
+        
         [Tooltip("链式闪电效果组件（拖入场景中的 ChainLightningEffect 对象）")]
         [SerializeField] private ChainLightningEffect lightningEffect;
         
@@ -260,8 +263,8 @@ namespace ProjectChicken.Units
                 }
             }
             
-            // 对每个被击中的鸡，检查是否触发链式闪电
-            if (hitChickens.Count > 0 && lightningEffect != null)
+            // 对每个被击中的鸡，检查是否触发链式闪电（仅当启用了鼠标链式闪电时）
+            if (enableMouseChainLightning && hitChickens.Count > 0 && lightningEffect != null)
             {
                 foreach (ChickenUnit hitChicken in hitChickens)
                 {
