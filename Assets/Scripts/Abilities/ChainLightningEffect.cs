@@ -16,7 +16,10 @@ namespace ProjectChicken.Abilities
         [Tooltip("闪电视觉效果持续时间（秒）")]
         [SerializeField] private float visualDuration = 0.2f;
         
-        [Tooltip("闪电颜色")]
+        [Tooltip("闪电链材质（拖入你制作的材质即可替换默认闪电外观；留空则使用默认线条）")]
+        [SerializeField] private Material lightningChainMaterial;
+        
+        [Tooltip("闪电颜色（使用自定义材质时，若材质支持 _Color 等则可能被覆盖）")]
         [SerializeField] private Color lightningColor = Color.yellow;
         
         [Tooltip("闪电宽度")]
@@ -253,8 +256,17 @@ namespace ProjectChicken.Abilities
             
             LineRenderer newLineRenderer = lightningObject.AddComponent<LineRenderer>();
             
-            // 配置 LineRenderer
-            newLineRenderer.material = new Material(Shader.Find("Sprites/Default"));
+            // 配置 LineRenderer：优先使用你指定的闪电链材质
+            if (lightningChainMaterial != null)
+            {
+                newLineRenderer.material = new Material(lightningChainMaterial);
+            }
+            else
+            {
+                Shader shader = Shader.Find("Sprites/Default");
+                if (shader == null) shader = Shader.Find("Unlit/Color");
+                newLineRenderer.material = shader != null ? new Material(shader) : new Material(Shader.Find("Legacy Shaders/Particles/Alpha Blended"));
+            }
             newLineRenderer.startColor = lightningColor;
             newLineRenderer.endColor = lightningColor;
             newLineRenderer.startWidth = lightningWidth;

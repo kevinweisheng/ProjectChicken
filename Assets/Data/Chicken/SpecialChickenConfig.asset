@@ -15,11 +15,11 @@ MonoBehaviour:
   enableSpecialChickens: 1
   goldenChicken:
     enabled: 1
-    weight: 4
+    weight: 2
     spawnRate: 0.05
   lightningChicken:
     enabled: 1
-    weight: 3
+    weight: 2
     eggTriggerChance: 1
     maxTargets: 5
     chainDecay: 1
@@ -27,8 +27,22 @@ MonoBehaviour:
     range: 5
   bombChicken:
     enabled: 1
-    weight: 3
+    weight: 2
     eggTriggerChance: 1
     explosionRadius: 3
     damageMultiplier: 1.5
     damageFalloff: 0.5
+  basketballChicken:
+    enabled: 1
+    weight: 2
+    eggTriggerChance: 1
+    speed: 8
+    damageMultiplier: 1
+    maxBounces: 3
+  blackHoleChicken:
+    enabled: 1
+    weight: 2
+    eggTriggerChance: 1
+    radius: 4
+    duration: 5
+    pullForce: 15

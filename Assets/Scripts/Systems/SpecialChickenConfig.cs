@@ -76,6 +76,54 @@ namespace ProjectChicken.Systems
             public float damageFalloff = 0.5f;
         }
 
+        [System.Serializable]
+        public class BasketballChickenSettings
+        {
+            [Header("篮球鸡配置")]
+            [Tooltip("是否启用篮球鸡生成")]
+            public bool enabled = false;
+
+            [Tooltip("篮球鸡生成权重（用于权重随机选择）")]
+            public float weight = 1f;
+
+            [Tooltip("篮球鸡下蛋时发射篮球的概率（0-1）")]
+            [Range(0f, 1f)]
+            public float eggTriggerChance = 1f;
+
+            [Tooltip("篮球飞行速度（世界单位/秒）")]
+            public float speed = 8f;
+
+            [Tooltip("篮球伤害比例（相对于基础伤害）")]
+            public float damageMultiplier = 1f;
+
+            [Tooltip("篮球与边界反弹次数上限，超过后消失")]
+            public int maxBounces = 5;
+        }
+
+        [System.Serializable]
+        public class BlackHoleChickenSettings
+        {
+            [Header("黑洞鸡配置")]
+            [Tooltip("是否启用黑洞鸡生成")]
+            public bool enabled = false;
+
+            [Tooltip("黑洞鸡生成权重（用于权重随机选择）")]
+            public float weight = 1f;
+
+            [Tooltip("黑洞鸡下蛋时生成黑洞的概率（0-1）")]
+            [Range(0f, 1f)]
+            public float eggTriggerChance = 1f;
+
+            [Tooltip("黑洞吸引范围（世界单位）")]
+            public float radius = 4f;
+
+            [Tooltip("黑洞持续时间（秒）")]
+            public float duration = 3f;
+
+            [Tooltip("吸引力度（施加给鸡的力的大小，不造成伤害）")]
+            public float pullForce = 15f;
+        }
+
         [Header("特殊鸡全局设置")]
         [Tooltip("是否启用特殊鸡生成系统")]
         public bool enableSpecialChickens = true;
@@ -84,6 +132,8 @@ namespace ProjectChicken.Systems
         public GoldenChickenSettings goldenChicken = new GoldenChickenSettings();
         public LightningChickenSettings lightningChicken = new LightningChickenSettings();
         public BombChickenSettings bombChicken = new BombChickenSettings();
+        public BasketballChickenSettings basketballChicken = new BasketballChickenSettings();
+        public BlackHoleChickenSettings blackHoleChicken = new BlackHoleChickenSettings();
 
         /// <summary>
         /// 获取指定类型的权重
@@ -98,6 +148,10 @@ namespace ProjectChicken.Systems
                     return lightningChicken.enabled ? lightningChicken.weight : 0f;
                 case SpecialChickenType.Bomb:
                     return bombChicken.enabled ? bombChicken.weight : 0f;
+                case SpecialChickenType.Basketball:
+                    return basketballChicken.enabled ? basketballChicken.weight : 0f;
+                case SpecialChickenType.BlackHole:
+                    return blackHoleChicken.enabled ? blackHoleChicken.weight : 0f;
                 default:
                     return 0f;
             }
@@ -121,6 +175,10 @@ namespace ProjectChicken.Systems
                     return lightningChicken.enabled;
                 case SpecialChickenType.Bomb:
                     return bombChicken.enabled;
+                case SpecialChickenType.Basketball:
+                    return basketballChicken.enabled;
+                case SpecialChickenType.BlackHole:
+                    return blackHoleChicken.enabled;
                 default:
                     return false;
             }

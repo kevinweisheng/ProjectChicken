@@ -12,8 +12,10 @@ namespace ProjectChicken.Systems
     {
         None,       // 普通鸡
         Golden,     // 金鸡
-        Lightning,   // 闪电鸡
-        Bomb        // 炸弹鸡
+        Lightning,  // 闪电鸡
+        Bomb,       // 炸弹鸡
+        Basketball, // 篮球鸡
+        BlackHole   // 黑洞鸡
     }
 
     /// <summary>
@@ -127,25 +129,11 @@ namespace ProjectChicken.Systems
             int extraInitialChickens = UpgradeManager.Instance != null ? UpgradeManager.Instance.ExtraInitialChickens : 0;
             int initialCount = baseInitialChickenCount + extraInitialChickens;
 
-            // 生成指定数量的鸡，并收集生成的鸡列表
-            List<ChickenUnit> generatedChickens = new List<ChickenUnit>();
-            int initialSpawnedCount = spawnedChickens.Count;
-            
+            // 生成指定数量的鸡
             for (int i = 0; i < initialCount; i++)
             {
                 SpawnChicken();
             }
-            
-            // 收集刚刚生成的鸡（从上次的计数位置到现在的列表末尾）
-            for (int i = initialSpawnedCount; i < spawnedChickens.Count; i++)
-            {
-                if (spawnedChickens[i] != null)
-                {
-                    generatedChickens.Add(spawnedChickens[i]);
-                }
-            }
-
-            EnsureAtLeastOneGoldenChicken(generatedChickens);
             
             // 统计并输出鸡的种类信息
             LogChickenStatistics();
@@ -169,45 +157,66 @@ namespace ProjectChicken.Systems
                 return;
             }
 
-            // 检查是否已经有金鸡
+            // 检查是否已经有金鸡，以及是否存在其他类型的特殊鸡
             bool hasGoldenChicken = false;
+            bool hasOtherSpecialChicken = false;
             foreach (ChickenUnit chicken in chickens)
             {
-                if (chicken != null && chicken.IsGolden)
+                if (chicken == null) continue;
+
+                if (chicken.IsGolden)
                 {
                     hasGoldenChicken = true;
+                }
+
+                if (chicken.IsLightningChicken || chicken.IsBombChicken)
+                {
+                    hasOtherSpecialChicken = true;
+                }
+
+                if (hasGoldenChicken && hasOtherSpecialChicken)
+                {
                     break;
                 }
             }
 
-            // 如果没有金鸡，随机选择一只普通鸡变成金鸡
-            if (!hasGoldenChicken)
+            // 如果已经有金鸡，直接返回
+            if (hasGoldenChicken)
             {
-                // 收集所有普通鸡
-                List<ChickenUnit> normalChickens = new List<ChickenUnit>();
-                foreach (ChickenUnit chicken in chickens)
-                {
-                    if (chicken != null && !chicken.IsGolden)
-                    {
-                        normalChickens.Add(chicken);
-                    }
-                }
+                return;
+            }
 
-                // 随机选择一只普通鸡变成金鸡
-                if (normalChickens.Count > 0)
+            // 如果场上已经存在其他类型的特殊鸡，则不强制生成金鸡，
+            // 避免后续逻辑将其他特殊鸡再次标记为金鸡而导致一只鸡拥有多种特殊类型
+            if (hasOtherSpecialChicken)
+            {
+                return;
+            }
+
+            // 收集所有完全普通的鸡（没有任何特殊类型）
+            List<ChickenUnit> normalChickens = new List<ChickenUnit>();
+            foreach (ChickenUnit chicken in chickens)
+            {
+                if (chicken != null && !chicken.IsGolden && !chicken.IsLightningChicken && !chicken.IsBombChicken)
                 {
-                    int randomIndex = Random.Range(0, normalChickens.Count);
-                    ChickenUnit selectedChicken = normalChickens[randomIndex];
-                    
-                    // 将该鸡设置为金鸡
-                    selectedChicken.SetGolden(true);
-                    
-                    SetChickenHealthByStage(selectedChicken, true);
+                    normalChickens.Add(chicken);
                 }
-                else
-                {
-                    Debug.LogWarning("ChickenSpawner: 无法找到普通鸡转换为金鸡！", this);
-                }
+            }
+
+            // 随机选择一只普通鸡变成金鸡
+            if (normalChickens.Count > 0)
+            {
+                int randomIndex = Random.Range(0, normalChickens.Count);
+                ChickenUnit selectedChicken = normalChickens[randomIndex];
+                
+                // 将该鸡设置为金鸡
+                selectedChicken.SetGolden(true);
+                
+                SetChickenHealthByStage(selectedChicken, true);
+            }
+            else
+            {
+                Debug.LogWarning("ChickenSpawner: 无法找到没有特殊类型的普通鸡转换为金鸡！", this);
             }
         }
 
@@ -304,10 +313,14 @@ namespace ProjectChicken.Systems
                 bool isGolden = selectedType == SpecialChickenType.Golden;
                 bool isLightning = selectedType == SpecialChickenType.Lightning;
                 bool isBomb = selectedType == SpecialChickenType.Bomb;
+                bool isBasketball = selectedType == SpecialChickenType.Basketball;
+                bool isBlackHole = selectedType == SpecialChickenType.BlackHole;
 
                 newChicken.SetGolden(isGolden);
                 newChicken.SetLightningChicken(isLightning);
                 newChicken.SetBombChicken(isBomb);
+                newChicken.SetBasketballChicken(isBasketball);
+                newChicken.SetBlackHoleChicken(isBlackHole);
                 
                 // 如果配置存在，应用特殊鸡的属性配置
                 if (specialChickenConfig != null)
@@ -319,6 +332,14 @@ namespace ProjectChicken.Systems
                     if (isBomb)
                     {
                         ApplyBombChickenConfig(newChicken, specialChickenConfig.bombChicken);
+                    }
+                    if (isBasketball)
+                    {
+                        ApplyBasketballChickenConfig(newChicken, specialChickenConfig.basketballChicken);
+                    }
+                    if (isBlackHole)
+                    {
+                        ApplyBlackHoleChickenConfig(newChicken, specialChickenConfig.blackHoleChicken);
                     }
                 }
                 
@@ -336,11 +357,19 @@ namespace ProjectChicken.Systems
                 {
                     chickenType = "炸弹鸡";
                 }
+                else if (isBasketball)
+                {
+                    chickenType = "篮球鸡";
+                }
+                else if (isBlackHole)
+                {
+                    chickenType = "黑洞鸡";
+                }
                 Debug.LogWarning($"ChickenSpawner: 生成了一只 {chickenType} (位置: {spawnPosition})", this);
                 
                 // 延迟一帧后设置生命值，确保 Start() 已经执行完毕
-                // 特殊鸡的生命值逻辑与金鸡相同，因此传入 (isGolden || isLightning || isBomb)
-                StartCoroutine(DelayedSetChickenHealth(newChicken, isGolden || isLightning || isBomb));
+                // 特殊鸡的生命值逻辑与金鸡相同
+                StartCoroutine(DelayedSetChickenHealth(newChicken, isGolden || isLightning || isBomb || isBasketball || isBlackHole));
                 
                 newChicken.SetUniqueSortingOffset(sortingOrderCounter++);
                 
@@ -503,6 +532,26 @@ namespace ProjectChicken.Systems
                 }
             }
 
+            // 检查篮球鸡
+            if (specialChickenConfig.IsEnabled(SpecialChickenType.Basketball))
+            {
+                float weight = specialChickenConfig.GetWeight(SpecialChickenType.Basketball);
+                if (weight > 0f)
+                {
+                    weightedOptions.Add((SpecialChickenType.Basketball, weight));
+                }
+            }
+
+            // 检查黑洞鸡
+            if (specialChickenConfig.IsEnabled(SpecialChickenType.BlackHole))
+            {
+                float weight = specialChickenConfig.GetWeight(SpecialChickenType.BlackHole);
+                if (weight > 0f)
+                {
+                    weightedOptions.Add((SpecialChickenType.BlackHole, weight));
+                }
+            }
+
             // 如果没有可选项，返回普通鸡
             if (weightedOptions.Count == 0)
             {
@@ -553,6 +602,8 @@ namespace ProjectChicken.Systems
             int goldenCount = 0;
             int lightningCount = 0;
             int bombCount = 0;
+            int basketballCount = 0;
+            int blackHoleCount = 0;
             
             foreach (ChickenUnit chicken in allChickens)
             {
@@ -562,6 +613,8 @@ namespace ProjectChicken.Systems
                     bool isGolden = chicken.IsGolden;
                     bool isLightning = chicken.IsLightningChicken;
                     bool isBomb = chicken.IsBombChicken;
+                    bool isBasketball = chicken.IsBasketballChicken;
+                    bool isBlackHole = chicken.IsBlackHoleChicken;
                     
                     // 一只鸡只能是一种特殊类型
                     if (isGolden)
@@ -575,6 +628,14 @@ namespace ProjectChicken.Systems
                     else if (isBomb)
                     {
                         bombCount++;
+                    }
+                    else if (isBasketball)
+                    {
+                        basketballCount++;
+                    }
+                    else if (isBlackHole)
+                    {
+                        blackHoleCount++;
                     }
                     else
                     {
@@ -590,6 +651,8 @@ namespace ProjectChicken.Systems
                 $"金鸡: {goldenCount}\n" +
                 $"闪电鸡: {lightningCount}\n" +
                 $"炸弹鸡: {bombCount}\n" +
+                $"篮球鸡: {basketballCount}\n" +
+                $"黑洞鸡: {blackHoleCount}\n" +
                 $"特殊鸡配置: {(specialChickenConfig != null ? "已配置" : "未配置")}", this);
         }
 
@@ -640,6 +703,50 @@ namespace ProjectChicken.Systems
             if (bombExplosionRadiusField != null) bombExplosionRadiusField.SetValue(chicken, config.explosionRadius);
             if (bombDamageMultiplierField != null) bombDamageMultiplierField.SetValue(chicken, config.damageMultiplier);
             if (bombDamageFalloffField != null) bombDamageFalloffField.SetValue(chicken, config.damageFalloff);
+        }
+
+        /// <summary>
+        /// 应用篮球鸡配置到鸡单位
+        /// </summary>
+        private void ApplyBasketballChickenConfig(ChickenUnit chicken, SpecialChickenConfig.BasketballChickenSettings config)
+        {
+            if (chicken == null || config == null) return;
+
+            var basketballEggTriggerChanceField = typeof(ChickenUnit).GetField("basketballEggTriggerChance", 
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            var basketballSpeedField = typeof(ChickenUnit).GetField("basketballSpeed", 
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            var basketballDamageMultiplierField = typeof(ChickenUnit).GetField("basketballDamageMultiplier", 
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            var basketballMaxBouncesField = typeof(ChickenUnit).GetField("basketballMaxBounces", 
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+
+            if (basketballEggTriggerChanceField != null) basketballEggTriggerChanceField.SetValue(chicken, config.eggTriggerChance);
+            if (basketballSpeedField != null) basketballSpeedField.SetValue(chicken, config.speed);
+            if (basketballDamageMultiplierField != null) basketballDamageMultiplierField.SetValue(chicken, config.damageMultiplier);
+            if (basketballMaxBouncesField != null) basketballMaxBouncesField.SetValue(chicken, config.maxBounces);
+        }
+
+        /// <summary>
+        /// 应用黑洞鸡配置到鸡单位
+        /// </summary>
+        private void ApplyBlackHoleChickenConfig(ChickenUnit chicken, SpecialChickenConfig.BlackHoleChickenSettings config)
+        {
+            if (chicken == null || config == null) return;
+
+            var blackHoleEggTriggerChanceField = typeof(ChickenUnit).GetField("blackHoleEggTriggerChance", 
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            var blackHoleRadiusField = typeof(ChickenUnit).GetField("blackHoleRadius", 
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            var blackHoleDurationField = typeof(ChickenUnit).GetField("blackHoleDuration", 
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            var blackHolePullForceField = typeof(ChickenUnit).GetField("blackHolePullForce", 
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+
+            if (blackHoleEggTriggerChanceField != null) blackHoleEggTriggerChanceField.SetValue(chicken, config.eggTriggerChance);
+            if (blackHoleRadiusField != null) blackHoleRadiusField.SetValue(chicken, config.radius);
+            if (blackHoleDurationField != null) blackHoleDurationField.SetValue(chicken, config.duration);
+            if (blackHolePullForceField != null) blackHolePullForceField.SetValue(chicken, config.pullForce);
         }
 
         /// <summary>

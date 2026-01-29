@@ -76,7 +76,11 @@ namespace ProjectChicken.Units
         [SerializeField] private string spawnAnimationName = "spawn"; // 出现动画名称（胖鸡，瘦鸡变回胖鸡时播放）
         [SerializeField] private bool loopIdleAnimation = true; // 是否循环播放 Idle 动画
         [SerializeField] private string normalSkinName = "default"; // 普通鸡皮肤名称
-        [SerializeField] private string goldenSkinName = "golden"; // 黄金鸡皮肤名称
+        [SerializeField] private string goldenSkinName = "golden"; // 金鸡 Spine 皮肤名称（空则用颜色）
+        [Tooltip("闪电鸡 Spine 皮肤名称（空则用颜色显示）")]
+        [SerializeField] private string lightningSkinName = ""; // 闪电鸡皮肤名称
+        [Tooltip("炸弹鸡 Spine 皮肤名称（空则用颜色显示）")]
+        [SerializeField] private string bombSkinName = ""; // 炸弹鸡皮肤名称
         
         [Header("抚摸序列帧动画（可选）")]
         [Tooltip("是否启用抚摸动画（如果为 false，抚摸时不会播放序列帧动画）")]
@@ -118,6 +122,34 @@ namespace ProjectChicken.Units
         [SerializeField] private float bombDamageMultiplier = 1.5f;
         [Tooltip("爆炸伤害衰减（距离越远伤害越低，0-1，0表示无衰减，1表示完全衰减）")]
         [SerializeField, Range(0f, 1f)] private float bombDamageFalloff = 0.5f;
+
+        [Header("篮球鸡设置（可选）")]
+        [Tooltip("是否为篮球鸡（下蛋时朝随机方向发射篮球，篮球反弹并对碰到的鸡造成伤害）")]
+        [SerializeField] private bool isBasketballChicken = false;
+        [Tooltip("篮球鸡下蛋时发射篮球的概率（0-1）")]
+        [SerializeField, Range(0f, 1f)] private float basketballEggTriggerChance = 1f;
+        [Tooltip("篮球飞行速度（世界单位/秒）")]
+        [SerializeField] private float basketballSpeed = 8f;
+        [Tooltip("篮球伤害比例（相对于基础伤害）")]
+        [SerializeField] private float basketballDamageMultiplier = 1f;
+        [Tooltip("篮球与边界反弹次数上限，超过后消失")]
+        [SerializeField] private int basketballMaxBounces = 5;
+        [Tooltip("篮球鸡 Spine 皮肤名称（空则用颜色显示）")]
+        [SerializeField] private string basketballSkinName = "";
+
+        [Header("黑洞鸡设置（可选）")]
+        [Tooltip("是否为黑洞鸡（下蛋后生成黑洞，吸引周围鸡向中心聚拢，不造成伤害）")]
+        [SerializeField] private bool isBlackHoleChicken = false;
+        [Tooltip("黑洞鸡下蛋时生成黑洞的概率（0-1）")]
+        [SerializeField, Range(0f, 1f)] private float blackHoleEggTriggerChance = 1f;
+        [Tooltip("黑洞吸引范围（世界单位）")]
+        [SerializeField] private float blackHoleRadius = 4f;
+        [Tooltip("黑洞持续时间（秒）")]
+        [SerializeField] private float blackHoleDuration = 3f;
+        [Tooltip("吸引力度（不造成伤害）")]
+        [SerializeField] private float blackHolePullForce = 15f;
+        [Tooltip("黑洞鸡 Spine 皮肤名称（空则用颜色显示）")]
+        [SerializeField] private string blackHoleSkinName = "";
 
         [Header("下蛋特效（可选）")]
         [Tooltip("下蛋时播放的特效预制体（可以是粒子系统、序列帧动画等）")]
@@ -181,6 +213,16 @@ namespace ProjectChicken.Units
         public bool IsBombChicken => isBombChicken;
 
         /// <summary>
+        /// 是否为篮球鸡（只读属性，供外部查询）
+        /// </summary>
+        public bool IsBasketballChicken => isBasketballChicken;
+
+        /// <summary>
+        /// 是否为黑洞鸡（只读属性，供外部查询）
+        /// </summary>
+        public bool IsBlackHoleChicken => isBlackHoleChicken;
+
+        /// <summary>
         /// 设置最大生命值（供生成器调用，根据阶段等级设置）
         /// </summary>
         /// <param name="health">最大生命值</param>
@@ -204,7 +246,19 @@ namespace ProjectChicken.Units
         /// <param name="golden">是否为金鸡</param>
         public void SetGolden(bool golden)
         {
-            isGolden = golden;
+            // 金鸡属于特殊鸡的一种，开启时需要关闭其他特殊类型
+            if (golden)
+            {
+                isGolden = true;
+                isLightningChicken = false;
+                isBombChicken = false;
+                isBasketballChicken = false;
+                isBlackHoleChicken = false;
+            }
+            else
+            {
+                isGolden = false;
+            }
             ApplySpecialChickenVisuals();
         }
 
@@ -214,7 +268,19 @@ namespace ProjectChicken.Units
         /// <param name="isLightning">是否为闪电鸡</param>
         public void SetLightningChicken(bool isLightning)
         {
-            isLightningChicken = isLightning;
+            // 闪电鸡属于特殊鸡的一种，开启时需要关闭其他特殊类型
+            if (isLightning)
+            {
+                isLightningChicken = true;
+                isGolden = false;
+                isBombChicken = false;
+                isBasketballChicken = false;
+                isBlackHoleChicken = false;
+            }
+            else
+            {
+                isLightningChicken = false;
+            }
             ApplySpecialChickenVisuals();
         }
 
@@ -224,12 +290,81 @@ namespace ProjectChicken.Units
         /// <param name="isBomb">是否为炸弹鸡</param>
         public void SetBombChicken(bool isBomb)
         {
-            isBombChicken = isBomb;
+            // 炸弹鸡属于特殊鸡的一种，开启时需要关闭其他特殊类型
+            if (isBomb)
+            {
+                isBombChicken = true;
+                isGolden = false;
+                isLightningChicken = false;
+                isBasketballChicken = false;
+                isBlackHoleChicken = false;
+            }
+            else
+            {
+                isBombChicken = false;
+            }
             ApplySpecialChickenVisuals();
         }
 
         /// <summary>
-        /// 应用特殊鸡的视觉效果（统一管理所有特殊鸡的视觉设置）
+        /// 设置是否为篮球鸡（供生成器调用）
+        /// </summary>
+        public void SetBasketballChicken(bool isBasketball)
+        {
+            if (isBasketball)
+            {
+                isBasketballChicken = true;
+                isGolden = false;
+                isLightningChicken = false;
+                isBombChicken = false;
+                isBlackHoleChicken = false;
+            }
+            else
+            {
+                isBasketballChicken = false;
+            }
+            ApplySpecialChickenVisuals();
+        }
+
+        /// <summary>
+        /// 设置是否为黑洞鸡（供生成器调用）
+        /// </summary>
+        public void SetBlackHoleChicken(bool isBlackHole)
+        {
+            if (isBlackHole)
+            {
+                isBlackHoleChicken = true;
+                isGolden = false;
+                isLightningChicken = false;
+                isBombChicken = false;
+                isBasketballChicken = false;
+            }
+            else
+            {
+                isBlackHoleChicken = false;
+            }
+            ApplySpecialChickenVisuals();
+        }
+
+        /// <summary>
+        /// 尝试应用 Spine 皮肤，若皮肤存在则应用并返回 true，否则返回 false（可回退到颜色）
+        /// </summary>
+        private bool TryApplySpineSkin(string skinName)
+        {
+            if (skeletonAnimation == null || skeletonAnimation.skeleton == null || skeletonAnimation.skeleton.Data == null)
+                return false;
+            if (string.IsNullOrEmpty(skinName))
+                return false;
+            var skin = skeletonAnimation.skeleton.Data.FindSkin(skinName);
+            if (skin == null)
+                return false;
+            skeletonAnimation.skeleton.SetSkin(skin);
+            skeletonAnimation.skeleton.SetSlotsToSetupPose();
+            return true;
+        }
+
+        /// <summary>
+        /// 应用特殊鸡的视觉效果（统一管理：优先 Spine 换肤，未配置或找不到皮肤时用颜色）
         /// </summary>
         private void ApplySpecialChickenVisuals()
         {
@@ -247,70 +382,48 @@ namespace ProjectChicken.Units
                 }
             }
 
-            // 优先级：金鸡皮肤 > 特殊鸡颜色
-            // 先处理金鸡的皮肤设置
             if (skeletonAnimation != null && !skeletonAnimation.Equals(null) && skeletonAnimation.skeleton != null && skeletonAnimation.skeleton.Data != null)
             {
+                // Spine：特殊鸡与金鸡一致，先尝试换皮肤，没有则用颜色
+                bool usedSkin = false;
                 if (isGolden)
                 {
-                    // 金鸡：优先使用皮肤，如果没有皮肤则使用颜色
-                    string targetSkinName = goldenSkinName;
-                    
-                    if (!string.IsNullOrEmpty(targetSkinName))
-                    {
-                        var targetSkin = skeletonAnimation.skeleton.Data.FindSkin(targetSkinName);
-                        if (targetSkin != null)
-                        {
-                            skeletonAnimation.skeleton.SetSkin(targetSkin);
-                            skeletonAnimation.skeleton.SetSlotsToSetupPose();
-                        }
-                        else
-                        {
-                            Debug.LogWarning($"ChickenUnit: 找不到金鸡皮肤 '{targetSkinName}'，使用颜色方式。", this);
-                            skeletonAnimation.skeleton.SetColor(Color.yellow);
-                        }
-                    }
-                    else
-                    {
-                        skeletonAnimation.skeleton.SetColor(Color.yellow);
-                    }
+                    usedSkin = TryApplySpineSkin(goldenSkinName);
+                    if (!usedSkin && !string.IsNullOrEmpty(goldenSkinName))
+                        Debug.LogWarning($"ChickenUnit: 找不到金鸡皮肤 '{goldenSkinName}'，使用颜色显示。", this);
+                    skeletonAnimation.skeleton.SetColor(usedSkin ? Color.white : Color.yellow);
                 }
-                else
+                else if (isLightningChicken)
                 {
-                    // 不是金鸡，使用普通皮肤
-                    string targetSkinName = normalSkinName;
-                    
-                    if (!string.IsNullOrEmpty(targetSkinName))
-                    {
-                        var targetSkin = skeletonAnimation.skeleton.Data.FindSkin(targetSkinName);
-                        if (targetSkin != null)
-                        {
-                            skeletonAnimation.skeleton.SetSkin(targetSkin);
-                            skeletonAnimation.skeleton.SetSlotsToSetupPose();
-                        }
-                    }
-                }
-
-                // 然后应用特殊鸡的颜色（闪电鸡蓝色，炸弹鸡红色）
-                // 注意：一只鸡只能是一种特殊类型，所以不会同时是金鸡和闪电鸡
-                if (isLightningChicken)
-                {
-                    // 闪电鸡：蓝色
-                    skeletonAnimation.skeleton.SetColor(Color.blue);
+                    usedSkin = TryApplySpineSkin(lightningSkinName);
+                    if (!usedSkin && !string.IsNullOrEmpty(lightningSkinName))
+                        Debug.LogWarning($"ChickenUnit: 找不到闪电鸡皮肤 '{lightningSkinName}'，使用颜色显示。", this);
+                    skeletonAnimation.skeleton.SetColor(usedSkin ? Color.white : Color.blue);
                 }
                 else if (isBombChicken)
                 {
-                    // 炸弹鸡：红色
-                    skeletonAnimation.skeleton.SetColor(Color.red);
+                    usedSkin = TryApplySpineSkin(bombSkinName);
+                    if (!usedSkin && !string.IsNullOrEmpty(bombSkinName))
+                        Debug.LogWarning($"ChickenUnit: 找不到炸弹鸡皮肤 '{bombSkinName}'，使用颜色显示。", this);
+                    skeletonAnimation.skeleton.SetColor(usedSkin ? Color.white : Color.red);
                 }
-                else if (isGolden)
+                else if (isBasketballChicken)
                 {
-                    // 金鸡：如果使用皮肤，保持白色（皮肤会显示金色）；如果没有皮肤，已经是黄色
-                    // 不需要额外设置，因为上面已经处理了
+                    usedSkin = TryApplySpineSkin(basketballSkinName);
+                    if (!usedSkin && !string.IsNullOrEmpty(basketballSkinName))
+                        Debug.LogWarning($"ChickenUnit: 找不到篮球鸡皮肤 '{basketballSkinName}'，使用颜色显示。", this);
+                    skeletonAnimation.skeleton.SetColor(usedSkin ? Color.white : new Color(1f, 0.5f, 0f)); // 橙色
+                }
+                else if (isBlackHoleChicken)
+                {
+                    usedSkin = TryApplySpineSkin(blackHoleSkinName);
+                    if (!usedSkin && !string.IsNullOrEmpty(blackHoleSkinName))
+                        Debug.LogWarning($"ChickenUnit: 找不到黑洞鸡皮肤 '{blackHoleSkinName}'，使用颜色显示。", this);
+                    skeletonAnimation.skeleton.SetColor(usedSkin ? Color.white : new Color(0.3f, 0f, 0.5f)); // 深紫
                 }
                 else
                 {
-                    // 普通鸡：白色
+                    TryApplySpineSkin(normalSkinName);
                     skeletonAnimation.skeleton.SetColor(Color.white);
                 }
             }
@@ -328,6 +441,14 @@ namespace ProjectChicken.Units
                 else if (isBombChicken)
                 {
                     spriteRenderer.color = Color.red;
+                }
+                else if (isBasketballChicken)
+                {
+                    spriteRenderer.color = new Color(1f, 0.5f, 0f); // 橙色
+                }
+                else if (isBlackHoleChicken)
+                {
+                    spriteRenderer.color = new Color(0.3f, 0f, 0.5f); // 深紫
                 }
                 else
                 {
@@ -967,15 +1088,8 @@ namespace ProjectChicken.Units
                 hitFlashTimer -= Time.deltaTime;
                 if (hitFlashTimer <= 0f)
                 {
-                    // 恢复原始颜色
-                    if (skeletonAnimation != null && skeletonAnimation.skeleton != null)
-                    {
-                        skeletonAnimation.skeleton.SetColor(Color.white);
-                    }
-                    else if (spriteRenderer != null && spriteRenderer.enabled)
-                    {
-                        spriteRenderer.color = originalColor;
-                    }
+                    // 恢复为当前类型的皮肤/颜色（特殊鸡或普通鸡）
+                    ApplySpecialChickenVisuals();
                 }
             }
         }
@@ -1193,6 +1307,48 @@ namespace ProjectChicken.Units
                 }
             }
 
+            // 如果是篮球鸡，则在下蛋时有概率朝随机方向发射一颗篮球
+            if (isBasketballChicken)
+            {
+                if (ProjectChicken.Abilities.BasketballEffect.Instance == null)
+                {
+                    Debug.LogWarning($"ChickenUnit: BasketballEffect.Instance 为空！鸡位置: {transform.position}，请确保场景中存在 BasketballEffect 组件。", this);
+                }
+                else if (UnityEngine.Random.value < basketballEggTriggerChance)
+                {
+                    float baseDamage = ProjectChicken.Core.UpgradeManager.Instance != null
+                        ? ProjectChicken.Core.UpgradeManager.Instance.CurrentDamage
+                        : 10f;
+                    float damage = baseDamage * basketballDamageMultiplier;
+                    Vector2 direction = UnityEngine.Random.insideUnitCircle.normalized;
+                    ProjectChicken.Abilities.BasketballEffect.Instance.Trigger(
+                        transform.position,
+                        direction,
+                        damage,
+                        basketballSpeed,
+                        basketballMaxBounces
+                    );
+                }
+            }
+
+            // 如果是黑洞鸡，则在下蛋时有概率在当前位置生成黑洞（吸引周围鸡，不造成伤害）
+            if (isBlackHoleChicken)
+            {
+                if (ProjectChicken.Abilities.BlackHoleEffect.Instance == null)
+                {
+                    Debug.LogWarning($"ChickenUnit: BlackHoleEffect.Instance 为空！鸡位置: {transform.position}，请确保场景中存在 BlackHoleEffect 组件。", this);
+                }
+                else if (UnityEngine.Random.value < blackHoleEggTriggerChance)
+                {
+                    ProjectChicken.Abilities.BlackHoleEffect.Instance.Trigger(
+                        transform.position,
+                        blackHoleRadius,
+                        blackHoleDuration,
+                        blackHolePullForce
+                    );
+                }
+            }
+
             // 保存当前速度（用于瘦鸡继承移动行为）
             Vector2 currentVelocity = Vector2.zero;
             if (rb != null)
@@ -1287,9 +1443,13 @@ namespace ProjectChicken.Units
                 return;
             }
 
-            // 保存当前状态（包括原始的最大生命值）
+            // 保存当前状态（包括原始的最大生命值和特殊鸡类型）
             Vector3 currentPosition = transform.position;
             bool wasGolden = isGolden;
+            bool wasLightning = isLightningChicken;
+            bool wasBomb = isBombChicken;
+            bool wasBasketball = isBasketballChicken;
+            bool wasBlackHole = isBlackHoleChicken;
             float originalMaxHP = maxHP;
 
             // 实例化瘦鸡预制体
@@ -1343,8 +1503,12 @@ namespace ProjectChicken.Units
                     wasReplacedField.SetValue(thinChickenUnit, true);
                 }
                 
-                // 同步金鸡状态
+                // 同步特殊鸡类型（金鸡/闪电鸡/炸弹鸡/篮球鸡），恢复时才能正确显示
                 thinChickenUnit.SetGolden(wasGolden);
+                thinChickenUnit.SetLightningChicken(wasLightning);
+                thinChickenUnit.SetBombChicken(wasBomb);
+                thinChickenUnit.SetBasketballChicken(wasBasketball);
+                thinChickenUnit.SetBlackHoleChicken(wasBlackHole);
                 
                 thinChickenUnit.SetMaxHP(originalMaxHP);
                 
@@ -1500,9 +1664,13 @@ namespace ProjectChicken.Units
                         
                         if (fatChickenPrefab != null)
                         {
-                            // 保存当前状态
+                            // 保存当前瘦鸡的特殊类型（恢复后必须一致，否则会变成预制体默认颜色）
                             Vector3 currentPosition = transform.position;
                             bool wasGolden = isGolden;
+                            bool wasLightning = isLightningChicken;
+                            bool wasBomb = isBombChicken;
+                            bool wasBasketball = isBasketballChicken;
+                            bool wasBlackHole = isBlackHoleChicken;
                             
                             // 实例化肥鸡预制体
                             ChickenUnit fatChicken = Instantiate(fatChickenPrefab, currentPosition, transform.rotation);
@@ -1517,8 +1685,12 @@ namespace ProjectChicken.Units
                                     isFatField.SetValue(fatChicken, true);
                                 }
                                 
-                                // 同步金鸡状态
+                                // 同步特殊鸡类型（金鸡/闪电鸡/炸弹鸡/篮球鸡），避免恢复成预制体默认的另一种特殊鸡
                                 fatChicken.SetGolden(wasGolden);
+                                fatChicken.SetLightningChicken(wasLightning);
+                                fatChicken.SetBombChicken(wasBomb);
+                                fatChicken.SetBasketballChicken(wasBasketball);
+                                fatChicken.SetBlackHoleChicken(wasBlackHole);
                                 
                                 // 设置标志，让 Start() 方法播放出现动画而不是 Idle
                                 var shouldPlaySpawnField = typeof(ChickenUnit).GetField("shouldPlaySpawnAnimation", 
@@ -1528,11 +1700,10 @@ namespace ProjectChicken.Units
                                     shouldPlaySpawnField.SetValue(fatChicken, true);
                                 }
                                 
-                                // 根据当前场地等级重新设置生命值（而不是使用保存的原始值）
-                                // 这样可以确保恢复后的鸡使用当前场地等级的生命值
+                                // 根据当前场地等级重新设置生命值（特殊鸡用特殊鸡生命值）
                                 if (ChickenSpawner.Instance != null)
                                 {
-                                    ChickenSpawner.Instance.SetChickenHealthByStage(fatChicken, wasGolden);
+                                    ChickenSpawner.Instance.SetChickenHealthByStage(fatChicken, wasGolden || wasLightning || wasBomb || wasBasketball || wasBlackHole);
                                 }
                                 else
                                 {

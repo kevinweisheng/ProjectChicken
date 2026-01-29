@@ -34,6 +34,20 @@ namespace ProjectChicken.Systems
         [SerializeField] private bool showGizmos = true; // 在 Scene 视图中显示场地边界
         [SerializeField] private Color gizmoColor = Color.green; // Gizmo 颜色
 
+        [Header("鸡活动区域显示（玩家可见）")]
+        [Tooltip("是否在游戏中显示鸡可活动区域的边框")]
+        [SerializeField] private bool showChickenAreaToPlayer = true;
+        [Tooltip("边框颜色（可带透明度）")]
+        [SerializeField] private Color chickenAreaBorderColor = new Color(1f, 1f, 0.3f, 0.6f);
+        [Tooltip("边框线宽（世界单位）")]
+        [SerializeField] private float chickenAreaBorderWidth = 0.08f;
+        [Tooltip("边框渲染排序顺序（建议在鸡之下、背景之上，如 -50）")]
+        [SerializeField] private int chickenAreaBorderSortingOrder = -50;
+        [Tooltip("边框渲染图层名称")]
+        [SerializeField] private string chickenAreaBorderSortingLayerName = "Default";
+
+        private LineRenderer chickenAreaLineRenderer;
+
         /// <summary>
         /// 场地边界（只读属性）
         /// </summary>
@@ -262,6 +276,8 @@ namespace ProjectChicken.Systems
         {
             // 确保场地素材已正确设置
             UpdateAreaSprite();
+            // 显示鸡活动区域边框（玩家可见）
+            RefreshChickenAreaBorder();
         }
 
         /// <summary>
@@ -343,6 +359,81 @@ namespace ProjectChicken.Systems
             sprite.name = "PlaceholderAreaSprite";
 
             return sprite;
+        }
+
+        /// <summary>
+        /// 刷新鸡活动区域边框显示（玩家可见的运行时边框）
+        /// </summary>
+        public void RefreshChickenAreaBorder()
+        {
+            if (!showChickenAreaToPlayer)
+            {
+                if (chickenAreaLineRenderer != null)
+                {
+                    chickenAreaLineRenderer.enabled = false;
+                }
+                return;
+            }
+
+            if (chickenAreaLineRenderer == null)
+            {
+                EnsureChickenAreaBorder();
+            }
+
+            if (chickenAreaLineRenderer == null)
+            {
+                return;
+            }
+
+            chickenAreaLineRenderer.enabled = true;
+            Bounds b = ChickenMovementBounds;
+            float z = 0f;
+            chickenAreaLineRenderer.SetPosition(0, new Vector3(b.min.x, b.min.y, z));
+            chickenAreaLineRenderer.SetPosition(1, new Vector3(b.max.x, b.min.y, z));
+            chickenAreaLineRenderer.SetPosition(2, new Vector3(b.max.x, b.max.y, z));
+            chickenAreaLineRenderer.SetPosition(3, new Vector3(b.min.x, b.max.y, z));
+            chickenAreaLineRenderer.SetPosition(4, new Vector3(b.min.x, b.min.y, z));
+        }
+
+        /// <summary>
+        /// 创建鸡活动区域边框（LineRenderer）
+        /// </summary>
+        private void EnsureChickenAreaBorder()
+        {
+            if (chickenAreaLineRenderer != null)
+            {
+                return;
+            }
+
+            GameObject borderObj = new GameObject("ChickenAreaBorder");
+            borderObj.transform.SetParent(transform);
+            borderObj.transform.localPosition = Vector3.zero;
+            borderObj.transform.localRotation = Quaternion.identity;
+            borderObj.transform.localScale = Vector3.one;
+
+            chickenAreaLineRenderer = borderObj.AddComponent<LineRenderer>();
+            chickenAreaLineRenderer.useWorldSpace = true;
+            chickenAreaLineRenderer.positionCount = 5;
+            chickenAreaLineRenderer.loop = true;
+            chickenAreaLineRenderer.startWidth = chickenAreaBorderWidth;
+            chickenAreaLineRenderer.endWidth = chickenAreaBorderWidth;
+            chickenAreaLineRenderer.startColor = chickenAreaBorderColor;
+            chickenAreaLineRenderer.endColor = chickenAreaBorderColor;
+
+            Shader shader = Shader.Find("Sprites/Default");
+            if (shader == null)
+            {
+                shader = Shader.Find("Unlit/Color");
+            }
+            if (shader != null)
+            {
+                chickenAreaLineRenderer.material = new Material(shader);
+            }
+
+            chickenAreaLineRenderer.sortingLayerName = chickenAreaBorderSortingLayerName;
+            chickenAreaLineRenderer.sortingOrder = chickenAreaBorderSortingOrder;
+
+            RefreshChickenAreaBorder();
         }
 
         /// <summary>
@@ -650,6 +741,7 @@ namespace ProjectChicken.Systems
 
             // 更新显示
             UpdateAreaSprite();
+            RefreshChickenAreaBorder();
         }
 
         /// <summary>
@@ -662,6 +754,7 @@ namespace ProjectChicken.Systems
             chickenMovementAreaSize = size;
             chickenMovementAreaCenter = center;
             useCustomChickenArea = true;
+            RefreshChickenAreaBorder();
         }
 
         /// <summary>
