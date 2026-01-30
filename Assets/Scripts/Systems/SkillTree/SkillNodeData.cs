@@ -27,7 +27,27 @@ namespace ProjectChicken.Systems.SkillTree
         UnlockGravityWave,        // 解锁引力波能力（鸡生蛋时，有概率让回合时间增加0.2秒）
         GravityWaveChance,        // 引力波概率提升（提升鸡生蛋时触发引力波的概率）
         UnlockMammal,             // 解锁哺乳动物能力（每只鸡下蛋时，有概率不生鸡蛋而产生一只鸡）
-        MammalChance              // 哺乳动物概率提升（提升鸡生鸡的概率）
+        MammalChance,             // 哺乳动物概率提升（提升鸡生鸡的概率）
+        // 闪电鸡
+        UnlockLightningChicken,   // 解锁闪电鸡（EffectValue 为基础权重）
+        LightningChickenSpawnRate, // 增加闪电鸡出现概率（累加到权重）
+        LightningChickenDamageMultiplier, // 增加闪电鸡伤害（攻击力倍率，累加）
+        LightningChainCount,     // 增加闪电连锁数量（累加）
+        // 炸弹鸡
+        UnlockBombChicken,        // 解锁炸弹鸡（EffectValue 为基础权重）
+        BombChickenSpawnRate,    // 增加炸弹鸡出现概率（累加到权重）
+        BombChickenDamageMultiplier, // 增加炸弹鸡伤害（攻击力倍率，累加）
+        BombExplosionRadius,     // 增加爆炸范围（累加）
+        // 黑洞鸡
+        UnlockBlackHoleChicken,  // 解锁黑洞鸡（EffectValue 为基础权重）
+        BlackHoleChickenSpawnRate, // 增加黑洞鸡出现概率（累加到权重）
+        BlackHolePullForce,       // 增加黑洞质量/吸引力（累加）
+        BlackHoleRadius,         // 增加黑洞范围（累加）
+        // 篮球鸡
+        UnlockBasketballChicken,  // 解锁篮球鸡（EffectValue 为基础权重）
+        BasketballChickenSpawnRate, // 增加篮球鸡出现概率（累加到权重）
+        BasketballDamageMultiplier, // 增加篮球伤害（累加）
+        BasketballBounceCount    // 增加篮球反弹次数（累加）
     }
 
     /// <summary>

@@ -56,6 +56,34 @@ namespace ProjectChicken.Core
         private bool isMammalUnlocked = false; // 是否解锁哺乳动物能力
         private float mammalChance = 0f; // 哺乳动物概率（0-1之间，基础0%，解锁后初始1%）
 
+        // 闪电鸡可升级属性
+        private bool isLightningChickenUnlocked = false;
+        private float lightningChickenBaseWeight = 0f;   // 解锁时由技能 EffectValue 设置
+        private float lightningChickenSpawnRateBonus = 0f;
+        private float lightningChickenDamageMultiplierBonus = 0f;
+        private int lightningChainCountBonus = 0;
+
+        // 炸弹鸡可升级属性
+        private bool isBombChickenUnlocked = false;
+        private float bombChickenBaseWeight = 0f;
+        private float bombChickenSpawnRateBonus = 0f;
+        private float bombChickenDamageMultiplierBonus = 0f;
+        private float bombExplosionRadiusBonus = 0f;
+
+        // 黑洞鸡可升级属性
+        private bool isBlackHoleChickenUnlocked = false;
+        private float blackHoleChickenBaseWeight = 0f;
+        private float blackHoleChickenSpawnRateBonus = 0f;
+        private float blackHolePullForceBonus = 0f;
+        private float blackHoleRadiusBonus = 0f;
+
+        // 篮球鸡可升级属性
+        private bool isBasketballChickenUnlocked = false;
+        private float basketballChickenBaseWeight = 0f;
+        private float basketballChickenSpawnRateBonus = 0f;
+        private float basketballDamageMultiplierBonus = 0f;
+        private int basketballBounceCountBonus = 0;
+
         /// <summary>
         /// 当前攻击力（只读属性）
         /// </summary>
@@ -165,6 +193,34 @@ namespace ProjectChicken.Core
         /// 每只鸡下蛋时，有该概率不生鸡蛋而产生一只鸡
         /// </summary>
         public float MammalChance => mammalChance;
+
+        // 闪电鸡
+        public bool IsLightningChickenUnlocked => isLightningChickenUnlocked;
+        public float LightningChickenBaseWeight => lightningChickenBaseWeight;
+        public float LightningChickenSpawnRateBonus => lightningChickenSpawnRateBonus;
+        public float LightningChickenDamageMultiplierBonus => lightningChickenDamageMultiplierBonus;
+        public int LightningChainCountBonus => lightningChainCountBonus;
+
+        // 炸弹鸡
+        public bool IsBombChickenUnlocked => isBombChickenUnlocked;
+        public float BombChickenBaseWeight => bombChickenBaseWeight;
+        public float BombChickenSpawnRateBonus => bombChickenSpawnRateBonus;
+        public float BombChickenDamageMultiplierBonus => bombChickenDamageMultiplierBonus;
+        public float BombExplosionRadiusBonus => bombExplosionRadiusBonus;
+
+        // 黑洞鸡
+        public bool IsBlackHoleChickenUnlocked => isBlackHoleChickenUnlocked;
+        public float BlackHoleChickenBaseWeight => blackHoleChickenBaseWeight;
+        public float BlackHoleChickenSpawnRateBonus => blackHoleChickenSpawnRateBonus;
+        public float BlackHolePullForceBonus => blackHolePullForceBonus;
+        public float BlackHoleRadiusBonus => blackHoleRadiusBonus;
+
+        // 篮球鸡
+        public bool IsBasketballChickenUnlocked => isBasketballChickenUnlocked;
+        public float BasketballChickenBaseWeight => basketballChickenBaseWeight;
+        public float BasketballChickenSpawnRateBonus => basketballChickenSpawnRateBonus;
+        public float BasketballDamageMultiplierBonus => basketballDamageMultiplierBonus;
+        public int BasketballBounceCountBonus => basketballBounceCountBonus;
 
         private void Awake()
         {
@@ -410,6 +466,62 @@ namespace ProjectChicken.Core
                     mammalChance = Mathf.Clamp01(mammalChance + value);
                     break;
 
+                case SkillEffectType.UnlockLightningChicken:
+                    isLightningChickenUnlocked = true;
+                    lightningChickenBaseWeight = Mathf.Max(0f, value);
+                    break;
+                case SkillEffectType.LightningChickenSpawnRate:
+                    lightningChickenSpawnRateBonus = Mathf.Max(0f, lightningChickenSpawnRateBonus + value);
+                    break;
+                case SkillEffectType.LightningChickenDamageMultiplier:
+                    lightningChickenDamageMultiplierBonus = Mathf.Max(0f, lightningChickenDamageMultiplierBonus + value);
+                    break;
+                case SkillEffectType.LightningChainCount:
+                    lightningChainCountBonus += Mathf.RoundToInt(value);
+                    break;
+
+                case SkillEffectType.UnlockBombChicken:
+                    isBombChickenUnlocked = true;
+                    bombChickenBaseWeight = Mathf.Max(0f, value);
+                    break;
+                case SkillEffectType.BombChickenSpawnRate:
+                    bombChickenSpawnRateBonus = Mathf.Max(0f, bombChickenSpawnRateBonus + value);
+                    break;
+                case SkillEffectType.BombChickenDamageMultiplier:
+                    bombChickenDamageMultiplierBonus = Mathf.Max(0f, bombChickenDamageMultiplierBonus + value);
+                    break;
+                case SkillEffectType.BombExplosionRadius:
+                    bombExplosionRadiusBonus = Mathf.Max(0f, bombExplosionRadiusBonus + value);
+                    break;
+
+                case SkillEffectType.UnlockBlackHoleChicken:
+                    isBlackHoleChickenUnlocked = true;
+                    blackHoleChickenBaseWeight = Mathf.Max(0f, value);
+                    break;
+                case SkillEffectType.BlackHoleChickenSpawnRate:
+                    blackHoleChickenSpawnRateBonus = Mathf.Max(0f, blackHoleChickenSpawnRateBonus + value);
+                    break;
+                case SkillEffectType.BlackHolePullForce:
+                    blackHolePullForceBonus = Mathf.Max(0f, blackHolePullForceBonus + value);
+                    break;
+                case SkillEffectType.BlackHoleRadius:
+                    blackHoleRadiusBonus = Mathf.Max(0f, blackHoleRadiusBonus + value);
+                    break;
+
+                case SkillEffectType.UnlockBasketballChicken:
+                    isBasketballChickenUnlocked = true;
+                    basketballChickenBaseWeight = Mathf.Max(0f, value);
+                    break;
+                case SkillEffectType.BasketballChickenSpawnRate:
+                    basketballChickenSpawnRateBonus = Mathf.Max(0f, basketballChickenSpawnRateBonus + value);
+                    break;
+                case SkillEffectType.BasketballDamageMultiplier:
+                    basketballDamageMultiplierBonus = Mathf.Max(0f, basketballDamageMultiplierBonus + value);
+                    break;
+                case SkillEffectType.BasketballBounceCount:
+                    basketballBounceCountBonus += Mathf.RoundToInt(value);
+                    break;
+
                 default:
                     Debug.LogWarning($"UpgradeManager: 未知的技能效果类型：{node.EffectType}", this);
                     break;
@@ -578,6 +690,27 @@ namespace ProjectChicken.Core
             isMammalUnlocked = false;
             mammalChance = 0f;
 
+            isLightningChickenUnlocked = false;
+            lightningChickenBaseWeight = 0f;
+            lightningChickenSpawnRateBonus = 0f;
+            lightningChickenDamageMultiplierBonus = 0f;
+            lightningChainCountBonus = 0;
+            isBombChickenUnlocked = false;
+            bombChickenBaseWeight = 0f;
+            bombChickenSpawnRateBonus = 0f;
+            bombChickenDamageMultiplierBonus = 0f;
+            bombExplosionRadiusBonus = 0f;
+            isBlackHoleChickenUnlocked = false;
+            blackHoleChickenBaseWeight = 0f;
+            blackHoleChickenSpawnRateBonus = 0f;
+            blackHolePullForceBonus = 0f;
+            blackHoleRadiusBonus = 0f;
+            isBasketballChickenUnlocked = false;
+            basketballChickenBaseWeight = 0f;
+            basketballChickenSpawnRateBonus = 0f;
+            basketballDamageMultiplierBonus = 0f;
+            basketballBounceCountBonus = 0;
+
             // 遍历保存的技能记录列表
             foreach (GameSaveData.SkillSaveRecord record in skillRecords)
             {
@@ -699,6 +832,27 @@ namespace ProjectChicken.Core
 
             isMammalUnlocked = false;
             mammalChance = 0f;
+
+            isLightningChickenUnlocked = false;
+            lightningChickenBaseWeight = 0f;
+            lightningChickenSpawnRateBonus = 0f;
+            lightningChickenDamageMultiplierBonus = 0f;
+            lightningChainCountBonus = 0;
+            isBombChickenUnlocked = false;
+            bombChickenBaseWeight = 0f;
+            bombChickenSpawnRateBonus = 0f;
+            bombChickenDamageMultiplierBonus = 0f;
+            bombExplosionRadiusBonus = 0f;
+            isBlackHoleChickenUnlocked = false;
+            blackHoleChickenBaseWeight = 0f;
+            blackHoleChickenSpawnRateBonus = 0f;
+            blackHolePullForceBonus = 0f;
+            blackHoleRadiusBonus = 0f;
+            isBasketballChickenUnlocked = false;
+            basketballChickenBaseWeight = 0f;
+            basketballChickenSpawnRateBonus = 0f;
+            basketballDamageMultiplierBonus = 0f;
+            basketballBounceCountBonus = 0;
         }
     }
 }

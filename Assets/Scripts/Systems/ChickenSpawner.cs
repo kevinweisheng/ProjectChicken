@@ -30,8 +30,7 @@ namespace ProjectChicken.Systems
         [SerializeField] private GameConfig gameConfig; // 游戏配置（从 GameConfig 读取初始鸡数量等）
 
         [Header("生命值配置")]
-        [SerializeField] private ChickenHealthConfig healthConfig; // 普通鸡生命值配置（6个等级的生命值）
-        [SerializeField] private GoldenChickenHealthConfig goldenChickenHealthConfig; // 金鸡生命值配置（6个等级的生命值）
+        [SerializeField] private ChickenHealthConfig healthConfig; // 鸡生命值配置（6个等级，金鸡与普通鸡共用）
 
         [Header("生成范围")]
         [SerializeField] private float spawnPadding = 1f; // 生成边界内边距（避免在屏幕边缘生成）
@@ -392,74 +391,43 @@ namespace ProjectChicken.Systems
         }
 
         /// <summary>
-        /// 根据当前场地等级的生命值等级和鸡的类型设置鸡的生命值
+        /// 根据当前场地等级的生命值等级设置鸡的生命值（金鸡与普通鸡使用同一配置）
         /// </summary>
         /// <param name="chicken">鸡单位</param>
-        /// <param name="isGolden">是否为金鸡</param>
+        /// <param name="isGolden">保留参数用于兼容调用方，不再区分金鸡/普通鸡生命值</param>
         public void SetChickenHealthByStage(ChickenUnit chicken, bool isGolden)
         {
             if (chicken == null)
             {
                 Debug.LogWarning("ChickenSpawner: SetChickenHealthByStage - chicken 为空", this);
-                return; // 如果鸡为空，使用默认生命值
+                return;
             }
 
             // 获取当前场地等级的生命值等级（优先使用场地等级）
-            int healthLevel = 0; // 默认等级0
-            string levelSource = "默认值";
-            
-            // 优先使用场地等级的生命值等级
+            int healthLevel = 0;
             if (AreaUpgradeManager.Instance != null && AreaUpgradeManager.Instance.CurrentAreaData != null)
             {
                 healthLevel = AreaUpgradeManager.Instance.CurrentAreaData.ChickenHealthLevel;
-                levelSource = $"AreaUpgradeManager (场地等级: {AreaUpgradeManager.Instance.CurrentAreaLevel})";
             }
-            // 如果没有场地等级，回退到阶段等级
             else if (FractalUniverseManager.Instance != null && FractalUniverseManager.Instance.CurrentStage != null)
             {
                 healthLevel = FractalUniverseManager.Instance.CurrentStage.ChickenHealthLevel;
-                levelSource = $"FractalUniverseManager (阶段: {FractalUniverseManager.Instance.CurrentStage.StageName})";
             }
             else
             {
                 Debug.LogWarning($"ChickenSpawner: 无法获取场地等级或阶段等级，使用默认生命值等级 0", this);
             }
 
-            float health = 0f;
-            string chickenType = isGolden ? "金鸡" : "普通鸡";
-
-            // 根据鸡的类型选择不同的配置
-            if (isGolden)
+            // 金鸡与普通鸡共用同一生命值配置
+            float health;
+            if (healthConfig != null)
             {
-                if (goldenChickenHealthConfig != null)
-                {
-                    health = goldenChickenHealthConfig.GetHealthByLevel(healthLevel);
-                }
-                else
-                {
-                    if (healthConfig != null)
-                    {
-                        float baseHealth = healthConfig.GetHealthByLevel(healthLevel);
-                        health = baseHealth * 1.5f;
-                    }
-                    else
-                    {
-                        health = 150f; // 最终默认值
-                        Debug.LogWarning($"ChickenSpawner: 金鸡和普通鸡生命值配置都未设置，使用最终默认值 {health}", this);
-                    }
-                }
+                health = healthConfig.GetHealthByLevel(healthLevel);
             }
             else
             {
-                if (healthConfig != null)
-                {
-                    health = healthConfig.GetHealthByLevel(healthLevel);
-                }
-                else
-                {
-                    health = 100f;
-                    Debug.LogWarning($"ChickenSpawner: 普通鸡生命值配置未设置 (healthConfig 为 null)，使用默认值 {health}", this);
-                }
+                health = 100f;
+                Debug.LogWarning($"ChickenSpawner: 生命值配置未设置 (healthConfig 为 null)，使用默认值 {health}", this);
             }
 
             chicken.SetMaxHP(health);
@@ -512,45 +480,57 @@ namespace ProjectChicken.Systems
                 }
             }
 
-            // 检查闪电鸡
-            if (specialChickenConfig.IsEnabled(SpecialChickenType.Lightning))
+            // 闪电鸡：优先使用技能解锁与权重，否则用配置（方便编辑器测试）
+            float lightningWeight = 0f;
+            if (UpgradeManager.Instance != null && UpgradeManager.Instance.IsLightningChickenUnlocked)
             {
-                float weight = specialChickenConfig.GetWeight(SpecialChickenType.Lightning);
-                if (weight > 0f)
-                {
-                    weightedOptions.Add((SpecialChickenType.Lightning, weight));
-                }
+                lightningWeight = UpgradeManager.Instance.LightningChickenBaseWeight + UpgradeManager.Instance.LightningChickenSpawnRateBonus;
             }
+            else if (specialChickenConfig.IsEnabled(SpecialChickenType.Lightning))
+            {
+                lightningWeight = specialChickenConfig.GetWeight(SpecialChickenType.Lightning);
+            }
+            if (lightningWeight > 0f)
+                weightedOptions.Add((SpecialChickenType.Lightning, lightningWeight));
 
-            // 检查炸弹鸡
-            if (specialChickenConfig.IsEnabled(SpecialChickenType.Bomb))
+            // 炸弹鸡
+            float bombWeight = 0f;
+            if (UpgradeManager.Instance != null && UpgradeManager.Instance.IsBombChickenUnlocked)
             {
-                float weight = specialChickenConfig.GetWeight(SpecialChickenType.Bomb);
-                if (weight > 0f)
-                {
-                    weightedOptions.Add((SpecialChickenType.Bomb, weight));
-                }
+                bombWeight = UpgradeManager.Instance.BombChickenBaseWeight + UpgradeManager.Instance.BombChickenSpawnRateBonus;
             }
+            else if (specialChickenConfig.IsEnabled(SpecialChickenType.Bomb))
+            {
+                bombWeight = specialChickenConfig.GetWeight(SpecialChickenType.Bomb);
+            }
+            if (bombWeight > 0f)
+                weightedOptions.Add((SpecialChickenType.Bomb, bombWeight));
 
-            // 检查篮球鸡
-            if (specialChickenConfig.IsEnabled(SpecialChickenType.Basketball))
+            // 篮球鸡
+            float basketballWeight = 0f;
+            if (UpgradeManager.Instance != null && UpgradeManager.Instance.IsBasketballChickenUnlocked)
             {
-                float weight = specialChickenConfig.GetWeight(SpecialChickenType.Basketball);
-                if (weight > 0f)
-                {
-                    weightedOptions.Add((SpecialChickenType.Basketball, weight));
-                }
+                basketballWeight = UpgradeManager.Instance.BasketballChickenBaseWeight + UpgradeManager.Instance.BasketballChickenSpawnRateBonus;
             }
+            else if (specialChickenConfig.IsEnabled(SpecialChickenType.Basketball))
+            {
+                basketballWeight = specialChickenConfig.GetWeight(SpecialChickenType.Basketball);
+            }
+            if (basketballWeight > 0f)
+                weightedOptions.Add((SpecialChickenType.Basketball, basketballWeight));
 
-            // 检查黑洞鸡
-            if (specialChickenConfig.IsEnabled(SpecialChickenType.BlackHole))
+            // 黑洞鸡
+            float blackHoleWeight = 0f;
+            if (UpgradeManager.Instance != null && UpgradeManager.Instance.IsBlackHoleChickenUnlocked)
             {
-                float weight = specialChickenConfig.GetWeight(SpecialChickenType.BlackHole);
-                if (weight > 0f)
-                {
-                    weightedOptions.Add((SpecialChickenType.BlackHole, weight));
-                }
+                blackHoleWeight = UpgradeManager.Instance.BlackHoleChickenBaseWeight + UpgradeManager.Instance.BlackHoleChickenSpawnRateBonus;
             }
+            else if (specialChickenConfig.IsEnabled(SpecialChickenType.BlackHole))
+            {
+                blackHoleWeight = specialChickenConfig.GetWeight(SpecialChickenType.BlackHole);
+            }
+            if (blackHoleWeight > 0f)
+                weightedOptions.Add((SpecialChickenType.BlackHole, blackHoleWeight));
 
             // 如果没有可选项，返回普通鸡
             if (weightedOptions.Count == 0)
@@ -675,10 +655,12 @@ namespace ProjectChicken.Systems
             var lightningRangeField = typeof(ChickenUnit).GetField("lightningRange", 
                 System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
 
+            int maxTargets = config.maxTargets + (UpgradeManager.Instance != null ? UpgradeManager.Instance.LightningChainCountBonus : 0);
+            float damagePercent = config.damagePercent + (UpgradeManager.Instance != null ? UpgradeManager.Instance.LightningChickenDamageMultiplierBonus : 0f);
             if (lightningEggTriggerChanceField != null) lightningEggTriggerChanceField.SetValue(chicken, config.eggTriggerChance);
-            if (lightningMaxTargetsField != null) lightningMaxTargetsField.SetValue(chicken, config.maxTargets);
+            if (lightningMaxTargetsField != null) lightningMaxTargetsField.SetValue(chicken, Mathf.Max(1, maxTargets));
             if (lightningChainDecayField != null) lightningChainDecayField.SetValue(chicken, config.chainDecay);
-            if (lightningDamagePercentField != null) lightningDamagePercentField.SetValue(chicken, config.damagePercent);
+            if (lightningDamagePercentField != null) lightningDamagePercentField.SetValue(chicken, Mathf.Max(0f, damagePercent));
             if (lightningRangeField != null) lightningRangeField.SetValue(chicken, config.range);
         }
 
@@ -699,9 +681,11 @@ namespace ProjectChicken.Systems
             var bombDamageFalloffField = typeof(ChickenUnit).GetField("bombDamageFalloff", 
                 System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
 
+            float explosionRadius = config.explosionRadius + (UpgradeManager.Instance != null ? UpgradeManager.Instance.BombExplosionRadiusBonus : 0f);
+            float bombDamageMultiplier = config.damageMultiplier + (UpgradeManager.Instance != null ? UpgradeManager.Instance.BombChickenDamageMultiplierBonus : 0f);
             if (bombEggTriggerChanceField != null) bombEggTriggerChanceField.SetValue(chicken, config.eggTriggerChance);
-            if (bombExplosionRadiusField != null) bombExplosionRadiusField.SetValue(chicken, config.explosionRadius);
-            if (bombDamageMultiplierField != null) bombDamageMultiplierField.SetValue(chicken, config.damageMultiplier);
+            if (bombExplosionRadiusField != null) bombExplosionRadiusField.SetValue(chicken, Mathf.Max(0.1f, explosionRadius));
+            if (bombDamageMultiplierField != null) bombDamageMultiplierField.SetValue(chicken, Mathf.Max(0f, bombDamageMultiplier));
             if (bombDamageFalloffField != null) bombDamageFalloffField.SetValue(chicken, config.damageFalloff);
         }
 
@@ -721,10 +705,12 @@ namespace ProjectChicken.Systems
             var basketballMaxBouncesField = typeof(ChickenUnit).GetField("basketballMaxBounces", 
                 System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
 
+            float basketballDamageMultiplier = config.damageMultiplier + (UpgradeManager.Instance != null ? UpgradeManager.Instance.BasketballDamageMultiplierBonus : 0f);
+            int basketballMaxBounces = config.maxBounces + (UpgradeManager.Instance != null ? UpgradeManager.Instance.BasketballBounceCountBonus : 0);
             if (basketballEggTriggerChanceField != null) basketballEggTriggerChanceField.SetValue(chicken, config.eggTriggerChance);
             if (basketballSpeedField != null) basketballSpeedField.SetValue(chicken, config.speed);
-            if (basketballDamageMultiplierField != null) basketballDamageMultiplierField.SetValue(chicken, config.damageMultiplier);
-            if (basketballMaxBouncesField != null) basketballMaxBouncesField.SetValue(chicken, config.maxBounces);
+            if (basketballDamageMultiplierField != null) basketballDamageMultiplierField.SetValue(chicken, Mathf.Max(0f, basketballDamageMultiplier));
+            if (basketballMaxBouncesField != null) basketballMaxBouncesField.SetValue(chicken, Mathf.Max(0, basketballMaxBounces));
         }
 
         /// <summary>
@@ -743,10 +729,12 @@ namespace ProjectChicken.Systems
             var blackHolePullForceField = typeof(ChickenUnit).GetField("blackHolePullForce", 
                 System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
 
+            float blackHoleRadius = config.radius + (UpgradeManager.Instance != null ? UpgradeManager.Instance.BlackHoleRadiusBonus : 0f);
+            float blackHolePullForce = config.pullForce + (UpgradeManager.Instance != null ? UpgradeManager.Instance.BlackHolePullForceBonus : 0f);
             if (blackHoleEggTriggerChanceField != null) blackHoleEggTriggerChanceField.SetValue(chicken, config.eggTriggerChance);
-            if (blackHoleRadiusField != null) blackHoleRadiusField.SetValue(chicken, config.radius);
+            if (blackHoleRadiusField != null) blackHoleRadiusField.SetValue(chicken, Mathf.Max(0.1f, blackHoleRadius));
             if (blackHoleDurationField != null) blackHoleDurationField.SetValue(chicken, config.duration);
-            if (blackHolePullForceField != null) blackHolePullForceField.SetValue(chicken, config.pullForce);
+            if (blackHolePullForceField != null) blackHolePullForceField.SetValue(chicken, Mathf.Max(0f, blackHolePullForce));
         }
 
         /// <summary>
